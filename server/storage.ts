@@ -49,7 +49,7 @@ export class DatabaseStorage implements IStorage {
       .insert(users)
       .values(userData)
       .onConflictDoUpdate({
-        target: users.id,
+        target: users.email,
         set: {
           ...userData,
           updatedAt: new Date(),
@@ -113,7 +113,11 @@ export class DatabaseStorage implements IStorage {
 
   // Statement operations
   async getStatements(projectId: string, status?: string): Promise<StatementWithRelations[]> {
-    let query = db
+    const whereCondition = status
+      ? and(eq(statements.projectId, projectId), eq(statements.status, status))
+      : eq(statements.projectId, projectId);
+
+    const results = await db
       .select({
         id: statements.id,
         projectId: statements.projectId,
@@ -158,15 +162,8 @@ export class DatabaseStorage implements IStorage {
       .from(statements)
       .innerJoin(projects, eq(statements.projectId, projects.id))
       .innerJoin(users, eq(statements.createdBy, users.id))
-      .where(eq(statements.projectId, projectId));
-
-    if (status) {
-      query = query.where(and(eq(statements.projectId, projectId), eq(statements.status, status)));
-    } else {
-      query = query.where(eq(statements.projectId, projectId));
-    }
-
-    const results = await query.orderBy(desc(statements.updatedAt));
+      .where(whereCondition)
+      .orderBy(desc(statements.updatedAt));
 
     // Add assignee and reviewer separately to avoid complex joins
     const statementsWithRelations: StatementWithRelations[] = [];
