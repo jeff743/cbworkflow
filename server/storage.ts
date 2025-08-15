@@ -37,6 +37,10 @@ export interface IStorage {
   // Dashboard stats
   getUserStatements(userId: string): Promise<StatementWithRelations[]>;
   getReviewStatements(userId: string): Promise<StatementWithRelations[]>;
+  
+  // User management (for role management)
+  getAllUsers(): Promise<User[]>;
+  updateUserRole(userId: string, role: string): Promise<User | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -418,6 +422,41 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(statements.updatedAt));
 
     return results.map(result => ({ ...result, assignee: undefined, reviewer: undefined }));
+  }
+
+  // User management methods
+  async getAllUsers(): Promise<User[]> {
+    try {
+      logDatabase('Fetching all users', 'getAllUsers');
+      const allUsers = await db.select().from(users).orderBy(users.createdAt);
+      logDatabase(`Found ${allUsers.length} users`, 'getAllUsers');
+      return allUsers;
+    } catch (error) {
+      logError('Failed to fetch all users', 'database', error as Error);
+      throw error;
+    }
+  }
+
+  async updateUserRole(userId: string, role: string): Promise<User | undefined> {
+    try {
+      logDatabase(`Updating user role: ${userId} -> ${role}`, 'updateUserRole');
+      const [updatedUser] = await db
+        .update(users)
+        .set({ 
+          role,
+          updatedAt: new Date() 
+        })
+        .where(eq(users.id, userId))
+        .returning();
+      
+      if (updatedUser) {
+        logDatabase(`User role updated successfully: ${updatedUser.email} -> ${role}`, 'updateUserRole');
+      }
+      return updatedUser;
+    } catch (error) {
+      logError(`Failed to update user role: ${userId}`, 'database', error as Error);
+      throw error;
+    }
   }
 }
 
