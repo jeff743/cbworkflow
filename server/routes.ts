@@ -5,6 +5,7 @@ import { setupAuth, isAuthenticated } from "./replitAuth";
 import { ObjectStorageService } from "./objectStorage";
 import { insertProjectSchema, insertStatementSchema, updateStatementSchema, type User } from "@shared/schema";
 import canvas from "canvas";
+import { logger } from "./logger";
 
 const { createCanvas, loadImage, registerFont } = canvas;
 
@@ -233,6 +234,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error exporting colorblocks:", error);
       res.status(500).json({ message: "Failed to export colorblocks" });
+    }
+  });
+
+  // Logs route for debugging
+  app.get('/api/logs', isAuthenticated, (req: any, res) => {
+    try {
+      const logType = req.query.type || 'combined';
+      const lines = parseInt(req.query.lines as string) || 100;
+      
+      // Only allow specific log types for security
+      const allowedLogTypes = ['combined', 'error', 'warn', 'info', 'debug', 'access', 'auth', 'database'];
+      if (!allowedLogTypes.includes(logType)) {
+        return res.status(400).json({ message: 'Invalid log type' });
+      }
+
+      const recentLogs = logger.getRecentLogs(logType, lines);
+      const logFiles = logger.getLogFiles();
+      
+      res.json({
+        logType,
+        lines: recentLogs.length,
+        logs: recentLogs,
+        availableTypes: allowedLogTypes,
+        logFiles: Object.keys(logFiles)
+      });
+    } catch (error) {
+      logger.error('Failed to retrieve logs', 'api', error as Error);
+      res.status(500).json({ message: 'Failed to retrieve logs' });
     }
   });
 
