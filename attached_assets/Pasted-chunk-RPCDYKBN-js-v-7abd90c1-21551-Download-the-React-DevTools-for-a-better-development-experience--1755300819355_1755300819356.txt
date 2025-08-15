@@ -1,0 +1,75 @@
+chunk-RPCDYKBN.js?v=7abd90c1:21551 Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+content.js:1392 NOT a vento tab
+content.js:1398 GOT VALUE ventoRecording: false
+@radix-ui_react-dialog.js?v=7abd90c1:337 Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+(anonymous) @ @radix-ui_react-dialog.js?v=7abd90c1:337
+commitHookEffectListMount @ chunk-RPCDYKBN.js?v=7abd90c1:16915
+commitPassiveMountOnFiber @ chunk-RPCDYKBN.js?v=7abd90c1:18156
+commitPassiveMountEffects_complete @ chunk-RPCDYKBN.js?v=7abd90c1:18129
+commitPassiveMountEffects_begin @ chunk-RPCDYKBN.js?v=7abd90c1:18119
+commitPassiveMountEffects @ chunk-RPCDYKBN.js?v=7abd90c1:18109
+flushPassiveEffectsImpl @ chunk-RPCDYKBN.js?v=7abd90c1:19490
+flushPassiveEffects @ chunk-RPCDYKBN.js?v=7abd90c1:19447
+commitRootImpl @ chunk-RPCDYKBN.js?v=7abd90c1:19416
+commitRoot @ chunk-RPCDYKBN.js?v=7abd90c1:19277
+performSyncWorkOnRoot @ chunk-RPCDYKBN.js?v=7abd90c1:18895
+flushSyncCallbacks @ chunk-RPCDYKBN.js?v=7abd90c1:9119
+(anonymous) @ chunk-RPCDYKBN.js?v=7abd90c1:18627
+Dashboard.tsx:42 Form submitted with data: {name: 'Matthew Pollard'}
+Dashboard.tsx:50 Sending project data: {name: 'Matthew Pollard', clientName: 'Matthew Pollard', description: 'Project for Matthew Pollard', status: 'active'}
+Dashboard.tsx:73 Making API request with: {name: 'Matthew Pollard', clientName: 'Matthew Pollard', description: 'Project for Matthew Pollard', status: 'active'}
+queryClient.ts:15  POST https://96a849b6-0bae-4c89-9924-5f9602e189d3-00-3a58jcr9r3ug7.picard.replit.dev/api/projects 500 (Internal Server Error)
+apiRequest @ queryClient.ts:15
+mutationFn @ Dashboard.tsx:74
+fn @ @tanstack_react-query.js?v=7abd90c1:1189
+run @ @tanstack_react-query.js?v=7abd90c1:494
+start @ @tanstack_react-query.js?v=7abd90c1:536
+execute @ @tanstack_react-query.js?v=7abd90c1:1225
+await in execute
+mutate @ @tanstack_react-query.js?v=7abd90c1:2630
+(anonymous) @ @tanstack_react-query.js?v=7abd90c1:3295
+onCreateProject @ Dashboard.tsx:51
+(anonymous) @ chunk-4BFJKWC4.js?v=7abd90c1:1465
+await in (anonymous)
+callCallback2 @ chunk-RPCDYKBN.js?v=7abd90c1:3674
+invokeGuardedCallbackDev @ chunk-RPCDYKBN.js?v=7abd90c1:3699
+invokeGuardedCallback @ chunk-RPCDYKBN.js?v=7abd90c1:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-RPCDYKBN.js?v=7abd90c1:3736
+executeDispatch @ chunk-RPCDYKBN.js?v=7abd90c1:7014
+processDispatchQueueItemsInOrder @ chunk-RPCDYKBN.js?v=7abd90c1:7034
+processDispatchQueue @ chunk-RPCDYKBN.js?v=7abd90c1:7043
+dispatchEventsForPlugins @ chunk-RPCDYKBN.js?v=7abd90c1:7051
+(anonymous) @ chunk-RPCDYKBN.js?v=7abd90c1:7174
+batchedUpdates$1 @ chunk-RPCDYKBN.js?v=7abd90c1:18913
+batchedUpdates @ chunk-RPCDYKBN.js?v=7abd90c1:3579
+dispatchEventForPluginEventSystem @ chunk-RPCDYKBN.js?v=7abd90c1:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-RPCDYKBN.js?v=7abd90c1:5478
+dispatchEvent @ chunk-RPCDYKBN.js?v=7abd90c1:5472
+dispatchDiscreteEvent @ chunk-RPCDYKBN.js?v=7abd90c1:5449
+Dashboard.tsx:90 Failed to create project: Error: 500: {"message":"Failed to create project"}
+    at throwIfResNotOk (queryClient.ts:6:11)
+    at async apiRequest (queryClient.ts:22:3)
+    at async Object.mutationFn (Dashboard.tsx:74:24)
+onError @ Dashboard.tsx:90
+execute @ @tanstack_react-query.js?v=7abd90c1:1254
+await in execute
+mutate @ @tanstack_react-query.js?v=7abd90c1:2630
+(anonymous) @ @tanstack_react-query.js?v=7abd90c1:3295
+onCreateProject @ Dashboard.tsx:51
+(anonymous) @ chunk-4BFJKWC4.js?v=7abd90c1:1465
+await in (anonymous)
+callCallback2 @ chunk-RPCDYKBN.js?v=7abd90c1:3674
+invokeGuardedCallbackDev @ chunk-RPCDYKBN.js?v=7abd90c1:3699
+invokeGuardedCallback @ chunk-RPCDYKBN.js?v=7abd90c1:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-RPCDYKBN.js?v=7abd90c1:3736
+executeDispatch @ chunk-RPCDYKBN.js?v=7abd90c1:7014
+processDispatchQueueItemsInOrder @ chunk-RPCDYKBN.js?v=7abd90c1:7034
+processDispatchQueue @ chunk-RPCDYKBN.js?v=7abd90c1:7043
+dispatchEventsForPlugins @ chunk-RPCDYKBN.js?v=7abd90c1:7051
+(anonymous) @ chunk-RPCDYKBN.js?v=7abd90c1:7174
+batchedUpdates$1 @ chunk-RPCDYKBN.js?v=7abd90c1:18913
+batchedUpdates @ chunk-RPCDYKBN.js?v=7abd90c1:3579
+dispatchEventForPluginEventSystem @ chunk-RPCDYKBN.js?v=7abd90c1:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-RPCDYKBN.js?v=7abd90c1:5478
+dispatchEvent @ chunk-RPCDYKBN.js?v=7abd90c1:5472
+dispatchDiscreteEvent @ chunk-RPCDYKBN.js?v=7abd90c1:5449

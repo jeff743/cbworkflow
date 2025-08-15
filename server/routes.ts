@@ -73,7 +73,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/projects', requirePermissionMiddleware(Permission.CREATE_PROJECT), async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.currentUser?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "User not found" });
+      }
+      
       const projectData = insertProjectSchema.parse({
         ...req.body,
         createdBy: userId,
@@ -116,7 +120,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/statements', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.currentUser?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "User not found" });
+      }
+      
       const statementData = insertStatementSchema.parse({
         ...req.body,
         createdBy: userId,
@@ -134,7 +142,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.put('/api/statements/:id', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.currentUser?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "User not found" });
+      }
       const updates = updateStatementSchema.parse(req.body);
       
       // If status is being changed to under_review, generate colorblock image
@@ -174,7 +185,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Dashboard routes
   app.get('/api/dashboard/my-statements', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.currentUser?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "User not found" });
+      }
       const statements = await storage.getUserStatements(userId);
       res.json(statements);
     } catch (error) {
@@ -185,7 +199,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/dashboard/review-statements', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.currentUser?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "User not found" });
+      }
       const statements = await storage.getReviewStatements(userId);
       res.json(statements);
     } catch (error) {
@@ -211,7 +228,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(400).json({ error: "backgroundImageURL is required" });
     }
 
-    const userId = req.user.claims.sub;
+    const userId = req.currentUser?.id;
+    if (!userId) {
+      return res.status(401).json({ error: "User not found" });
+    }
 
     try {
       const objectStorageService = new ObjectStorageService();
