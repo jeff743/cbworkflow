@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "wouter";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -172,6 +172,9 @@ export default function Dashboard() {
                 <DialogContent className="sm:max-w-md">
                   <DialogHeader>
                     <DialogTitle>Create New Project</DialogTitle>
+                    <DialogDescription>
+                      Enter the client's name to create a new project.
+                    </DialogDescription>
                   </DialogHeader>
                   <Form {...projectForm}>
                     <form onSubmit={projectForm.handleSubmit(onCreateProject)} className="space-y-4">
@@ -220,6 +223,9 @@ export default function Dashboard() {
                   <DialogContent className="sm:max-w-2xl">
                     <DialogHeader>
                       <DialogTitle>Manage Users</DialogTitle>
+                      <DialogDescription>
+                        Update user roles and permissions.
+                      </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4 max-h-96 overflow-y-auto">
                       {allUsers?.map(userItem => (
