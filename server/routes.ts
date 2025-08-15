@@ -73,7 +73,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/projects', requirePermissionMiddleware(Permission.CREATE_PROJECT), async (req: any, res) => {
     try {
+      console.log('req.currentUser:', req.currentUser);
+      console.log('req.user:', req.user);
       const userId = req.currentUser?.id;
+      console.log('Using userId:', userId);
       if (!userId) {
         return res.status(401).json({ message: "User not found" });
       }
