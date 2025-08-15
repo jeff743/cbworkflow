@@ -39,7 +39,6 @@ export default function Dashboard() {
   });
 
   const onCreateProject = (data: CreateProjectFormData) => {
-    console.log('Form submitted with data:', data);
     // Use project name as client name
     const projectData = {
       name: data.name,
@@ -47,7 +46,6 @@ export default function Dashboard() {
       description: `Project for ${data.name}`,
       status: "active" as const,
     };
-    console.log('Sending project data:', projectData);
     createProjectMutation.mutate(projectData);
   };
 
@@ -70,14 +68,11 @@ export default function Dashboard() {
 
   const createProjectMutation = useMutation({
     mutationFn: async (data: any) => {
-      console.log('Making API request with:', data);
       const response = await apiRequest('POST', '/api/projects', data);
       const result = await response.json();
-      console.log('API response:', result);
       return result;
     },
     onSuccess: (result) => {
-      console.log('Project created successfully:', result);
       queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
       setShowCreateProject(false);
       projectForm.reset();
@@ -87,10 +82,9 @@ export default function Dashboard() {
       });
     },
     onError: (error) => {
-      console.error('Failed to create project:', error);
       toast({
         title: "Error",
-        description: `Failed to create project: ${error.message}`,
+        description: "Failed to create project",
         variant: "destructive",
       });
     },
