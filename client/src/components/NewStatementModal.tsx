@@ -26,6 +26,7 @@ export function NewStatementModal({ projectId, onClose, onStatementCreated }: Ne
     description: "",
     priority: "normal" as const,
     dueDate: "",
+    quantity: 1,
   });
 
   // Fetch all users to populate assignment dropdown
@@ -48,13 +49,22 @@ export function NewStatementModal({ projectId, onClose, onStatementCreated }: Ne
         assignedTo: formData.assignedTo === "unassigned" || !formData.assignedTo ? undefined : formData.assignedTo,
       };
 
-      const response = await apiRequest('POST', '/api/statements', statementData);
-      return response.json();
+      // Create multiple statements based on quantity
+      const promises = Array.from({ length: formData.quantity }, async (_, index) => {
+        const statementWithNumber = {
+          ...statementData,
+          content: `Statement ${index + 1} - please edit`,
+        };
+        const response = await apiRequest('POST', '/api/statements', statementWithNumber);
+        return response.json();
+      });
+
+      return Promise.all(promises);
     },
-    onSuccess: () => {
+    onSuccess: (results) => {
       toast({
-        title: "Statement Created",
-        description: "New statement has been created and assigned successfully.",
+        title: "Statements Created",
+        description: `${results.length} statement${results.length > 1 ? 's' : ''} created and assigned successfully.`,
       });
       onStatementCreated();
     },
@@ -92,9 +102,9 @@ export function NewStatementModal({ projectId, onClose, onStatementCreated }: Ne
     <Dialog open={true} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl" data-testid="modal-new-statement">
         <DialogHeader>
-          <DialogTitle>Create New Statement</DialogTitle>
+          <DialogTitle>Create New Statements</DialogTitle>
           <DialogDescription>
-            Create and assign a new colorblock statement task
+            Create and assign colorblock statement tasks for Facebook testing (up to 10 statements per batch)
           </DialogDescription>
         </DialogHeader>
         
@@ -138,7 +148,21 @@ export function NewStatementModal({ projectId, onClose, onStatementCreated }: Ne
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <Label htmlFor="quantity" className="block text-sm font-medium text-gray-700 mb-2">
+                Quantity
+              </Label>
+              <Input
+                id="quantity"
+                type="number"
+                min="1"
+                max="10"
+                value={formData.quantity}
+                onChange={(e) => setFormData(prev => ({ ...prev, quantity: parseInt(e.target.value) || 1 }))}
+                data-testid="input-quantity"
+              />
+            </div>
             <div>
               <Label htmlFor="priority" className="block text-sm font-medium text-gray-700 mb-2">
                 Priority
@@ -183,7 +207,9 @@ export function NewStatementModal({ projectId, onClose, onStatementCreated }: Ne
               disabled={createMutation.isPending}
               data-testid="button-create-assign"
             >
-              {createMutation.isPending ? "Creating..." : "Create & Assign"}
+              {createMutation.isPending 
+                ? `Creating ${formData.quantity} statement${formData.quantity > 1 ? 's' : ''}...` 
+                : `Create & Assign ${formData.quantity} Statement${formData.quantity > 1 ? 's' : ''}`}
             </Button>
           </div>
         </form>
