@@ -114,7 +114,9 @@ export function NewStatementModal({ projectId, onClose, onStatementCreated }: Ne
                 <SelectItem value="unassigned">Unassigned</SelectItem>
                 {copywriters.map(copywriter => (
                   <SelectItem key={copywriter.id} value={copywriter.id}>
-                    {copywriter.firstName} {copywriter.lastName}
+                    {copywriter.firstName && copywriter.lastName 
+                      ? `${copywriter.firstName} ${copywriter.lastName}` 
+                      : copywriter.email}
                   </SelectItem>
                 ))}
               </SelectContent>
