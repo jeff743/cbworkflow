@@ -7,6 +7,7 @@ import type { Express, RequestHandler } from "express";
 import memoize from "memoizee";
 import connectPg from "connect-pg-simple";
 import { storage } from "./storage";
+import { logAuth, logError } from "./logger";
 
 if (!process.env.REPLIT_DOMAINS) {
   throw new Error("Environment variable REPLIT_DOMAINS not provided");
@@ -57,12 +58,18 @@ function updateUserSession(
 async function upsertUser(
   claims: any,
 ) {
-  await storage.upsertUser({
-    email: claims["email"],
-    firstName: claims["first_name"],
-    lastName: claims["last_name"],
-    profileImageUrl: claims["profile_image_url"],
-  });
+  try {
+    await storage.upsertUser({
+      email: claims["email"],
+      firstName: claims["first_name"],
+      lastName: claims["last_name"],
+      profileImageUrl: claims["profile_image_url"],
+    });
+    logAuth(`User upserted successfully: ${claims["email"]}`);
+  } catch (error) {
+    logError(`Failed to upsert user: ${claims["email"]}`, 'auth', error as Error);
+    throw error;
+  }
 }
 
 export async function setupAuth(app: Express) {
@@ -77,10 +84,17 @@ export async function setupAuth(app: Express) {
     tokens: client.TokenEndpointResponse & client.TokenEndpointResponseHelpers,
     verified: passport.AuthenticateCallback
   ) => {
-    const user = {};
-    updateUserSession(user, tokens);
-    await upsertUser(tokens.claims());
-    verified(null, user);
+    try {
+      const user = {};
+      updateUserSession(user, tokens);
+      const claims = tokens.claims();
+      await upsertUser(claims);
+      logAuth(`User authentication successful: ${claims?.email}`);
+      verified(null, user);
+    } catch (error) {
+      logError('Authentication verification failed', 'auth', error as Error);
+      verified(error as Error, null);
+    }
   };
 
   for (const domain of process.env

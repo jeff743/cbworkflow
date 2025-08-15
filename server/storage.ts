@@ -14,6 +14,7 @@ import {
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, count, and } from "drizzle-orm";
+import { logDatabase, logError } from "./logger";
 
 export interface IStorage {
   // User operations (required for Replit Auth)
@@ -45,18 +46,25 @@ export class DatabaseStorage implements IStorage {
   }
 
   async upsertUser(userData: UpsertUser): Promise<User> {
-    const [user] = await db
-      .insert(users)
-      .values(userData)
-      .onConflictDoUpdate({
-        target: users.email,
-        set: {
-          ...userData,
-          updatedAt: new Date(),
-        },
-      })
-      .returning();
-    return user;
+    try {
+      logDatabase(`Upserting user: ${userData.email}`, 'upsertUser');
+      const [user] = await db
+        .insert(users)
+        .values(userData)
+        .onConflictDoUpdate({
+          target: users.email,
+          set: {
+            ...userData,
+            updatedAt: new Date(),
+          },
+        })
+        .returning();
+      logDatabase(`User upserted successfully: ${user.email}`, 'upsertUser');
+      return user;
+    } catch (error) {
+      logError(`Failed to upsert user: ${userData.email}`, 'database', error as Error);
+      throw error;
+    }
   }
 
   // Project operations
@@ -107,8 +115,15 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createProject(project: InsertProject): Promise<Project> {
-    const [newProject] = await db.insert(projects).values(project).returning();
-    return newProject;
+    try {
+      logDatabase(`Creating project: ${project.name}`, 'createProject');
+      const [newProject] = await db.insert(projects).values(project).returning();
+      logDatabase(`Project created successfully: ${newProject.name} (ID: ${newProject.id})`, 'createProject');
+      return newProject;
+    } catch (error) {
+      logError(`Failed to create project: ${project.name}`, 'database', error as Error);
+      throw error;
+    }
   }
 
   // Statement operations
@@ -256,17 +271,31 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createStatement(statement: InsertStatement): Promise<Statement> {
-    const [newStatement] = await db.insert(statements).values(statement).returning();
-    return newStatement;
+    try {
+      logDatabase(`Creating statement for project: ${statement.projectId}`, 'createStatement');
+      const [newStatement] = await db.insert(statements).values(statement).returning();
+      logDatabase(`Statement created successfully: ${newStatement.id}`, 'createStatement');
+      return newStatement;
+    } catch (error) {
+      logError(`Failed to create statement for project: ${statement.projectId}`, 'database', error as Error);
+      throw error;
+    }
   }
 
   async updateStatement(id: string, updates: UpdateStatement): Promise<Statement> {
-    const [updatedStatement] = await db
-      .update(statements)
-      .set({ ...updates, updatedAt: new Date() })
-      .where(eq(statements.id, id))
-      .returning();
-    return updatedStatement;
+    try {
+      logDatabase(`Updating statement: ${id}`, 'updateStatement');
+      const [updatedStatement] = await db
+        .update(statements)
+        .set({ ...updates, updatedAt: new Date() })
+        .where(eq(statements.id, id))
+        .returning();
+      logDatabase(`Statement updated successfully: ${updatedStatement.id}`, 'updateStatement');
+      return updatedStatement;
+    } catch (error) {
+      logError(`Failed to update statement: ${id}`, 'database', error as Error);
+      throw error;
+    }
   }
 
   async deleteStatement(id: string): Promise<void> {
