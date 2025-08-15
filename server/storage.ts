@@ -19,6 +19,7 @@ import { logDatabase, logError } from "./logger";
 export interface IStorage {
   // User operations (required for Replit Auth)
   getUser(id: string): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
   
   // Project operations
@@ -43,6 +44,18 @@ export class DatabaseStorage implements IStorage {
   async getUser(id: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
     return user;
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    try {
+      logDatabase(`Looking up user by email: ${email}`, 'getUserByEmail');
+      const [user] = await db.select().from(users).where(eq(users.email, email));
+      logDatabase(`User found by email: ${user ? 'yes' : 'no'} - ${user?.id || 'no id'}`, 'getUserByEmail');
+      return user;
+    } catch (error) {
+      logError(`Failed to get user by email: ${email}`, 'database', error as Error);
+      throw error;
+    }
   }
 
   async upsertUser(userData: UpsertUser): Promise<User> {
