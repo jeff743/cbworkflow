@@ -1,0 +1,469 @@
+import { useState, useRef, useEffect } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Slider } from "@/components/ui/slider";
+import { ColorblockPreview } from "./ColorblockPreview";
+import { ObjectUploader } from "./ObjectUploader";
+import { apiRequest } from "@/lib/queryClient";
+import { isUnauthorizedError } from "@/lib/authUtils";
+import type { StatementWithRelations, UpdateStatement } from "@shared/schema";
+import type { UploadResult } from "@uppy/core";
+
+interface StatementEditorProps {
+  statement: StatementWithRelations;
+  onStatementUpdated: () => void;
+}
+
+export function StatementEditor({ statement, onStatementUpdated }: StatementEditorProps) {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const [activeTab, setActiveTab] = useState<"edit" | "review">("edit");
+  const [formData, setFormData] = useState({
+    heading: statement.heading || "",
+    content: statement.content || "",
+    headingFontSize: statement.headingFontSize || 48,
+    statementFontSize: statement.statementFontSize || 43,
+    textAlignment: statement.textAlignment || "center",
+    backgroundColor: statement.backgroundColor || "#4CAF50",
+    backgroundImageUrl: statement.backgroundImageUrl || "",
+  });
+  const [reviewNotes, setReviewNotes] = useState(statement.reviewNotes || "");
+
+  const updateMutation = useMutation({
+    mutationFn: async (updates: UpdateStatement) => {
+      const response = await apiRequest('PUT', `/api/statements/${statement.id}`, updates);
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Statement Updated",
+        description: "Your changes have been saved successfully.",
+      });
+      onStatementUpdated();
+    },
+    onError: (error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+      toast({
+        title: "Update Failed",
+        description: "Failed to update statement. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleSaveDraft = () => {
+    updateMutation.mutate(formData);
+  };
+
+  const handleSubmitForReview = () => {
+    updateMutation.mutate({
+      ...formData,
+      status: "under_review",
+    });
+  };
+
+  const handleReviewAction = (action: "approved" | "needs_revision") => {
+    updateMutation.mutate({
+      status: action,
+      reviewedBy: (user as any)?.id,
+      reviewNotes: reviewNotes,
+    });
+  };
+
+  const handleGetUploadParameters = async () => {
+    const response = await apiRequest('POST', '/api/objects/upload');
+    const data = await response.json();
+    return {
+      method: 'PUT' as const,
+      url: data.uploadURL,
+    };
+  };
+
+  const handleUploadComplete = async (result: UploadResult<Record<string, unknown>, Record<string, unknown>>) => {
+    if (result.successful && result.successful.length > 0) {
+      const uploadURL = result.successful[0].uploadURL;
+      try {
+        const response = await apiRequest('PUT', '/api/background-images', {
+          backgroundImageURL: uploadURL,
+        });
+        const data = await response.json();
+        setFormData(prev => ({
+          ...prev,
+          backgroundImageUrl: data.objectPath,
+        }));
+        toast({
+          title: "Background Image Uploaded",
+          description: "Your background image has been uploaded successfully.",
+        });
+      } catch (error) {
+        console.error("Error setting background image:", error);
+        toast({
+          title: "Upload Failed",
+          description: "Failed to set background image. Please try again.",
+          variant: "destructive",
+        });
+      }
+    }
+  };
+
+  const canEdit = statement.status === "draft" || statement.status === "needs_revision";
+  const canReview = (user as any)?.role === "growth_strategist" && statement.status === "under_review";
+
+  const colorOptions = [
+    "#EF4444", "#3B82F6", "#10B981", "#F59E0B", 
+    "#8B5CF6", "#EC4899", "#1F2937", "#4CAF50"
+  ];
+
+  return (
+    <div className="flex-1 flex flex-col">
+      {/* Editor Tabs */}
+      <div className="bg-surface border-b border-gray-200">
+        <div className="flex">
+          <button
+            className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === "edit"
+                ? "text-primary border-primary bg-blue-50"
+                : "text-gray-500 border-transparent hover:text-gray-700"
+            }`}
+            onClick={() => setActiveTab("edit")}
+            data-testid="tab-edit-statement"
+          >
+            Edit Statement
+          </button>
+          <button
+            className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === "review"
+                ? "text-primary border-primary bg-blue-50"
+                : "text-gray-500 border-transparent hover:text-gray-700"
+            }`}
+            onClick={() => setActiveTab("review")}
+            data-testid="tab-review-approve"
+          >
+            Review & Approve
+          </button>
+        </div>
+      </div>
+
+      {/* Editor Content */}
+      <div className="flex-1 flex overflow-hidden">
+        {activeTab === "edit" ? (
+          <>
+            {/* Form Panel */}
+            <div className="w-1/2 p-6 bg-gray-50 overflow-y-auto">
+              <div className="space-y-6">
+                {/* Heading Field */}
+                <div>
+                  <Label htmlFor="heading" className="block text-sm font-medium text-gray-700 mb-2">
+                    Heading (Optional)
+                  </Label>
+                  <Textarea
+                    id="heading"
+                    placeholder="Enter optional heading text..."
+                    className="resize-none"
+                    rows={2}
+                    value={formData.heading}
+                    onChange={(e) => setFormData(prev => ({ ...prev, heading: e.target.value }))}
+                    disabled={!canEdit}
+                    data-testid="input-heading"
+                  />
+                </div>
+
+                {/* Statement Field */}
+                <div>
+                  <Label htmlFor="content" className="block text-sm font-medium text-gray-700 mb-2">
+                    Statement Content <span className="text-error">*</span>
+                  </Label>
+                  <Textarea
+                    id="content"
+                    placeholder="Enter your statement content..."
+                    className="resize-none"
+                    rows={4}
+                    value={formData.content}
+                    onChange={(e) => setFormData(prev => ({ ...prev, content: e.target.value }))}
+                    disabled={!canEdit}
+                    data-testid="input-content"
+                  />
+                </div>
+
+                {/* Typography Controls */}
+                <div className="space-y-4">
+                  <h4 className="text-sm font-medium text-gray-700">Typography Settings</h4>
+                  
+                  {/* Heading Font Size */}
+                  <div>
+                    <Label className="block text-xs text-gray-600 mb-2">
+                      Heading Font Size: <span className="font-medium">{formData.headingFontSize}px</span>
+                    </Label>
+                    <Slider
+                      value={[formData.headingFontSize]}
+                      onValueChange={([value]) => setFormData(prev => ({ ...prev, headingFontSize: value }))}
+                      min={32}
+                      max={64}
+                      step={1}
+                      disabled={!canEdit}
+                      data-testid="slider-heading-font-size"
+                    />
+                  </div>
+
+                  {/* Statement Font Size */}
+                  <div>
+                    <Label className="block text-xs text-gray-600 mb-2">
+                      Statement Font Size: <span className="font-medium">{formData.statementFontSize}px</span>
+                    </Label>
+                    <Slider
+                      value={[formData.statementFontSize]}
+                      onValueChange={([value]) => setFormData(prev => ({ ...prev, statementFontSize: value }))}
+                      min={32}
+                      max={64}
+                      step={1}
+                      disabled={!canEdit}
+                      data-testid="slider-statement-font-size"
+                    />
+                  </div>
+
+                  {/* Text Alignment */}
+                  <div>
+                    <Label className="block text-xs text-gray-600 mb-2">Text Alignment</Label>
+                    <div className="flex space-x-2">
+                      {["left", "center", "right"].map((alignment) => (
+                        <button
+                          key={alignment}
+                          type="button"
+                          className={`flex-1 px-3 py-2 text-xs border border-gray-300 rounded transition-colors ${
+                            formData.textAlignment === alignment
+                              ? "bg-primary text-white border-primary"
+                              : "hover:bg-gray-50"
+                          }`}
+                          onClick={() => setFormData(prev => ({ ...prev, textAlignment: alignment as any }))}
+                          disabled={!canEdit}
+                          data-testid={`button-align-${alignment}`}
+                        >
+                          <i className={`fas fa-align-${alignment} mr-1`}></i>
+                          {alignment.charAt(0).toUpperCase() + alignment.slice(1)}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Background Settings */}
+                <div className="space-y-4">
+                  <h4 className="text-sm font-medium text-gray-700">Background</h4>
+                  
+                  {/* Background Type Toggle */}
+                  <div className="flex space-x-2">
+                    <button
+                      type="button"
+                      className={`flex-1 px-3 py-2 text-xs border border-gray-300 rounded transition-colors ${
+                        !formData.backgroundImageUrl
+                          ? "bg-primary text-white border-primary"
+                          : "hover:bg-gray-50"
+                      }`}
+                      onClick={() => setFormData(prev => ({ ...prev, backgroundImageUrl: "" }))}
+                      disabled={!canEdit}
+                      data-testid="button-solid-color"
+                    >
+                      Solid Color
+                    </button>
+                    <ObjectUploader
+                      maxNumberOfFiles={1}
+                      maxFileSize={10485760}
+                      onGetUploadParameters={handleGetUploadParameters}
+                      onComplete={handleUploadComplete}
+                      buttonClassName={`flex-1 px-3 py-2 text-xs border border-gray-300 rounded transition-colors ${
+                        formData.backgroundImageUrl
+                          ? "bg-primary text-white border-primary"
+                          : "hover:bg-gray-50"
+                      }`}
+                    >
+                      Upload Image
+                    </ObjectUploader>
+                  </div>
+
+                  {!formData.backgroundImageUrl && (
+                    <>
+                      {/* Color Picker */}
+                      <div className="grid grid-cols-8 gap-2">
+                        {colorOptions.map((color) => (
+                          <button
+                            key={color}
+                            type="button"
+                            className={`w-8 h-8 rounded-lg cursor-pointer border-2 transition-colors ${
+                              formData.backgroundColor === color
+                                ? "border-primary"
+                                : "border-transparent hover:border-gray-300"
+                            }`}
+                            style={{ backgroundColor: color }}
+                            onClick={() => setFormData(prev => ({ ...prev, backgroundColor: color }))}
+                            disabled={!canEdit}
+                            data-testid={`button-color-${color.slice(1)}`}
+                          />
+                        ))}
+                      </div>
+
+                      {/* Custom Color Input */}
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="color"
+                          value={formData.backgroundColor}
+                          onChange={(e) => setFormData(prev => ({ ...prev, backgroundColor: e.target.value }))}
+                          className="w-10 h-8 rounded border border-gray-300"
+                          disabled={!canEdit}
+                          data-testid="input-custom-color"
+                        />
+                        <input
+                          type="text"
+                          value={formData.backgroundColor}
+                          onChange={(e) => setFormData(prev => ({ ...prev, backgroundColor: e.target.value }))}
+                          className="flex-1 px-3 py-2 text-xs border border-gray-300 rounded focus:ring-2 focus:ring-primary focus:border-transparent"
+                          disabled={!canEdit}
+                          data-testid="input-color-hex"
+                        />
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                {/* Action Buttons */}
+                {canEdit && (
+                  <div className="flex space-x-3 pt-4">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="flex-1"
+                      onClick={handleSaveDraft}
+                      disabled={updateMutation.isPending}
+                      data-testid="button-save-draft"
+                    >
+                      {updateMutation.isPending ? "Saving..." : "Save Draft"}
+                    </Button>
+                    <Button
+                      type="button"
+                      className="flex-1 bg-primary hover:bg-primary-dark"
+                      onClick={handleSubmitForReview}
+                      disabled={updateMutation.isPending || !formData.content.trim()}
+                      data-testid="button-submit-review"
+                    >
+                      {updateMutation.isPending ? "Submitting..." : "Submit for Review"}
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Live Preview Panel */}
+            <div className="w-1/2 p-6 bg-white overflow-y-auto">
+              <ColorblockPreview
+                heading={formData.heading}
+                content={formData.content}
+                headingFontSize={formData.headingFontSize}
+                statementFontSize={formData.statementFontSize}
+                textAlignment={formData.textAlignment}
+                backgroundColor={formData.backgroundColor}
+                backgroundImageUrl={formData.backgroundImageUrl}
+              />
+            </div>
+          </>
+        ) : (
+          /* Review Tab Content */
+          <div className="flex-1 p-6 bg-gray-50 overflow-y-auto">
+            <div className="max-w-2xl mx-auto space-y-6">
+              <div>
+                <h3 className="text-lg font-semibold mb-4">Review Statement</h3>
+                <div className="bg-white rounded-lg p-6 space-y-4">
+                  <div>
+                    <Label className="text-sm font-medium text-gray-700">Heading</Label>
+                    <p className="mt-1 text-gray-900" data-testid="text-review-heading">
+                      {statement.heading || "No heading"}
+                    </p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium text-gray-700">Content</Label>
+                    <p className="mt-1 text-gray-900" data-testid="text-review-content">
+                      {statement.content}
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-sm font-medium text-gray-700">Created by</Label>
+                      <p className="mt-1 text-gray-900" data-testid="text-review-creator">
+                        {statement.creator.firstName} {statement.creator.lastName}
+                      </p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium text-gray-700">Created</Label>
+                      <p className="mt-1 text-gray-900" data-testid="text-review-date">
+                        {statement.createdAt ? new Date(statement.createdAt).toLocaleDateString() : 'No date'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {canReview && (
+                <div>
+                  <Label htmlFor="reviewNotes" className="block text-sm font-medium text-gray-700 mb-2">
+                    Review Notes
+                  </Label>
+                  <Textarea
+                    id="reviewNotes"
+                    placeholder="Add any feedback or notes for the copywriter..."
+                    className="resize-none"
+                    rows={4}
+                    value={reviewNotes}
+                    onChange={(e) => setReviewNotes(e.target.value)}
+                    data-testid="input-review-notes"
+                  />
+                </div>
+              )}
+
+              {canReview && (
+                <div className="flex space-x-3">
+                  <Button
+                    variant="destructive"
+                    className="flex-1"
+                    onClick={() => handleReviewAction("needs_revision")}
+                    disabled={updateMutation.isPending}
+                    data-testid="button-request-revision"
+                  >
+                    {updateMutation.isPending ? "Processing..." : "Request Revision"}
+                  </Button>
+                  <Button
+                    className="flex-1 bg-success hover:bg-green-600"
+                    onClick={() => handleReviewAction("approved")}
+                    disabled={updateMutation.isPending}
+                    data-testid="button-approve"
+                  >
+                    {updateMutation.isPending ? "Processing..." : "Approve"}
+                  </Button>
+                </div>
+              )}
+
+              {!canReview && statement.status === "under_review" && (
+                <div className="text-center py-4">
+                  <p className="text-gray-600">This statement is awaiting review by a growth strategist.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
