@@ -28,8 +28,14 @@ export function NewStatementModal({ projectId, onClose, onStatementCreated }: Ne
     dueDate: "",
   });
 
-  // For now, we'll create a default statement since we don't have a user list endpoint
-  // In a real app, you'd fetch all copywriters here
+  // Fetch all users to populate assignment dropdown
+  const { data: users } = useQuery<User[]>({
+    queryKey: ['/api/users'],
+  });
+
+  // Filter for copywriters (creative_strategists)
+  const copywriters = users?.filter(user => user.role === 'creative_strategist') || [];
+
   const createMutation = useMutation({
     mutationFn: async () => {
       const statementData: Partial<InsertStatement> = {
@@ -97,13 +103,22 @@ export function NewStatementModal({ projectId, onClose, onStatementCreated }: Ne
             <Label htmlFor="assignedTo" className="block text-sm font-medium text-gray-700 mb-2">
               Assign to Copywriter
             </Label>
-            <Input
-              id="assignedTo"
-              placeholder="Enter copywriter email or leave blank for self-assignment"
-              value={formData.assignedTo}
-              onChange={(e) => setFormData(prev => ({ ...prev, assignedTo: e.target.value }))}
-              data-testid="input-assign-to"
-            />
+            <Select 
+              value={formData.assignedTo} 
+              onValueChange={(value) => setFormData(prev => ({ ...prev, assignedTo: value }))}
+            >
+              <SelectTrigger data-testid="select-assign-to">
+                <SelectValue placeholder="Select a copywriter" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">Unassigned</SelectItem>
+                {copywriters.map(copywriter => (
+                  <SelectItem key={copywriter.id} value={copywriter.id}>
+                    {copywriter.firstName} {copywriter.lastName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           
           <div>
