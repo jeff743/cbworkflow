@@ -44,7 +44,7 @@ export function NewStatementModal({ projectId, onClose, onStatementCreated }: Ne
         content: "New statement - please edit",
         status: "draft",
         priority: formData.priority,
-        dueDate: formData.dueDate ? new Date(formData.dueDate) : undefined,
+        dueDate: formData.dueDate ? formData.dueDate : undefined,
         assignedTo: formData.assignedTo === "unassigned" || !formData.assignedTo ? undefined : formData.assignedTo,
       };
 
