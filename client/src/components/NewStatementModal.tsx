@@ -22,7 +22,7 @@ export function NewStatementModal({ projectId, onClose, onStatementCreated }: Ne
   const queryClient = useQueryClient();
 
   const [formData, setFormData] = useState({
-    assignedTo: "",
+    assignedTo: "unassigned",
     description: "",
     priority: "normal" as const,
     dueDate: "",
@@ -45,7 +45,7 @@ export function NewStatementModal({ projectId, onClose, onStatementCreated }: Ne
         status: "draft",
         priority: formData.priority,
         dueDate: formData.dueDate ? new Date(formData.dueDate) : undefined,
-        assignedTo: formData.assignedTo || undefined,
+        assignedTo: formData.assignedTo === "unassigned" || !formData.assignedTo ? undefined : formData.assignedTo,
       };
 
       const response = await apiRequest('POST', '/api/statements', statementData);
@@ -111,7 +111,7 @@ export function NewStatementModal({ projectId, onClose, onStatementCreated }: Ne
                 <SelectValue placeholder="Select a copywriter" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Unassigned</SelectItem>
+                <SelectItem value="unassigned">Unassigned</SelectItem>
                 {copywriters.map(copywriter => (
                   <SelectItem key={copywriter.id} value={copywriter.id}>
                     {copywriter.firstName} {copywriter.lastName}
