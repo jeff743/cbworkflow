@@ -38,13 +38,13 @@ export function NewStatementModal({ projectId, onClose, onStatementCreated }: Ne
 
   const createMutation = useMutation({
     mutationFn: async () => {
-      const statementData: Partial<InsertStatement> = {
+      const statementData = {
         projectId,
         heading: "",
         content: "New statement - please edit",
-        status: "draft",
+        status: "draft" as const,
         priority: formData.priority,
-        dueDate: formData.dueDate ? formData.dueDate : undefined,
+        dueDate: formData.dueDate || undefined,
         assignedTo: formData.assignedTo === "unassigned" || !formData.assignedTo ? undefined : formData.assignedTo,
       };
 
