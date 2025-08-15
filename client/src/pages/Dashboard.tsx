@@ -20,7 +20,8 @@ import { useState } from "react";
 import type { ProjectWithStats, StatementWithRelations, User } from "@shared/schema";
 
 const createProjectFormSchema = insertProjectSchema.extend({
-  clientName: z.string().min(1, "Client name is required"),
+  clientName: z.string().optional(),
+  description: z.string().optional(),
 });
 
 type CreateProjectFormData = z.infer<typeof createProjectFormSchema>;
@@ -40,6 +41,16 @@ export default function Dashboard() {
       status: "active",
     },
   });
+
+  const onCreateProject = (data: CreateProjectFormData) => {
+    // Use project name as client name
+    const projectData = {
+      ...data,
+      clientName: data.name,
+      description: data.description || `Project for ${data.name}`,
+    };
+    createProjectMutation.mutate(projectData);
+  };
 
   const { data: projects, isLoading: projectsLoading } = useQuery<ProjectWithStats[]>({
     queryKey: ['/api/projects'],
@@ -102,9 +113,6 @@ export default function Dashboard() {
     },
   });
 
-  const onCreateProject = (data: CreateProjectFormData) => {
-    createProjectMutation.mutate(data);
-  };
 
   if (projectsLoading || myStatementsLoading || reviewStatementsLoading) {
     return (
@@ -174,40 +182,9 @@ export default function Dashboard() {
                         name="name"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Project Name</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Enter project name" {...field} data-testid="input-project-name" />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={projectForm.control}
-                        name="clientName"
-                        render={({ field }) => (
-                          <FormItem>
                             <FormLabel>Client Name</FormLabel>
                             <FormControl>
-                              <Input placeholder="Enter client name" {...field} data-testid="input-client-name" />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={projectForm.control}
-                        name="description"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Description</FormLabel>
-                            <FormControl>
-                              <Textarea 
-                                placeholder="Enter project description" 
-                                {...field} 
-                                value={field.value || ""} 
-                                data-testid="textarea-description" 
-                              />
+                              <Input placeholder="Enter client name" {...field} data-testid="input-project-name" />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
