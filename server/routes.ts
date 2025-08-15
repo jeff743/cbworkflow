@@ -132,6 +132,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         dueDate: req.body.dueDate ? new Date(req.body.dueDate) : undefined,
       };
       
+      console.log('Raw request body:', req.body);
+      console.log('Processed request data:', requestData);
+      console.log('Due date type:', typeof requestData.dueDate);
+      
       const statementData = insertStatementSchema.parse(requestData);
       const statement = await storage.createStatement(statementData);
 
