@@ -125,10 +125,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "User not found" });
       }
       
-      const statementData = insertStatementSchema.parse({
+      // Convert dueDate string to Date object if provided
+      const requestData = {
         ...req.body,
         createdBy: userId,
-      });
+        dueDate: req.body.dueDate ? new Date(req.body.dueDate) : undefined,
+      };
+      
+      const statementData = insertStatementSchema.parse(requestData);
       const statement = await storage.createStatement(statementData);
 
       // TODO: Add Slack notification for new statement assignment
