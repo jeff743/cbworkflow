@@ -6,32 +6,51 @@ import { ObjectStorageService } from "./objectStorage";
 import { insertProjectSchema, insertStatementSchema, updateStatementSchema, type User } from "@shared/schema";
 import canvas from "canvas";
 import { logger } from "./logger";
+import { Permission, requirePermissionMiddleware, hasPermission, getUserRoleDisplayName } from "./permissions";
 
 const { createCanvas, loadImage, registerFont } = canvas;
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
   await setupAuth(app);
+  
+  // Inject current user middleware for permission checking
+  app.use('/api', isAuthenticated, async (req: any, res: any, next: any) => {
+    try {
+      const userEmail = req.user?.claims?.email;
+      if (userEmail) {
+        req.currentUser = await storage.getUserByEmail(userEmail);
+      }
+      next();
+    } catch (error) {
+      logger.error('Failed to inject current user', 'middleware', error as Error);
+      next();
+    }
+  });
 
   // Auth routes
-  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
+  app.get('/api/auth/user', async (req: any, res) => {
     try {
-      const userEmail = req.user.claims.email;
-      logger.debug(`Fetching user for email: ${userEmail}`, 'auth-route');
-      const user = await storage.getUserByEmail(userEmail);
-      logger.debug(`User found: ${user ? 'yes' : 'no'} - ${user?.email || 'no email'}`, 'auth-route');
-      res.json(user);
+      const user = req.currentUser;
+      if (user) {
+        res.json({
+          ...user,
+          roleDisplayName: getUserRoleDisplayName(user.role)
+        });
+      } else {
+        res.status(404).json({ message: 'User not found' });
+      }
     } catch (error) {
       logger.error("Error fetching user", 'auth-route', error as Error);
       res.status(500).json({ message: "Failed to fetch user" });
     }
   });
 
-  // Project routes
-  app.get('/api/projects', isAuthenticated, async (req: any, res) => {
+  // Project routes  
+  app.get('/api/projects', requirePermissionMiddleware(Permission.VIEW_PROJECTS), async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
-      const projects = await storage.getProjects(userId);
+      const user = req.currentUser;
+      const projects = await storage.getProjects(user.id);
       res.json(projects);
     } catch (error) {
       console.error("Error fetching projects:", error);
@@ -39,7 +58,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/projects/:id', isAuthenticated, async (req, res) => {
+  app.get('/api/projects/:id', requirePermissionMiddleware(Permission.VIEW_PROJECTS), async (req, res) => {
     try {
       const project = await storage.getProject(req.params.id);
       if (!project) {
@@ -52,7 +71,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/projects', isAuthenticated, async (req: any, res) => {
+  app.post('/api/projects', requirePermissionMiddleware(Permission.CREATE_PROJECT), async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const projectData = insertProjectSchema.parse({
@@ -68,7 +87,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Statement routes
-  app.get('/api/projects/:projectId/statements', isAuthenticated, async (req, res) => {
+  app.get('/api/projects/:projectId/statements', requirePermissionMiddleware(Permission.VIEW_TASKS), async (req, res) => {
     try {
       const { status } = req.query;
       const statements = await storage.getStatements(
@@ -239,8 +258,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Role management routes (Super Admin only)
+  app.get('/api/users', requirePermissionMiddleware(Permission.ADD_MEMBERS), async (req: any, res) => {
+    try {
+      // Get all users with their roles
+      const users = await storage.getAllUsers();
+      res.json(users.map((user: User) => ({
+        ...user,
+        roleDisplayName: getUserRoleDisplayName(user.role)
+      })));
+    } catch (error) {
+      logger.error('Failed to fetch users', 'api', error as Error);
+      res.status(500).json({ message: 'Failed to fetch users' });
+    }
+  });
+
+  app.patch('/api/users/:id/role', requirePermissionMiddleware(Permission.MANAGE_USER_ROLES), async (req: any, res) => {
+    try {
+      const { role } = req.body;
+      const validRoles = ['super_admin', 'growth_strategist', 'creative_strategist'];
+      
+      if (!validRoles.includes(role)) {
+        return res.status(400).json({ message: 'Invalid role' });
+      }
+
+      const updatedUser = await storage.updateUserRole(req.params.id, role);
+      if (!updatedUser) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+
+      logger.info(`Role updated: ${updatedUser.email} -> ${role}`, 'role-management');
+      res.json({
+        ...updatedUser,
+        roleDisplayName: getUserRoleDisplayName(updatedUser.role)
+      });
+    } catch (error) {
+      logger.error('Failed to update user role', 'api', error as Error);
+      res.status(500).json({ message: 'Failed to update user role' });
+    }
+  });
+
   // Logs route for debugging
-  app.get('/api/logs', isAuthenticated, (req: any, res) => {
+  app.get('/api/logs', requirePermissionMiddleware(Permission.MANAGE_USER_ROLES), (req: any, res) => {
     try {
       const logType = req.query.type || 'combined';
       const lines = parseInt(req.query.lines as string) || 100;
