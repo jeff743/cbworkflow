@@ -43,12 +43,10 @@ export function ColorblockPreview({
     const drawColorblock = async () => {
       // Set background
       if (backgroundImageUrl) {
-        console.log("🖼️ Loading background image:", backgroundImageUrl);
         try {
           const image = new Image();
           image.crossOrigin = "anonymous";
           image.onload = () => {
-            console.log("✅ Image loaded successfully:", backgroundImageUrl);
             ctx.drawImage(image, 0, 0, 1080, 1080);
             // Add dark overlay for text readability
             ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
@@ -56,8 +54,7 @@ export function ColorblockPreview({
             drawText();
           };
           image.onerror = (error) => {
-            console.error("❌ Error loading background image:", error, "URL:", backgroundImageUrl);
-            console.error("❌ Full URL attempted:", imageUrl);
+            console.error("Error loading background image:", error, "URL:", backgroundImageUrl);
             // Fallback to solid color
             ctx.fillStyle = backgroundColor;
             ctx.fillRect(0, 0, 1080, 1080);
@@ -69,10 +66,9 @@ export function ColorblockPreview({
             ? `${window.location.origin}${backgroundImageUrl}`
             : backgroundImageUrl;
           
-          console.log("🔗 Full image URL:", imageUrl);
           image.src = imageUrl;
         } catch (error) {
-          console.error("❌ Exception in image loading:", error);
+          console.error("Exception in image loading:", error);
           ctx.fillStyle = backgroundColor;
           ctx.fillRect(0, 0, 1080, 1080);
           drawText();

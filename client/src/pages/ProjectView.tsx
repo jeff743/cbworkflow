@@ -7,6 +7,7 @@ import { Sidebar } from "@/components/Sidebar";
 import { StatementEditor } from "@/components/StatementEditor";
 import { NewStatementModal } from "@/components/NewStatementModal";
 import { DeleteTestBatchDialog } from "@/components/DeleteTestBatchDialog";
+import { ProjectSettings } from "@/components/ProjectSettings";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -24,6 +25,7 @@ export default function ProjectView() {
   const [selectedStatementId, setSelectedStatementId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [showNewStatementModal, setShowNewStatementModal] = useState(false);
+  const [showProjectSettings, setShowProjectSettings] = useState(false);
   const [testToDelete, setTestToDelete] = useState<{ id: string; testBatchId?: string | null; statementsCount: number } | null>(null);
 
   // Phase 3: Navigation Event Handler - Listen for navigation reset signals
@@ -232,6 +234,14 @@ export default function ProjectView() {
               >
                 <i className="fas fa-plus text-sm mr-2"></i>
                 New Test
+              </Button>
+              <Button
+                onClick={() => setShowProjectSettings(true)}
+                variant="outline"
+                data-testid="button-project-settings"
+              >
+                <i className="fas fa-cog text-sm mr-2"></i>
+                Project Settings
               </Button>
             </div>
           </div>
@@ -448,6 +458,14 @@ export default function ProjectView() {
             testBatchId: testToDelete.testBatchId
           }}
           isDeleting={deleteTestBatchMutation.isPending}
+        />
+      )}
+
+      {/* Project Settings Modal */}
+      {showProjectSettings && project && (
+        <ProjectSettings
+          project={project}
+          onClose={() => setShowProjectSettings(false)}
         />
       )}
     </div>
