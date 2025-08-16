@@ -6,6 +6,7 @@ import { useState } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { StatementEditor } from "@/components/StatementEditor";
 import { NewStatementModal } from "@/components/NewStatementModal";
+import { DeleteTestBatchDialog } from "@/components/DeleteTestBatchDialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -22,6 +23,7 @@ export default function ProjectView() {
   const [selectedStatementId, setSelectedStatementId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [showNewStatementModal, setShowNewStatementModal] = useState(false);
+  const [testToDelete, setTestToDelete] = useState<{ id: string; testBatchId?: string | null; statementsCount: number } | null>(null);
 
   const { data: project, isLoading: projectLoading } = useQuery<Project>({
     queryKey: ['/api/projects', projectId],
@@ -61,6 +63,69 @@ export default function ProjectView() {
       });
     },
   });
+
+  const deleteTestBatchMutation = useMutation({
+    mutationFn: async (testBatchId: string) => {
+      const response = await apiRequest('DELETE', `/api/test-batches/${testBatchId}`);
+      return response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Test Batch Deleted",
+        description: `Successfully deleted ${data.deletedCount} statement${data.deletedCount !== 1 ? 's' : ''}`,
+      });
+      // Refresh the statements list
+      queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'statements'] });
+      // Close delete dialog
+      setTestToDelete(null);
+      // Reset selection if the deleted test was selected
+      if (selectedTestId === testToDelete?.id) {
+        setSelectedTestId(null);
+        setSelectedStatementId(null);
+      }
+    },
+    onError: (error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+      toast({
+        title: "Delete Failed",
+        description: "Failed to delete test batch",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleDeleteTest = (test: any) => {
+    // Only allow deletion of test batches (not legacy single statements)
+    if (test.testBatchId) {
+      setTestToDelete({
+        id: test.id,
+        testBatchId: test.testBatchId,
+        statementsCount: test.statements.length
+      });
+    } else {
+      toast({
+        title: "Cannot Delete",
+        description: "Legacy single statements cannot be deleted as batches. Delete individual statements instead.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const confirmDeleteTest = () => {
+    if (testToDelete?.testBatchId) {
+      deleteTestBatchMutation.mutate(testToDelete.testBatchId);
+    }
+  };
 
   if (projectLoading || statementsLoading) {
     return (
@@ -226,6 +291,21 @@ export default function ProjectView() {
                               )}
                             </div>
                           </div>
+                          {/* Delete button for test batches only */}
+                          {test.testBatchId && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-red-600 hover:text-red-800 hover:bg-red-50 ml-2"
+                              onClick={(e) => {
+                                e.stopPropagation(); // Prevent card click
+                                handleDeleteTest(test);
+                              }}
+                              data-testid={`button-delete-test-${test.id}`}
+                            >
+                              <i className="fas fa-trash text-xs"></i>
+                            </Button>
+                          )}
                         </div>
                         <div className="text-xs text-gray-500">
                           Created {test.createdAt ? new Date(test.createdAt).toLocaleDateString() : 'Unknown date'}
@@ -332,6 +412,20 @@ export default function ProjectView() {
             queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'statements'] });
             setShowNewStatementModal(false);
           }}
+        />
+      )}
+
+      {/* Delete Test Batch Dialog */}
+      {testToDelete && (
+        <DeleteTestBatchDialog
+          isOpen={!!testToDelete}
+          onClose={() => setTestToDelete(null)}
+          onConfirm={confirmDeleteTest}
+          testBatchInfo={{
+            statementsCount: testToDelete.statementsCount,
+            testBatchId: testToDelete.testBatchId
+          }}
+          isDeleting={deleteTestBatchMutation.isPending}
         />
       )}
     </div>

@@ -266,6 +266,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Delete test batch (all statements with same testBatchId)
+  app.delete('/api/test-batches/:testBatchId', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.currentUser?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "User not found" });
+      }
+      
+      const testBatchId = req.params.testBatchId;
+      console.log(`🗑️ DELETE BATCH - Starting deletion for testBatchId: ${testBatchId}`);
+      
+      // Get all statements in the batch first for logging
+      const statementsInBatch = await storage.getStatementsByBatchId(testBatchId);
+      console.log(`🗑️ DELETE BATCH - Found ${statementsInBatch.length} statements to delete`);
+      
+      // Delete all statements with this testBatchId
+      const deletedCount = await storage.deleteStatementsByBatchId(testBatchId);
+      
+      console.log(`🗑️ DELETE BATCH - Successfully deleted ${deletedCount} statements`);
+      
+      res.json({ 
+        success: true, 
+        deletedCount,
+        testBatchId 
+      });
+    } catch (error) {
+      console.error("Error deleting test batch:", error);
+      res.status(500).json({ message: "Failed to delete test batch" });
+    }
+  });
+
   // Get all statements
   app.get('/api/statements', isAuthenticated, async (req: any, res) => {
     try {
