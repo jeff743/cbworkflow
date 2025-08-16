@@ -110,7 +110,6 @@ export function Sidebar() {
 
   const newStatementsCount = myStatements?.filter(s => s.status === 'draft').length || 0;
   const pendingReviewCount = reviewStatements?.length || 0;
-  const designQueueCount = myStatements?.filter(s => s.status === 'approved').length || 0;
   const readyToDeployCount = myStatements?.filter(s => s.status === 'completed').length || 0;
 
   return (
@@ -165,56 +164,67 @@ export function Sidebar() {
         <div className="pt-4 border-t border-gray-200">
           <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Workflow</h3>
           <div className="space-y-1">
-            <Link href="/">
-              <div className="flex items-center justify-between p-3 text-sm rounded-lg text-gray-600 hover:bg-gray-50 cursor-pointer">
+            <Link href="/tests/new">
+              <div className={`flex items-center justify-between p-3 text-sm rounded-lg cursor-pointer transition-colors ${
+                location === '/tests/new' 
+                  ? 'bg-primary text-white' 
+                  : 'text-gray-600 hover:bg-gray-50'
+              }`}>
                 <div className="flex items-center space-x-3">
                   <i className="fas fa-edit"></i>
-                  <span>New Statements</span>
+                  <span>New Tests</span>
                 </div>
                 {newStatementsCount > 0 && (
-                  <Badge className="bg-warning text-white" data-testid="text-new-statements-count">
+                  <Badge className={location === '/tests/new' ? "bg-white bg-opacity-20 text-white border-white" : "bg-warning text-white"} data-testid="text-new-statements-count">
                     {newStatementsCount}
                   </Badge>
                 )}
               </div>
             </Link>
-            <Link href="/">
-              <div className="flex items-center justify-between p-3 text-sm rounded-lg text-gray-600 hover:bg-gray-50 cursor-pointer">
+            <Link href="/tests/pending-review">
+              <div className={`flex items-center justify-between p-3 text-sm rounded-lg cursor-pointer transition-colors ${
+                location === '/tests/pending-review' 
+                  ? 'bg-primary text-white' 
+                  : 'text-gray-600 hover:bg-gray-50'
+              }`}>
                 <div className="flex items-center space-x-3">
                   <i className="fas fa-eye"></i>
                   <span>Pending Review</span>
                 </div>
                 {pendingReviewCount > 0 && (
-                  <Badge className="bg-error text-white" data-testid="text-pending-review-count">
+                  <Badge className={location === '/tests/pending-review' ? "bg-white bg-opacity-20 text-white border-white" : "bg-error text-white"} data-testid="text-pending-review-count">
                     {pendingReviewCount}
                   </Badge>
                 )}
               </div>
             </Link>
-            <Link href="/">
-              <div className="flex items-center justify-between p-3 text-sm rounded-lg text-gray-600 hover:bg-gray-50 cursor-pointer">
-                <div className="flex items-center space-x-3">
-                  <i className="fas fa-palette"></i>
-                  <span>Design Queue</span>
-                </div>
-                {designQueueCount > 0 && (
-                  <Badge className="bg-accent text-white" data-testid="text-design-queue-count">
-                    {designQueueCount}
-                  </Badge>
-                )}
-              </div>
-            </Link>
-            <Link href="/">
-              <div className="flex items-center justify-between p-3 text-sm rounded-lg text-gray-600 hover:bg-gray-50 cursor-pointer">
+            <Link href="/tests/ready-to-deploy">
+              <div className={`flex items-center justify-between p-3 text-sm rounded-lg cursor-pointer transition-colors ${
+                location === '/tests/ready-to-deploy' 
+                  ? 'bg-primary text-white' 
+                  : 'text-gray-600 hover:bg-gray-50'
+              }`}>
                 <div className="flex items-center space-x-3">
                   <i className="fas fa-rocket"></i>
                   <span>Ready to Deploy</span>
                 </div>
                 {readyToDeployCount > 0 && (
-                  <Badge className="bg-success text-white" data-testid="text-ready-deploy-count">
+                  <Badge className={location === '/tests/ready-to-deploy' ? "bg-white bg-opacity-20 text-white border-white" : "bg-success text-white"} data-testid="text-ready-deploy-count">
                     {readyToDeployCount}
                   </Badge>
                 )}
+              </div>
+            </Link>
+            <Link href="/tests/completed">
+              <div className={`flex items-center justify-between p-3 text-sm rounded-lg cursor-pointer transition-colors ${
+                location === '/tests/completed' 
+                  ? 'bg-primary text-white' 
+                  : 'text-gray-600 hover:bg-gray-50'
+              }`}>
+                <div className="flex items-center space-x-3">
+                  <i className="fas fa-check-circle"></i>
+                  <span>Completed</span>
+                </div>
               </div>
             </Link>
           </div>
