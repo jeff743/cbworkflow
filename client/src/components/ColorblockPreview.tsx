@@ -66,7 +66,6 @@ export function ColorblockPreview({
             ? `${window.location.origin}${backgroundImageUrl}`
             : backgroundImageUrl;
           
-          // console.log("Loading background image from:", imageUrl);
           
           image.src = imageUrl;
         } catch (error) {
