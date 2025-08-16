@@ -381,7 +381,7 @@ export function StatementEditor({ statement, onStatementUpdated, navigationReque
                       value={[formData.statementFontSize]}
                       onValueChange={([value]) => setFormData(prev => ({ ...prev, statementFontSize: value }))}
                       min={40}
-                      max={100}
+                      max={120}
                       step={1}
                       disabled={!canEdit}
                       data-testid="slider-statement-font-size"
@@ -397,7 +397,7 @@ export function StatementEditor({ statement, onStatementUpdated, navigationReque
                       value={[formData.footerFontSize]}
                       onValueChange={([value]) => setFormData(prev => ({ ...prev, footerFontSize: value }))}
                       min={20}
-                      max={60}
+                      max={120}
                       step={1}
                       disabled={!canEdit}
                       data-testid="slider-footer-font-size"
