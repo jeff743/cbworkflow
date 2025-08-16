@@ -132,11 +132,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId: userId
       });
       
-      // Convert dueDate string to Date object if provided
+      // Convert dueDate string to Date object if provided and add default placeholder text
       const requestData = {
         ...req.body,
         createdBy: userId,
         dueDate: req.body.dueDate ? new Date(req.body.dueDate) : undefined,
+        content: req.body.content || "Enter statement here...",
       };
       
       console.log('🔥 SERVER - Prepared request data testBatchId:', requestData.testBatchId);
@@ -190,6 +191,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           testBatchId, // Force same batch ID from request body
           createdBy: userId,
           dueDate: stmt.dueDate ? new Date(stmt.dueDate) : undefined,
+          content: stmt.content || "Enter statement here...",
         };
         
         console.log(`🚀 BATCH ENDPOINT - Processing statement ${i + 1}/${statements.length}:`, {

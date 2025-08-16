@@ -24,7 +24,7 @@ Authentication is handled through Replit's OIDC integration using Passport.js st
 The platform integrates with Google Cloud Storage for file uploads, particularly for background images used in colorblock generation. The system implements an object storage service with ACL (Access Control List) policies for fine-grained permissions. File uploads use presigned URLs for direct-to-cloud transfers with proper security controls.
 
 ## Visual Generation System
-The application includes a canvas-based colorblock preview system that generates 1080x1080 pixel images suitable for social media advertising. The system supports custom typography, background colors, images, and text alignment. It uses HTML5 Canvas API for real-time preview rendering with export capabilities for approved designs.
+The application includes a canvas-based colorblock preview system that generates 1080x1080 pixel images suitable for social media advertising. The system supports custom typography with independent font sizing for heading, statement, and footer text, background colors, images, and text alignment. It uses HTML5 Canvas API for real-time preview rendering with export capabilities for approved designs. New statements automatically include placeholder text to guide users.
 
 # External Dependencies
 
