@@ -61,7 +61,9 @@ export function NewStatementModal({ projectId, onClose, onStatementCreated }: Ne
       console.log('⚡ STATEMENTS ARRAY CREATED - Batch consistency check:', {
         count: statements.length,
         allHaveSameBatchId: statements.every(stmt => stmt.testBatchId === testBatchId) ? '✅ SUCCESS' : '❌ FAILURE',
-        batchIds: statements.map(stmt => stmt.testBatchId)
+        batchIds: statements.map(stmt => stmt.testBatchId),
+        description: formData.description,
+        firstStatementDescription: statements[0]?.description
       });
 
       // Send as single batch request instead of individual calls
