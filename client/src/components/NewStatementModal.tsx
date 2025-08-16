@@ -51,11 +51,12 @@ export function NewStatementModal({ projectId, onClose, onStatementCreated }: Ne
 
       // Create multiple statements based on quantity
       const promises = Array.from({ length: formData.quantity }, async (_, index) => {
-        const statementWithNumber = {
+        const statementWithContent = {
           ...statementData,
-          content: `Statement ${index + 1} - please edit`,
+          content: `Facebook ad statement ${index + 1} - write your compelling ad text here`,
+          heading: `FB Ad ${index + 1}`,
         };
-        const response = await apiRequest('POST', '/api/statements', statementWithNumber);
+        const response = await apiRequest('POST', '/api/statements', statementWithContent);
         return response.json();
       });
 
