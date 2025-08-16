@@ -299,6 +299,7 @@ export class DatabaseStorage implements IStorage {
       .select({
         id: statements.id,
         projectId: statements.projectId,
+        testBatchId: statements.testBatchId,
         heading: statements.heading,
         content: statements.content,
         status: statements.status,

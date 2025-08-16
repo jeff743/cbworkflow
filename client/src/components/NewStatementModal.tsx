@@ -42,30 +42,45 @@ export function NewStatementModal({ projectId, onClose, onStatementCreated }: Ne
     mutationFn: async () => {
       // Generate a unique batch ID for this test
       const testBatchId = nanoid();
+      console.log('Generated testBatchId:', testBatchId);
       
-      const statementData = {
+      // Create base statement data
+      const baseStatementData = {
         projectId,
         testBatchId,
-        heading: "",
-        content: "New statement - please edit",
         status: "draft" as const,
         priority: formData.priority,
         dueDate: formData.dueDate || undefined,
         assignedTo: formData.assignedTo === "unassigned" || !formData.assignedTo ? undefined : formData.assignedTo,
       };
 
-      // Create multiple statements based on quantity
-      const promises = Array.from({ length: formData.quantity }, async (_, index) => {
-        const statementWithContent = {
-          ...statementData,
-          content: `Facebook ad statement ${index + 1} - write your compelling ad text here`,
-          heading: `FB Ad ${index + 1}`,
+      // Create all statement data first, then send requests
+      const statementsToCreate = [];
+      for (let i = 1; i <= formData.quantity; i++) {
+        const statementData = {
+          ...baseStatementData,
+          content: `Facebook ad statement ${i} - write your compelling ad text here`,
+          heading: `FB Ad ${i}`,
         };
-        const response = await apiRequest('POST', '/api/statements', statementWithContent);
-        return response.json();
-      });
+        console.log(`Statement ${i} testBatchId:`, statementData.testBatchId);
+        statementsToCreate.push(statementData);
+      }
 
-      return Promise.all(promises);
+      // Send all requests and collect results
+      const results = [];
+      for (const statementData of statementsToCreate) {
+        try {
+          const response = await apiRequest('POST', '/api/statements', statementData);
+          const result = await response.json();
+          console.log(`Created statement with testBatchId:`, result.testBatchId);
+          results.push(result);
+        } catch (error) {
+          console.error('Error creating statement:', error);
+          throw error;
+        }
+      }
+
+      return results;
     },
     onSuccess: (results) => {
       toast({
