@@ -290,25 +290,21 @@ export default function ProjectView() {
                                 </Badge>
                               )}
                             </div>
-                            {/* Debug info */}
-                            <div className="text-xs text-blue-500 mt-1">
-                              Debug: testBatchId = {test.testBatchId || 'null'} | hasId = {test.testBatchId ? 'YES' : 'NO'}
-                            </div>
                           </div>
                           {/* Delete button for test batches only - show for any test with testBatchId */}
                           {test.testBatchId && (
                             <div className="flex-shrink-0 ml-2">
                               <Button
-                                variant="ghost"
+                                variant="outline"
                                 size="sm"
-                                className="text-red-600 hover:text-red-800 hover:bg-red-50 p-2 h-8 w-8"
+                                className="text-red-600 hover:text-red-800 hover:bg-red-50 border-red-200 hover:border-red-400 px-3 py-1"
                                 onClick={(e) => {
                                   e.stopPropagation(); // Prevent card click
                                   handleDeleteTest(test);
                                 }}
                                 data-testid={`button-delete-test-${test.id}`}
                               >
-                                <i className="fas fa-trash text-xs"></i>
+                                🗑️ Delete
                               </Button>
                             </div>
                           )}
