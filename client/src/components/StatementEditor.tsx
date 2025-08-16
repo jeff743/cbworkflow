@@ -29,7 +29,7 @@ export function StatementEditor({ statement, onStatementUpdated }: StatementEdit
     content: statement.content || "",
     headingFontSize: statement.headingFontSize || 80,
     statementFontSize: statement.statementFontSize || 60,
-    textAlignment: statement.textAlignment || "center",
+    textAlignment: (statement.textAlignment || "center") as "left" | "center" | "right",
     backgroundColor: statement.backgroundColor || "#4CAF50",
     backgroundImageUrl: statement.backgroundImageUrl || "",
   });
