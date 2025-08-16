@@ -298,6 +298,12 @@ export default function ProjectView() {
                             <p className="text-sm text-gray-600 mb-2">
                               {test.statements.length} ad statement{test.statements.length > 1 ? 's' : ''}
                             </p>
+                            {/* Show test description if available */}
+                            {test.statements[0]?.description && (
+                              <p className="text-xs text-gray-500 mb-2 line-clamp-2" data-testid={`text-test-description-${test.id}`}>
+                                {test.statements[0].description}
+                              </p>
+                            )}
                             <div className="flex space-x-2">
                               {draftCount > 0 && (
                                 <Badge className="bg-gray-100 text-gray-700 text-xs">

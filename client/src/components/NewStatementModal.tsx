@@ -49,6 +49,7 @@ export function NewStatementModal({ projectId, onClose, onStatementCreated }: Ne
       const statements = Array.from({ length: formData.quantity }, (_, i) => ({
         projectId,
         testBatchId, // Same reference for all statements
+        description: formData.description || undefined, // Task description for the test
         content: `Facebook ad statement ${i + 1} - write your compelling ad text here`,
         heading: `FB Ad ${i + 1}`,
         status: "draft" as const,
