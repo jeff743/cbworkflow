@@ -27,7 +27,9 @@ function Router() {
           <Route path="/tests/pending-review" component={PendingReviewView} />
           <Route path="/tests/ready-to-deploy" component={ReadyToDeployView} />
           <Route path="/tests/completed" component={CompletedView} />
-          <Route path="/projects/:id" component={ProjectView} />
+          <Route path="/projects/:id">
+            {(params) => <ProjectView key={`project-${params.id}-${Date.now()}`} />}
+          </Route>
         </>
       )}
       <Route component={NotFound} />
