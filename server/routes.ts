@@ -125,6 +125,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "User not found" });
       }
       
+      console.log('🔥 SERVER - Received statement creation request:', {
+        testBatchId: req.body.testBatchId,
+        heading: req.body.heading,
+        projectId: req.body.projectId,
+        userId: userId
+      });
+      
       // Convert dueDate string to Date object if provided
       const requestData = {
         ...req.body,
@@ -132,15 +139,88 @@ export async function registerRoutes(app: Express): Promise<Server> {
         dueDate: req.body.dueDate ? new Date(req.body.dueDate) : undefined,
       };
       
+      console.log('🔥 SERVER - Prepared request data testBatchId:', requestData.testBatchId);
+      
       const statementData = insertStatementSchema.parse(requestData);
+      console.log('🔥 SERVER - After schema parse testBatchId:', statementData.testBatchId);
+      
       const statement = await storage.createStatement(statementData);
+      console.log('🔥 SERVER - Created statement with testBatchId:', statement.testBatchId, 'ID:', statement.id);
 
       // TODO: Add Slack notification for new statement assignment
 
       res.json(statement);
     } catch (error) {
-      console.error("Error creating statement:", error);
+      console.error("🔥 SERVER - Error creating statement:", error);
       res.status(500).json({ message: "Failed to create statement" });
+    }
+  });
+
+  // Batch statement creation endpoint
+  app.post('/api/statements/batch', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.currentUser?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "User not found" });
+      }
+      
+      const { statements, testBatchId } = req.body;
+      
+      console.log('🚀 BATCH ENDPOINT - Received batch creation request:', {
+        testBatchId: testBatchId,
+        statementCount: statements?.length,
+        userId: userId
+      });
+      
+      if (!statements || !Array.isArray(statements) || statements.length === 0) {
+        return res.status(400).json({ message: "Statements array is required" });
+      }
+      
+      if (!testBatchId) {
+        return res.status(400).json({ message: "testBatchId is required" });
+      }
+      
+      // Ensure all statements use the same testBatchId and add server-side data
+      const results = [];
+      for (let i = 0; i < statements.length; i++) {
+        const stmt = statements[i];
+        
+        const statementData = {
+          ...stmt,
+          testBatchId, // Force same batch ID from request body
+          createdBy: userId,
+          dueDate: stmt.dueDate ? new Date(stmt.dueDate) : undefined,
+        };
+        
+        console.log(`🚀 BATCH ENDPOINT - Processing statement ${i + 1}/${statements.length}:`, {
+          heading: statementData.heading,
+          testBatchId: statementData.testBatchId,
+          batchIdMatch: statementData.testBatchId === testBatchId ? '✅' : '❌'
+        });
+        
+        const validatedData = insertStatementSchema.parse(statementData);
+        const result = await storage.createStatement(validatedData);
+        
+        console.log(`🚀 BATCH ENDPOINT - Created statement ${i + 1}:`, {
+          id: result.id,
+          testBatchId: result.testBatchId,
+          batchIdMatch: result.testBatchId === testBatchId ? '✅' : '❌'
+        });
+        
+        results.push(result);
+      }
+      
+      console.log('🚀 BATCH ENDPOINT - Batch creation complete:', {
+        originalBatchId: testBatchId,
+        createdCount: results.length,
+        allMatch: results.every(r => r.testBatchId === testBatchId) ? '✅ SUCCESS' : '❌ FAILURE',
+        resultBatchIds: results.map(r => r.testBatchId)
+      });
+      
+      res.json(results);
+    } catch (error) {
+      console.error('🚀 BATCH ENDPOINT - Error creating batch statements:', error);
+      res.status(500).json({ message: "Failed to create batch statements" });
     }
   });
 

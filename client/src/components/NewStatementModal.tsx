@@ -42,45 +42,50 @@ export function NewStatementModal({ projectId, onClose, onStatementCreated }: Ne
     mutationFn: async () => {
       // Generate a unique batch ID for this test
       const testBatchId = nanoid();
-      console.log('Generated testBatchId:', testBatchId);
+      console.log('⚡ NEW BATCH LOGIC - Generated testBatchId:', testBatchId);
+      console.log('⚡ NEW BATCH INFO - Quantity:', formData.quantity, 'Project:', projectId);
       
-      // Create base statement data
-      const baseStatementData = {
+      // Create statements array with guaranteed shared testBatchId (bulletproof approach)
+      const statements = Array.from({ length: formData.quantity }, (_, i) => ({
         projectId,
-        testBatchId,
+        testBatchId, // Same reference for all statements
+        content: `Facebook ad statement ${i + 1} - write your compelling ad text here`,
+        heading: `FB Ad ${i + 1}`,
         status: "draft" as const,
         priority: formData.priority,
         dueDate: formData.dueDate || undefined,
         assignedTo: formData.assignedTo === "unassigned" || !formData.assignedTo ? undefined : formData.assignedTo,
-      };
+      }));
+      
+      console.log('⚡ STATEMENTS ARRAY CREATED - Batch consistency check:', {
+        count: statements.length,
+        allHaveSameBatchId: statements.every(stmt => stmt.testBatchId === testBatchId) ? '✅ SUCCESS' : '❌ FAILURE',
+        batchIds: statements.map(stmt => stmt.testBatchId)
+      });
 
-      // Create all statement data first, then send requests
-      const statementsToCreate = [];
-      for (let i = 1; i <= formData.quantity; i++) {
-        const statementData = {
-          ...baseStatementData,
-          content: `Facebook ad statement ${i} - write your compelling ad text here`,
-          heading: `FB Ad ${i}`,
-        };
-        console.log(`Statement ${i} testBatchId:`, statementData.testBatchId);
-        statementsToCreate.push(statementData);
+      // Send as single batch request instead of individual calls
+      console.log('⚡ SENDING BATCH REQUEST - testBatchId:', testBatchId);
+      
+      try {
+        const response = await apiRequest('POST', '/api/statements/batch', {
+          statements,
+          testBatchId // Explicit batch ID in request body for server verification
+        });
+        
+        const results = await response.json();
+        
+        console.log('⚡ BATCH REQUEST COMPLETE - Results:', {
+          originalBatchId: testBatchId,
+          createdCount: results.length,
+          resultBatchIds: results.map((r: any) => r.testBatchId),
+          allMatch: results.every((r: any) => r.testBatchId === testBatchId) ? '✅ SUCCESS' : '❌ FAILURE'
+        });
+        
+        return results;
+      } catch (error) {
+        console.error('⚡ BATCH REQUEST FAILED:', error);
+        throw error;
       }
-
-      // Send all requests and collect results
-      const results = [];
-      for (const statementData of statementsToCreate) {
-        try {
-          const response = await apiRequest('POST', '/api/statements', statementData);
-          const result = await response.json();
-          console.log(`Created statement with testBatchId:`, result.testBatchId);
-          results.push(result);
-        } catch (error) {
-          console.error('Error creating statement:', error);
-          throw error;
-        }
-      }
-
-      return results;
     },
     onSuccess: (results) => {
       toast({
