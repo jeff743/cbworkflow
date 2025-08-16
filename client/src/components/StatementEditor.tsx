@@ -111,23 +111,27 @@ export function StatementEditor({ statement, onStatementUpdated }: StatementEdit
   };
 
   const handleUploadComplete = async (result: UploadResult<Record<string, unknown>, Record<string, unknown>>) => {
+    console.log("🔄 Upload completed:", result);
     if (result.successful && result.successful.length > 0) {
       const uploadURL = result.successful[0].uploadURL;
+      console.log("📤 Upload URL:", uploadURL);
       try {
         const response = await apiRequest('PUT', '/api/background-images', {
           backgroundImageURL: uploadURL,
         });
         const data = await response.json();
+        console.log("📥 Server response:", data);
         setFormData(prev => ({
           ...prev,
           backgroundImageUrl: data.objectPath,
         }));
+        console.log("✅ FormData updated with objectPath:", data.objectPath);
         toast({
           title: "Background Image Uploaded",
           description: "Your background image has been uploaded successfully.",
         });
       } catch (error) {
-        console.error("Error setting background image:", error);
+        console.error("❌ Error in upload completion:", error);
         toast({
           title: "Upload Failed",
           description: "Failed to set background image. Please try again.",
