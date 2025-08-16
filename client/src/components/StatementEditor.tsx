@@ -26,10 +26,15 @@ export function StatementEditor({ statement, onStatementUpdated, navigationReque
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Helper function to detect template content
+  const isTemplateContent = (content: string) => {
+    return content.match(/^Facebook ad statement \d+ - write your compelling ad text here$/);
+  };
+
   const [activeTab, setActiveTab] = useState<"edit" | "review">("edit");
   const [formData, setFormData] = useState({
     heading: statement.heading || "",
-    content: statement.content || "",
+    content: isTemplateContent(statement.content) ? "" : (statement.content || ""),
     footer: statement.footer || "",
     headingFontSize: statement.headingFontSize || 80,
     statementFontSize: statement.statementFontSize || 60,
@@ -53,7 +58,7 @@ export function StatementEditor({ statement, onStatementUpdated, navigationReque
   useEffect(() => {
     setFormData({
       heading: statement.heading || "",
-      content: statement.content || "",
+      content: isTemplateContent(statement.content) ? "" : (statement.content || ""),
       footer: statement.footer || "",
       headingFontSize: statement.headingFontSize || 80,
       statementFontSize: statement.statementFontSize || 60,
@@ -68,9 +73,10 @@ export function StatementEditor({ statement, onStatementUpdated, navigationReque
 
   // Phase 2 Fix: Add useEffect to detect form changes
   useEffect(() => {
+    const originalContent = isTemplateContent(statement.content) ? "" : (statement.content || "");
     const hasChanges = 
       formData.heading !== (statement.heading || "") ||
-      formData.content !== (statement.content || "") ||
+      formData.content !== originalContent ||
       formData.footer !== (statement.footer || "") ||
       formData.headingFontSize !== (statement.headingFontSize || 80) ||
       formData.statementFontSize !== (statement.statementFontSize || 60) ||
@@ -128,16 +134,24 @@ export function StatementEditor({ statement, onStatementUpdated, navigationReque
   });
 
   const handleSaveDraft = () => {
-    updateMutation.mutate(formData);
+    // Prepare data for saving - restore template content if field is empty
+    const saveData = {
+      ...formData,
+      content: formData.content || (isTemplateContent(statement.content) ? statement.content : formData.content)
+    };
+    updateMutation.mutate(saveData);
     setHasUnsavedChanges(false); // Reset unsaved changes after save
     hasUnsavedChangesRef.current = false; // Reset ref as well
   };
 
   const handleSubmitForReview = () => {
-    updateMutation.mutate({
+    // Prepare data for saving - restore template content if field is empty
+    const saveData = {
       ...formData,
-      status: "under_review",
-    });
+      content: formData.content || (isTemplateContent(statement.content) ? statement.content : formData.content),
+      status: "under_review" as const,
+    };
+    updateMutation.mutate(saveData);
     setHasUnsavedChanges(false); // Reset unsaved changes after submit
     hasUnsavedChangesRef.current = false; // Reset ref as well
   };
