@@ -31,6 +31,7 @@ export function ProjectSettings({ project, onClose }: ProjectSettingsProps) {
       });
       queryClient.invalidateQueries({ queryKey: ['projects'] });
       queryClient.invalidateQueries({ queryKey: ['project', project.id] });
+      queryClient.invalidateQueries({ queryKey: ['/api/projects', project.id, 'statements'] });
     },
     onError: (error) => {
       console.error("Error adding background image:", error);
@@ -56,6 +57,7 @@ export function ProjectSettings({ project, onClose }: ProjectSettingsProps) {
       });
       queryClient.invalidateQueries({ queryKey: ['projects'] });
       queryClient.invalidateQueries({ queryKey: ['project', project.id] });
+      queryClient.invalidateQueries({ queryKey: ['/api/projects', project.id, 'statements'] });
     },
     onError: (error) => {
       console.error("Error removing background image:", error);
@@ -79,7 +81,9 @@ export function ProjectSettings({ project, onClose }: ProjectSettingsProps) {
   const handleUploadComplete = async (result: UploadResult<Record<string, unknown>, Record<string, unknown>>) => {
     if (result.successful && result.successful.length > 0) {
       const uploadURL = result.successful[0].uploadURL;
-      addImageMutation.mutate(uploadURL);
+      if (uploadURL) {
+        addImageMutation.mutate(uploadURL);
+      }
     }
   };
 
