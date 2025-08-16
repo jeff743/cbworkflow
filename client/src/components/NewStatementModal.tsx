@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { apiRequest } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
+import { nanoid } from "nanoid";
 import type { User, InsertStatement } from "@shared/schema";
 
 interface NewStatementModalProps {
@@ -39,8 +40,12 @@ export function NewStatementModal({ projectId, onClose, onStatementCreated }: Ne
 
   const createMutation = useMutation({
     mutationFn: async () => {
+      // Generate a unique batch ID for this test
+      const testBatchId = nanoid();
+      
       const statementData = {
         projectId,
+        testBatchId,
         heading: "",
         content: "New statement - please edit",
         status: "draft" as const,

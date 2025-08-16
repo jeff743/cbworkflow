@@ -186,6 +186,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get all statements
+  app.get('/api/statements', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.currentUser?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "User not found" });
+      }
+      const statements = await storage.getAllStatements();
+      res.json(statements);
+    } catch (error) {
+      console.error("Error fetching all statements:", error);
+      res.status(500).json({ message: "Failed to fetch statements" });
+    }
+  });
+
   // Dashboard routes
   app.get('/api/dashboard/my-statements', isAuthenticated, async (req: any, res) => {
     try {

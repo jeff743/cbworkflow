@@ -1,5 +1,5 @@
 import { useAuth } from "@/hooks/useAuth";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { NewStatementModal } from "@/components/NewStatementModal";
@@ -10,18 +10,23 @@ import type { StatementWithRelations } from "@shared/schema";
 
 export default function NewTestsView() {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [showNewStatementModal, setShowNewStatementModal] = useState(false);
 
   const { data: statements, isLoading } = useQuery<StatementWithRelations[]>({
-    queryKey: ['/api/dashboard/my-statements'],
+    queryKey: ['/api/statements'],
   });
 
-  // Group statements into tests based on creation time and project
+  // Group statements into tests based on testBatchId
   const groupedTests = statements?.reduce((acc, statement) => {
-    const testKey = `${statement.projectId}-${statement.createdAt ? new Date(statement.createdAt).toISOString().split('T')[0] : 'no-date'}`;
+    // Skip statements without testBatchId (legacy statements)
+    if (!statement.testBatchId) return acc;
+    
+    const testKey = statement.testBatchId;
     if (!acc[testKey]) {
       acc[testKey] = {
         id: testKey,
+        testBatchId: statement.testBatchId,
         projectId: statement.projectId,
         projectName: statement.project?.name || 'Unknown Project',
         statements: [],
@@ -135,10 +140,11 @@ export default function NewTestsView() {
 
       {showNewStatementModal && (
         <NewStatementModal
-          projectId="" // Will need to be selected or defaulted
+          projectId={"b0036be7-62d1-4a9c-9c91-526743e72f8f"} // Default to first project for now
           onClose={() => setShowNewStatementModal(false)}
           onStatementCreated={() => {
             // Refresh data
+            queryClient.invalidateQueries({ queryKey: ['/api/statements'] });
             setShowNewStatementModal(false);
           }}
         />
