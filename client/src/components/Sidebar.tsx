@@ -1,7 +1,7 @@
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
@@ -112,6 +112,11 @@ export function Sidebar() {
   const pendingReviewCount = reviewStatements?.length || 0;
   const readyToDeployCount = myStatements?.filter(s => s.status === 'completed').length || 0;
 
+  const handleProjectClick = useCallback((projectId: string) => {
+    // Signal to ProjectView to reset state
+    queryClient.invalidateQueries({ queryKey: ['project-nav-reset', projectId] });
+  }, []);
+
   return (
     <div className="w-64 bg-surface shadow-lg flex flex-col">
       {/* Logo/Brand */}
@@ -137,7 +142,7 @@ export function Sidebar() {
             {projects?.map(project => {
               const isActive = location.startsWith(`/projects/${project.id}`);
               return (
-                <Link key={project.id} href={`/projects/${project.id}`}>
+                <Link key={project.id} href={`/projects/${project.id}`} onClick={() => handleProjectClick(project.id)}>
                   <div className={`flex items-center justify-between p-3 text-sm rounded-lg cursor-pointer transition-colors ${
                     isActive 
                       ? 'bg-primary text-white' 
