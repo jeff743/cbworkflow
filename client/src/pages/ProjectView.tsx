@@ -18,6 +18,7 @@ export default function ProjectView() {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [selectedTestId, setSelectedTestId] = useState<string | null>(null);
   const [selectedStatementId, setSelectedStatementId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [showNewStatementModal, setShowNewStatementModal] = useState(false);
@@ -81,7 +82,26 @@ export default function ProjectView() {
     );
   }
 
-  const selectedStatement = statements?.find(s => s.id === selectedStatementId);
+  // Group statements into tests by testBatchId
+  const groupedTests = statements?.reduce((acc, statement) => {
+    // Skip statements without testBatchId (legacy statements) - group them individually
+    const testKey = statement.testBatchId || statement.id;
+    if (!acc[testKey]) {
+      acc[testKey] = {
+        id: testKey,
+        testBatchId: statement.testBatchId,
+        statements: [],
+        projectId: statement.projectId,
+        createdAt: statement.createdAt,
+      };
+    }
+    acc[testKey].statements.push(statement);
+    return acc;
+  }, {} as Record<string, any>) || {};
+
+  const tests = Object.values(groupedTests);
+  const selectedTest = tests.find(t => t.id === selectedTestId);
+  const selectedStatement = selectedTest?.statements.find(s => s.id === selectedStatementId);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -138,7 +158,7 @@ export default function ProjectView() {
           <div className="w-1/2 bg-surface border-r border-gray-200 flex flex-col">
             <div className="p-6 border-b border-gray-200">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold">Statements</h3>
+                <h3 className="text-lg font-semibold">Tests</h3>
                 <div className="flex items-center space-x-2">
                   <span className="text-sm text-gray-500">Filter:</span>
                   <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -158,50 +178,119 @@ export default function ProjectView() {
             </div>
 
             <div className="flex-1 overflow-y-auto p-6 space-y-4">
-              {statements?.map(statement => (
-                <div
-                  key={statement.id}
-                  className={`bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer ${
-                    selectedStatementId === statement.id ? 'border-primary shadow-md' : ''
-                  }`}
-                  onClick={() => setSelectedStatementId(statement.id)}
-                  data-testid={`card-statement-${statement.id}`}
-                >
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex-1">
-                      <h4 className="font-medium text-gray-900 mb-1" data-testid={`text-statement-heading-${statement.id}`}>
-                        {statement.heading || 'No heading'}
-                      </h4>
-                      <p className="text-sm text-gray-600 line-clamp-2" data-testid={`text-statement-content-${statement.id}`}>
-                        {statement.content}
-                      </p>
+              {!selectedTestId ? (
+                // Show test cards when no test is selected
+                <>
+                  {tests.map(test => {
+                    const completedCount = test.statements.filter(s => s.status === 'completed').length;
+                    const approvedCount = test.statements.filter(s => s.status === 'approved').length;
+                    const pendingCount = test.statements.filter(s => s.status === 'under_review').length;
+                    const draftCount = test.statements.filter(s => s.status === 'draft').length;
+                    
+                    return (
+                      <div
+                        key={test.id}
+                        className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
+                        onClick={() => setSelectedTestId(test.id)}
+                        data-testid={`card-test-${test.id}`}
+                      >
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex-1">
+                            <h4 className="font-medium text-gray-900 mb-1">
+                              {test.testBatchId ? `Test Batch` : 'Legacy Statement'}
+                            </h4>
+                            <p className="text-sm text-gray-600 mb-2">
+                              {test.statements.length} ad statement{test.statements.length > 1 ? 's' : ''}
+                            </p>
+                            <div className="flex space-x-2">
+                              {draftCount > 0 && (
+                                <Badge className="bg-gray-100 text-gray-700 text-xs">
+                                  {draftCount} draft
+                                </Badge>
+                              )}
+                              {pendingCount > 0 && (
+                                <Badge className="bg-warning text-white text-xs">
+                                  {pendingCount} pending
+                                </Badge>
+                              )}
+                              {approvedCount > 0 && (
+                                <Badge className="bg-success text-white text-xs">
+                                  {approvedCount} approved
+                                </Badge>
+                              )}
+                              {completedCount > 0 && (
+                                <Badge className="bg-gray-500 text-white text-xs">
+                                  {completedCount} completed
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          Created {test.createdAt ? new Date(test.createdAt).toLocaleDateString() : 'Unknown date'}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {!tests.length && (
+                    <div className="text-center py-8">
+                      <p className="text-gray-500">No tests found</p>
+                      <Button
+                        onClick={() => setShowNewStatementModal(true)}
+                        className="mt-4"
+                        variant="outline"
+                        data-testid="button-create-first-test"
+                      >
+                        Create your first test
+                      </Button>
                     </div>
-                    <Badge className={getStatusColor(statement.status)} data-testid={`status-statement-${statement.id}`}>
-                      {statement.status.replace('_', ' ')}
-                    </Badge>
+                  )}
+                </>
+              ) : (
+                // Show statements within selected test
+                <>
+                  <div className="mb-4">
+                    <Button
+                      onClick={() => {setSelectedTestId(null); setSelectedStatementId(null);}}
+                      variant="outline"
+                      size="sm"
+                    >
+                      ← Back to Tests
+                    </Button>
                   </div>
-                  <div className="flex items-center justify-between text-xs text-gray-500">
-                    <span data-testid={`text-statement-creator-${statement.id}`}>
-                      Created by {statement.creator.firstName} {statement.creator.lastName}
-                    </span>
-                    <span data-testid={`text-statement-date-${statement.id}`}>
-                      {statement.createdAt ? new Date(statement.createdAt).toLocaleDateString() : 'No date'}
-                    </span>
-                  </div>
-                </div>
-              ))}
-              {!statements?.length && (
-                <div className="text-center py-8">
-                  <p className="text-gray-500">No statements found</p>
-                  <Button
-                    onClick={() => setShowNewStatementModal(true)}
-                    className="mt-4"
-                    variant="outline"
-                    data-testid="button-create-first-statement"
-                  >
-                    Create your first test
-                  </Button>
-                </div>
+                  {selectedTest?.statements.map(statement => (
+                    <div
+                      key={statement.id}
+                      className={`bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer ${
+                        selectedStatementId === statement.id ? 'border-primary shadow-md' : ''
+                      }`}
+                      onClick={() => setSelectedStatementId(statement.id)}
+                      data-testid={`card-statement-${statement.id}`}
+                    >
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex-1">
+                          <h4 className="font-medium text-gray-900 mb-1" data-testid={`text-statement-heading-${statement.id}`}>
+                            {statement.heading || 'No heading'}
+                          </h4>
+                          <p className="text-sm text-gray-600 line-clamp-2" data-testid={`text-statement-content-${statement.id}`}>
+                            {statement.content}
+                          </p>
+                        </div>
+                        <Badge className={getStatusColor(statement.status)} data-testid={`status-statement-${statement.id}`}>
+                          {statement.status.replace('_', ' ')}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center justify-between text-xs text-gray-500">
+                        <span data-testid={`text-statement-creator-${statement.id}`}>
+                          Created by {statement.creator.firstName} {statement.creator.lastName}
+                        </span>
+                        <span data-testid={`text-statement-date-${statement.id}`}>
+                          {statement.createdAt ? new Date(statement.createdAt).toLocaleDateString() : 'No date'}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </>
               )}
             </div>
           </div>
@@ -219,8 +308,14 @@ export default function ProjectView() {
             <div className="flex-1 flex items-center justify-center bg-gray-50">
               <div className="text-center">
                 <i className="fas fa-edit text-6xl text-gray-300 mb-4"></i>
-                <h3 className="text-xl font-semibold text-gray-600 mb-2">Select a Statement</h3>
-                <p className="text-gray-500">Choose a statement from the list to edit and preview</p>
+                <h3 className="text-xl font-semibold text-gray-600 mb-2">
+                  {selectedTestId ? 'Select a Statement' : 'Select a Test'}
+                </h3>
+                <p className="text-gray-500">
+                  {selectedTestId 
+                    ? 'Choose a statement from the test to edit and preview'
+                    : 'Choose a test to view its statements, or create a new test'}
+                </p>
               </div>
             </div>
           )}
