@@ -7,6 +7,10 @@ import { useAuth } from "@/hooks/useAuth";
 import Landing from "@/pages/Landing";
 import Dashboard from "@/pages/Dashboard";
 import ProjectView from "@/pages/ProjectView";
+import NewTestsView from "@/pages/NewTestsView";
+import PendingReviewView from "@/pages/PendingReviewView";
+import ReadyToDeployView from "@/pages/ReadyToDeployView";
+import CompletedView from "@/pages/CompletedView";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -19,6 +23,10 @@ function Router() {
       ) : (
         <>
           <Route path="/" component={Dashboard} />
+          <Route path="/tests/new" component={NewTestsView} />
+          <Route path="/tests/pending-review" component={PendingReviewView} />
+          <Route path="/tests/ready-to-deploy" component={ReadyToDeployView} />
+          <Route path="/tests/completed" component={CompletedView} />
           <Route path="/projects/:id" component={ProjectView} />
         </>
       )}
