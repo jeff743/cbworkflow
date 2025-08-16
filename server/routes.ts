@@ -195,17 +195,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log(`🚀 BATCH ENDPOINT - Processing statement ${i + 1}/${statements.length}:`, {
           heading: statementData.heading,
           testBatchId: statementData.testBatchId,
-          description: statementData.description,
           batchIdMatch: statementData.testBatchId === testBatchId ? '✅' : '❌'
         });
         
         const validatedData = insertStatementSchema.parse(statementData);
-        console.log(`🚀 BATCH ENDPOINT - Validated data for statement ${i + 1}:`, {
-          id: validatedData.id,
-          description: validatedData.description,
-          heading: validatedData.heading,
-          testBatchId: validatedData.testBatchId
-        });
         const result = await storage.createStatement(validatedData);
         
         console.log(`🚀 BATCH ENDPOINT - Created statement ${i + 1}:`, {
