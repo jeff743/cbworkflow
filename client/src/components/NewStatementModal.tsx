@@ -64,8 +64,8 @@ export function NewStatementModal({ projectId, onClose, onStatementCreated }: Ne
     },
     onSuccess: (results) => {
       toast({
-        title: "Statements Created",
-        description: `${results.length} statement${results.length > 1 ? 's' : ''} created and assigned successfully.`,
+        title: "Test Created",
+        description: `New test with ${results.length} ad statement${results.length > 1 ? 's' : ''} created and assigned successfully.`,
       });
       onStatementCreated();
     },
@@ -103,9 +103,9 @@ export function NewStatementModal({ projectId, onClose, onStatementCreated }: Ne
     <Dialog open={true} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl" data-testid="modal-new-statement">
         <DialogHeader>
-          <DialogTitle>Create New Statements</DialogTitle>
+          <DialogTitle>Create New Test</DialogTitle>
           <DialogDescription>
-            Create and assign colorblock statement tasks for Facebook testing (up to 10 statements per batch)
+            Create a new Facebook test with up to 10 ad statements for A/B testing
           </DialogDescription>
         </DialogHeader>
         
@@ -140,7 +140,7 @@ export function NewStatementModal({ projectId, onClose, onStatementCreated }: Ne
             </Label>
             <Textarea
               id="description"
-              placeholder="Describe the statement requirements, target audience, and key messaging..."
+              placeholder="Describe the test requirements, target audience, and key messaging for this ad test..."
               className="resize-none"
               rows={4}
               value={formData.description}
@@ -152,7 +152,7 @@ export function NewStatementModal({ projectId, onClose, onStatementCreated }: Ne
           <div className="grid grid-cols-3 gap-4">
             <div>
               <Label htmlFor="quantity" className="block text-sm font-medium text-gray-700 mb-2">
-                Quantity
+                Ads in Test
               </Label>
               <Input
                 id="quantity"
@@ -209,8 +209,8 @@ export function NewStatementModal({ projectId, onClose, onStatementCreated }: Ne
               data-testid="button-create-assign"
             >
               {createMutation.isPending 
-                ? `Creating ${formData.quantity} statement${formData.quantity > 1 ? 's' : ''}...` 
-                : `Create & Assign ${formData.quantity} Statement${formData.quantity > 1 ? 's' : ''}`}
+                ? `Creating test with ${formData.quantity} ad${formData.quantity > 1 ? 's' : ''}...` 
+                : `Create Test (${formData.quantity} Ad${formData.quantity > 1 ? 's' : ''})`}
             </Button>
           </div>
         </form>

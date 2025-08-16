@@ -123,10 +123,10 @@ export default function ProjectView() {
               <Button
                 onClick={() => setShowNewStatementModal(true)}
                 className="bg-primary text-white hover:bg-primary-dark"
-                data-testid="button-new-statement"
+                data-testid="button-new-test"
               >
                 <i className="fas fa-plus text-sm mr-2"></i>
-                New Statement
+                New Test
               </Button>
             </div>
           </div>
@@ -199,7 +199,7 @@ export default function ProjectView() {
                     variant="outline"
                     data-testid="button-create-first-statement"
                   >
-                    Create your first statement
+                    Create your first test
                   </Button>
                 </div>
               )}
