@@ -34,6 +34,8 @@ export interface IStorage {
   createStatement(statement: InsertStatement): Promise<Statement>;
   updateStatement(id: string, updates: UpdateStatement): Promise<Statement>;
   deleteStatement(id: string): Promise<void>;
+  getStatementsByBatchId(testBatchId: string): Promise<StatementWithRelations[]>;
+  deleteStatementsByBatchId(testBatchId: string): Promise<number>;
   
   // Dashboard stats
   getUserStatements(userId: string): Promise<StatementWithRelations[]>;
@@ -392,6 +394,78 @@ export class DatabaseStorage implements IStorage {
 
   async deleteStatement(id: string): Promise<void> {
     await db.delete(statements).where(eq(statements.id, id));
+  }
+
+  async getStatementsByBatchId(testBatchId: string): Promise<StatementWithRelations[]> {
+    const results = await db
+      .select({
+        id: statements.id,
+        projectId: statements.projectId,
+        testBatchId: statements.testBatchId,
+        heading: statements.heading,
+        content: statements.content,
+        status: statements.status,
+        priority: statements.priority,
+        dueDate: statements.dueDate,
+        assignedTo: statements.assignedTo,
+        createdBy: statements.createdBy,
+        reviewedBy: statements.reviewedBy,
+        reviewNotes: statements.reviewNotes,
+        headingFontSize: statements.headingFontSize,
+        statementFontSize: statements.statementFontSize,
+        textAlignment: statements.textAlignment,
+        backgroundColor: statements.backgroundColor,
+        backgroundImageUrl: statements.backgroundImageUrl,
+        colorblockImageUrl: statements.colorblockImageUrl,
+        createdAt: statements.createdAt,
+        updatedAt: statements.updatedAt,
+        project: {
+          id: projects.id,
+          name: projects.name,
+          description: projects.description,
+          clientName: projects.clientName,
+          status: projects.status,
+          createdBy: projects.createdBy,
+          createdAt: projects.createdAt,
+          updatedAt: projects.updatedAt,
+        },
+        creator: {
+          id: users.id,
+          email: users.email,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          profileImageUrl: users.profileImageUrl,
+          role: users.role,
+          createdAt: users.createdAt,
+        }
+      })
+      .from(statements)
+      .leftJoin(projects, eq(statements.projectId, projects.id))
+      .leftJoin(users, eq(statements.createdBy, users.id))
+      .where(eq(statements.testBatchId, testBatchId))
+      .orderBy(desc(statements.createdAt));
+
+    return results.map(result => ({ 
+      ...result, 
+      assignee: undefined, 
+      reviewer: undefined,
+      project: result.project || { 
+        id: '', 
+        name: 'Unknown Project', 
+        description: null, 
+        clientName: null, 
+        status: 'active', 
+        createdBy: '', 
+        createdAt: null, 
+        updatedAt: null 
+      }
+    }));
+  }
+
+  async deleteStatementsByBatchId(testBatchId: string): Promise<number> {
+    const result = await db.delete(statements).where(eq(statements.testBatchId, testBatchId));
+    // @ts-ignore - Drizzle delete returns metadata with rowCount/affected rows
+    return result.rowCount || result.changes || 0;
   }
 
   // Dashboard stats
