@@ -42,19 +42,11 @@ export function StatementEditor({ statement, onStatementUpdated }: StatementEdit
   const handleTrueFalseToggle = (checked: boolean) => {
     setUseTrueFalse(checked);
     if (checked) {
-      // Add "True or False?" if not already present
-      if (!formData.heading.includes("True or False?")) {
-        const newHeading = formData.heading.trim() 
-          ? `${formData.heading.trim()} True or False?`
-          : "True or False?";
-        setFormData(prev => ({ ...prev, heading: newHeading }));
-      }
+      // Replace entire heading with "True or False?"
+      setFormData(prev => ({ ...prev, heading: "True or False?" }));
     } else {
-      // Remove "True or False?" from the heading
-      const newHeading = formData.heading
-        .replace(/\s*True or False\?\s*/g, "")
-        .trim();
-      setFormData(prev => ({ ...prev, heading: newHeading }));
+      // Clear the heading field when unchecked
+      setFormData(prev => ({ ...prev, heading: "" }));
     }
   };
 
