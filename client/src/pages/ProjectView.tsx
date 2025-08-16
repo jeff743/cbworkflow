@@ -290,21 +290,27 @@ export default function ProjectView() {
                                 </Badge>
                               )}
                             </div>
+                            {/* Debug info */}
+                            <div className="text-xs text-blue-500 mt-1">
+                              Debug: testBatchId = {test.testBatchId || 'null'} | hasId = {test.testBatchId ? 'YES' : 'NO'}
+                            </div>
                           </div>
-                          {/* Delete button for test batches only */}
+                          {/* Delete button for test batches only - show for any test with testBatchId */}
                           {test.testBatchId && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="text-red-600 hover:text-red-800 hover:bg-red-50 ml-2"
-                              onClick={(e) => {
-                                e.stopPropagation(); // Prevent card click
-                                handleDeleteTest(test);
-                              }}
-                              data-testid={`button-delete-test-${test.id}`}
-                            >
-                              <i className="fas fa-trash text-xs"></i>
-                            </Button>
+                            <div className="flex-shrink-0 ml-2">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-red-600 hover:text-red-800 hover:bg-red-50 p-2 h-8 w-8"
+                                onClick={(e) => {
+                                  e.stopPropagation(); // Prevent card click
+                                  handleDeleteTest(test);
+                                }}
+                                data-testid={`button-delete-test-${test.id}`}
+                              >
+                                <i className="fas fa-trash text-xs"></i>
+                              </Button>
+                            </div>
                           )}
                         </div>
                         <div className="text-xs text-gray-500">
