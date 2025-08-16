@@ -52,6 +52,7 @@ export const projects = pgTable("projects", {
 export const statements = pgTable("statements", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   projectId: varchar("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  testBatchId: varchar("test_batch_id"), // Groups statements created together as a test
   heading: text("heading"),
   content: text("content").notNull(),
   status: varchar("status").notNull().default("draft"), // draft, under_review, needs_revision, approved, in_design, completed

@@ -220,6 +220,15 @@ export class DatabaseStorage implements IStorage {
     return statementsWithRelations;
   }
 
+  async getAllStatements(): Promise<any[]> {
+    // Simple implementation for testing
+    const results = await db.select().from(statements)
+      .innerJoin(projects, eq(statements.projectId, projects.id))
+      .innerJoin(users, eq(statements.createdBy, users.id))
+      .orderBy(desc(statements.updatedAt));
+    return results;
+  }
+
   async getStatement(id: string): Promise<StatementWithRelations | undefined> {
     const [result] = await db
       .select({
