@@ -28,6 +28,7 @@ export interface IStorage {
   createProject(project: InsertProject): Promise<Project>;
   
   // Statement operations
+  getAllStatements(): Promise<StatementWithRelations[]>;
   getStatements(projectId: string, status?: string): Promise<StatementWithRelations[]>;
   getStatement(id: string): Promise<StatementWithRelations | undefined>;
   createStatement(statement: InsertStatement): Promise<Statement>;
@@ -153,6 +154,7 @@ export class DatabaseStorage implements IStorage {
       .select({
         id: statements.id,
         projectId: statements.projectId,
+        testBatchId: statements.testBatchId,
         heading: statements.heading,
         content: statements.content,
         status: statements.status,
@@ -220,13 +222,76 @@ export class DatabaseStorage implements IStorage {
     return statementsWithRelations;
   }
 
-  async getAllStatements(): Promise<any[]> {
-    // Simple implementation for testing
-    const results = await db.select().from(statements)
+  async getAllStatements(): Promise<StatementWithRelations[]> {
+    const results = await db
+      .select({
+        id: statements.id,
+        projectId: statements.projectId,
+        testBatchId: statements.testBatchId,
+        heading: statements.heading,
+        content: statements.content,
+        status: statements.status,
+        priority: statements.priority,
+        dueDate: statements.dueDate,
+        assignedTo: statements.assignedTo,
+        createdBy: statements.createdBy,
+        reviewedBy: statements.reviewedBy,
+        reviewNotes: statements.reviewNotes,
+        headingFontSize: statements.headingFontSize,
+        statementFontSize: statements.statementFontSize,
+        textAlignment: statements.textAlignment,
+        backgroundColor: statements.backgroundColor,
+        backgroundImageUrl: statements.backgroundImageUrl,
+        colorblockImageUrl: statements.colorblockImageUrl,
+        createdAt: statements.createdAt,
+        updatedAt: statements.updatedAt,
+        project: {
+          id: projects.id,
+          name: projects.name,
+          description: projects.description,
+          clientName: projects.clientName,
+          status: projects.status,
+          createdBy: projects.createdBy,
+          createdAt: projects.createdAt,
+          updatedAt: projects.updatedAt,
+        },
+        creator: {
+          id: users.id,
+          email: users.email,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          profileImageUrl: users.profileImageUrl,
+          role: users.role,
+          createdAt: users.createdAt,
+          updatedAt: users.updatedAt,
+        },
+      })
+      .from(statements)
       .innerJoin(projects, eq(statements.projectId, projects.id))
       .innerJoin(users, eq(statements.createdBy, users.id))
       .orderBy(desc(statements.updatedAt));
-    return results;
+
+    // Add assignee and reviewer separately
+    const statementsWithRelations: StatementWithRelations[] = [];
+    for (const result of results) {
+      let assignee: User | undefined;
+      let reviewer: User | undefined;
+
+      if (result.assignedTo) {
+        assignee = await this.getUser(result.assignedTo);
+      }
+      if (result.reviewedBy) {
+        reviewer = await this.getUser(result.reviewedBy);
+      }
+
+      statementsWithRelations.push({
+        ...result,
+        assignee,
+        reviewer,
+      });
+    }
+
+    return statementsWithRelations;
   }
 
   async getStatement(id: string): Promise<StatementWithRelations | undefined> {
@@ -334,6 +399,7 @@ export class DatabaseStorage implements IStorage {
       .select({
         id: statements.id,
         projectId: statements.projectId,
+        testBatchId: statements.testBatchId,
         heading: statements.heading,
         content: statements.content,
         status: statements.status,
@@ -386,6 +452,7 @@ export class DatabaseStorage implements IStorage {
       .select({
         id: statements.id,
         projectId: statements.projectId,
+        testBatchId: statements.testBatchId,
         heading: statements.heading,
         content: statements.content,
         status: statements.status,
