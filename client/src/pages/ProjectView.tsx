@@ -90,7 +90,7 @@ export default function ProjectView() {
       acc[testKey] = {
         id: testKey,
         testBatchId: statement.testBatchId,
-        statements: [],
+        statements: [] as StatementWithRelations[],
         projectId: statement.projectId,
         createdAt: statement.createdAt,
       };
@@ -100,8 +100,8 @@ export default function ProjectView() {
   }, {} as Record<string, any>) || {};
 
   const tests = Object.values(groupedTests);
-  const selectedTest = tests.find(t => t.id === selectedTestId);
-  const selectedStatement = selectedTest?.statements.find(s => s.id === selectedStatementId);
+  const selectedTest = tests.find((t: any) => t.id === selectedTestId);
+  const selectedStatement = selectedTest?.statements.find((s: any) => s.id === selectedStatementId);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -178,14 +178,15 @@ export default function ProjectView() {
             </div>
 
             <div className="flex-1 overflow-y-auto p-6 space-y-4">
+              {/* Always start by showing test cards, drill down when test is selected */}
               {!selectedTestId ? (
                 // Show test cards when no test is selected
                 <>
-                  {tests.map(test => {
-                    const completedCount = test.statements.filter(s => s.status === 'completed').length;
-                    const approvedCount = test.statements.filter(s => s.status === 'approved').length;
-                    const pendingCount = test.statements.filter(s => s.status === 'under_review').length;
-                    const draftCount = test.statements.filter(s => s.status === 'draft').length;
+                  {tests.map((test: any) => {
+                    const completedCount = test.statements.filter((s: any) => s.status === 'completed').length;
+                    const approvedCount = test.statements.filter((s: any) => s.status === 'approved').length;
+                    const pendingCount = test.statements.filter((s: any) => s.status === 'under_review').length;
+                    const draftCount = test.statements.filter((s: any) => s.status === 'draft').length;
                     
                     return (
                       <div
@@ -258,7 +259,7 @@ export default function ProjectView() {
                       ← Back to Tests
                     </Button>
                   </div>
-                  {selectedTest?.statements.map(statement => (
+                  {selectedTest?.statements.map((statement: any) => (
                     <div
                       key={statement.id}
                       className={`bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer ${
