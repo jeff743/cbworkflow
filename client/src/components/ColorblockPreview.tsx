@@ -8,6 +8,7 @@ interface ColorblockPreviewProps {
   content: string;
   headingFontSize: number;
   statementFontSize: number;
+  footerFontSize: number;
   textAlignment: "left" | "center" | "right";
   backgroundColor: string;
   backgroundImageUrl?: string;
@@ -19,6 +20,7 @@ export function ColorblockPreview({
   content,
   headingFontSize,
   statementFontSize,
+  footerFontSize,
   textAlignment,
   backgroundColor,
   backgroundImageUrl,
@@ -138,7 +140,6 @@ export function ColorblockPreview({
       
       // Draw footer if present
       if (footer) {
-        const footerFontSize = Math.floor(statementFontSize * 0.8); // Slightly smaller than content
         ctx.font = `${footerFontSize}px Inter, Arial, sans-serif`;
         const footerLines = wrapText(ctx, footer, 1080 - (padding * 2));
         
@@ -154,7 +155,7 @@ export function ColorblockPreview({
     };
 
     drawColorblock();
-  }, [heading, content, headingFontSize, statementFontSize, textAlignment, backgroundColor, backgroundImageUrl, footer]);
+  }, [heading, content, headingFontSize, statementFontSize, footerFontSize, textAlignment, backgroundColor, backgroundImageUrl, footer]);
 
   const handleDownload = () => {
     const canvas = canvasRef.current;

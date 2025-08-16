@@ -33,6 +33,7 @@ export function StatementEditor({ statement, onStatementUpdated, navigationReque
     footer: statement.footer || "",
     headingFontSize: statement.headingFontSize || 80,
     statementFontSize: statement.statementFontSize || 60,
+    footerFontSize: statement.footerFontSize || 35,
     textAlignment: (statement.textAlignment || "center") as "left" | "center" | "right",
     backgroundColor: statement.backgroundColor || "#4CAF50",
     backgroundImageUrl: statement.backgroundImageUrl || "",
@@ -56,6 +57,7 @@ export function StatementEditor({ statement, onStatementUpdated, navigationReque
       footer: statement.footer || "",
       headingFontSize: statement.headingFontSize || 80,
       statementFontSize: statement.statementFontSize || 60,
+      footerFontSize: statement.footerFontSize || 35,
       textAlignment: (statement.textAlignment || "center") as "left" | "center" | "right",
       backgroundColor: statement.backgroundColor || "#4CAF50",
       backgroundImageUrl: statement.backgroundImageUrl || "",
@@ -72,6 +74,7 @@ export function StatementEditor({ statement, onStatementUpdated, navigationReque
       formData.footer !== (statement.footer || "") ||
       formData.headingFontSize !== (statement.headingFontSize || 80) ||
       formData.statementFontSize !== (statement.statementFontSize || 60) ||
+      formData.footerFontSize !== (statement.footerFontSize || 35) ||
       formData.textAlignment !== (statement.textAlignment || "center") ||
       formData.backgroundColor !== (statement.backgroundColor || "#4CAF50") ||
       formData.backgroundImageUrl !== (statement.backgroundImageUrl || "");
@@ -385,6 +388,22 @@ export function StatementEditor({ statement, onStatementUpdated, navigationReque
                     />
                   </div>
 
+                  {/* Footer Font Size */}
+                  <div>
+                    <Label className="block text-xs text-gray-600 mb-2">
+                      Footer Font Size: <span className="font-medium">{formData.footerFontSize}px</span>
+                    </Label>
+                    <Slider
+                      value={[formData.footerFontSize]}
+                      onValueChange={([value]) => setFormData(prev => ({ ...prev, footerFontSize: value }))}
+                      min={20}
+                      max={60}
+                      step={1}
+                      disabled={!canEdit}
+                      data-testid="slider-footer-font-size"
+                    />
+                  </div>
+
                   {/* Text Alignment */}
                   <div>
                     <Label className="block text-xs text-gray-600 mb-2">Text Alignment</Label>
@@ -558,6 +577,7 @@ export function StatementEditor({ statement, onStatementUpdated, navigationReque
                 footer={formData.footer}
                 headingFontSize={formData.headingFontSize}
                 statementFontSize={formData.statementFontSize}
+                footerFontSize={formData.footerFontSize}
                 textAlignment={formData.textAlignment}
                 backgroundColor={formData.backgroundColor}
                 backgroundImageUrl={formData.backgroundImageUrl}
