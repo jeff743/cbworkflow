@@ -411,6 +411,7 @@ export default function ProjectView() {
           {/* Statement Editor & Preview */}
           {selectedStatement ? (
             <StatementEditor
+              key={selectedStatement.id} // Phase 1 Fix: Add key prop for proper re-mounting
               statement={selectedStatement}
               onStatementUpdated={() => {
                 queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'statements'] });
