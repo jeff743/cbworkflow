@@ -162,16 +162,16 @@ export function NewStatementModal({ projectId, onClose, onStatementCreated }: Ne
           
           <div>
             <Label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
-              Task Description
+              Test Title
             </Label>
             <Textarea
               id="description"
-              placeholder="Describe the test requirements, target audience, and key messaging for this ad test..."
+              placeholder="Enter a descriptive title for this test (e.g., 'Holiday Sale - Value Prop Test', 'Q1 Brand Awareness Campaign')..."
               className="resize-none"
-              rows={4}
+              rows={3}
               value={formData.description}
               onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-              data-testid="input-task-description"
+              data-testid="input-test-title"
             />
           </div>
 

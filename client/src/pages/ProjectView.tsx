@@ -292,18 +292,12 @@ export default function ProjectView() {
                       >
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex-1">
-                            <h4 className="font-medium text-gray-900 mb-1">
-                              {test.testBatchId ? `Test Batch` : 'Legacy Statement'}
+                            <h4 className="font-medium text-gray-900 mb-1" data-testid={`text-test-title-${test.id}`}>
+                              {test.statements[0]?.description || (test.testBatchId ? 'Test Batch' : 'Legacy Statement')}
                             </h4>
                             <p className="text-sm text-gray-600 mb-2">
                               {test.statements.length} ad statement{test.statements.length > 1 ? 's' : ''}
                             </p>
-                            {/* Show test description if available */}
-                            {test.statements[0]?.description && (
-                              <p className="text-xs text-gray-500 mb-2 line-clamp-2" data-testid={`text-test-description-${test.id}`}>
-                                {test.statements[0].description}
-                              </p>
-                            )}
                             <div className="flex space-x-2">
                               {draftCount > 0 && (
                                 <Badge className="bg-gray-100 text-gray-700 text-xs">
