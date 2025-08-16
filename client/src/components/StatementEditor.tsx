@@ -38,6 +38,21 @@ export function StatementEditor({ statement, onStatementUpdated }: StatementEdit
   );
   const [reviewNotes, setReviewNotes] = useState(statement.reviewNotes || "");
 
+  // Phase 1 Fix: Add useEffect for Statement Prop Changes
+  useEffect(() => {
+    setFormData({
+      heading: statement.heading || "",
+      content: statement.content || "",
+      headingFontSize: statement.headingFontSize || 80,
+      statementFontSize: statement.statementFontSize || 60,
+      textAlignment: (statement.textAlignment || "center") as "left" | "center" | "right",
+      backgroundColor: statement.backgroundColor || "#4CAF50",
+      backgroundImageUrl: statement.backgroundImageUrl || "",
+    });
+    setUseTrueFalse(statement.heading?.includes("True or False?") || false);
+    setReviewNotes(statement.reviewNotes || "");
+  }, [statement.id]); // Key on statement.id to detect changes
+
   // Handle True/False checkbox toggle
   const handleTrueFalseToggle = (checked: boolean) => {
     setUseTrueFalse(checked);
