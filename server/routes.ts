@@ -387,21 +387,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const objectPath = req.path; // e.g., "/objects/uploads/abc123..."
       const objectStorageService = new ObjectStorageService();
-      const objectData = await objectStorageService.getObjectEntityFile(objectPath);
+      const objectFile = await objectStorageService.getObjectEntityFile(objectPath);
       
-      if (!objectData) {
-        return res.status(404).json({ error: "Object not found" });
-      }
-
-      // Set appropriate content type and serve the image
-      res.set('Content-Type', 'image/jpeg');
-      res.set('Cache-Control', 'public, max-age=31536000'); // Cache for 1 year
-      
-      // Stream the file data
-      objectData.pipe(res);
+      // Use the service's downloadObject method to properly stream the file
+      await objectStorageService.downloadObject(objectFile, res);
     } catch (error) {
       console.error("Error serving object:", error);
-      res.status(404).json({ error: "Object not found" });
+      if (!res.headersSent) {
+        res.status(404).json({ error: "Object not found" });
+      }
     }
   });
 
