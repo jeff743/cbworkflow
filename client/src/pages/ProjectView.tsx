@@ -23,7 +23,7 @@ export default function ProjectView() {
   const queryClient = useQueryClient();
   const [selectedTestId, setSelectedTestId] = useState<string | null>(null);
   const [selectedStatementId, setSelectedStatementId] = useState<string | null>(null);
-  const [navigationHandler, setNavigationHandler] = useState<((callback: () => void) => void) | null>(null);
+  const [navigationRequest, setNavigationRequest] = useState<{targetStatementId: string; timestamp: number} | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [showNewStatementModal, setShowNewStatementModal] = useState(false);
   const [showProjectSettings, setShowProjectSettings] = useState(false);
@@ -380,13 +380,8 @@ export default function ProjectView() {
                       }`}
                       onClick={() => {
                         const targetStatementId = statement.id;
-                        if (navigationHandler && typeof navigationHandler === 'function') {
-                          navigationHandler(() => {
-                            setSelectedStatementId(targetStatementId);
-                          });
-                        } else {
-                          setSelectedStatementId(targetStatementId);
-                        }
+                        // Step 2: Send navigation request to StatementEditor
+                        setNavigationRequest({ targetStatementId, timestamp: Date.now() });
                       }}
                       data-testid={`card-statement-${statement.id}`}
                     >
@@ -427,7 +422,11 @@ export default function ProjectView() {
                 queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'statements'] });
                 queryClient.invalidateQueries({ queryKey: ['/api/statements', selectedStatementId] });
               }}
-              onNavigationAttempt={setNavigationHandler} // Phase 2 Fix: Navigation interception
+              navigationRequest={navigationRequest} // Step 1: New navigation request pattern
+              onNavigationComplete={(statementId) => {
+                setSelectedStatementId(statementId);
+                setNavigationRequest(null); // Clear request after completion
+              }}
             />
           ) : (
             <div className="flex-1 flex items-center justify-center bg-gray-50">
