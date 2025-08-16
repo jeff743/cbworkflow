@@ -33,7 +33,30 @@ export function StatementEditor({ statement, onStatementUpdated }: StatementEdit
     backgroundColor: statement.backgroundColor || "#4CAF50",
     backgroundImageUrl: statement.backgroundImageUrl || "",
   });
+  const [useTrueFalse, setUseTrueFalse] = useState(
+    statement.heading?.includes("True or False?") || false
+  );
   const [reviewNotes, setReviewNotes] = useState(statement.reviewNotes || "");
+
+  // Handle True/False checkbox toggle
+  const handleTrueFalseToggle = (checked: boolean) => {
+    setUseTrueFalse(checked);
+    if (checked) {
+      // Add "True or False?" if not already present
+      if (!formData.heading.includes("True or False?")) {
+        const newHeading = formData.heading.trim() 
+          ? `${formData.heading.trim()} True or False?`
+          : "True or False?";
+        setFormData(prev => ({ ...prev, heading: newHeading }));
+      }
+    } else {
+      // Remove "True or False?" from the heading
+      const newHeading = formData.heading
+        .replace(/\s*True or False\?\s*/g, "")
+        .trim();
+      setFormData(prev => ({ ...prev, heading: newHeading }));
+    }
+  };
 
   const updateMutation = useMutation({
     mutationFn: async (updates: UpdateStatement) => {
@@ -169,16 +192,37 @@ export function StatementEditor({ statement, onStatementUpdated }: StatementEdit
               <div className="space-y-6">
                 {/* Heading Field */}
                 <div>
-                  <Label htmlFor="heading" className="block text-sm font-medium text-gray-700 mb-2">
-                    Heading (Optional)
-                  </Label>
+                  <div className="flex items-center justify-between mb-2">
+                    <Label htmlFor="heading" className="text-sm font-medium text-gray-700">
+                      Heading (Optional)
+                    </Label>
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        id="trueFalseCheckbox"
+                        checked={useTrueFalse}
+                        onChange={(e) => handleTrueFalseToggle(e.target.checked)}
+                        disabled={!canEdit}
+                        className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
+                        data-testid="checkbox-true-false"
+                      />
+                      <Label htmlFor="trueFalseCheckbox" className="text-xs text-gray-600 cursor-pointer">
+                        True or False?
+                      </Label>
+                    </div>
+                  </div>
                   <Textarea
                     id="heading"
                     placeholder="Enter optional heading text..."
                     className="resize-none"
                     rows={2}
                     value={formData.heading}
-                    onChange={(e) => setFormData(prev => ({ ...prev, heading: e.target.value }))}
+                    onChange={(e) => {
+                      const newValue = e.target.value;
+                      setFormData(prev => ({ ...prev, heading: newValue }));
+                      // Update checkbox state based on whether "True or False?" is present
+                      setUseTrueFalse(newValue.includes("True or False?"));
+                    }}
                     disabled={!canEdit}
                     data-testid="input-heading"
                   />
