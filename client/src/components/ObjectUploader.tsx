@@ -87,6 +87,7 @@ export function ObjectUploader({
         open={showModal}
         onRequestClose={() => setShowModal(false)}
         proudlyDisplayPoweredByUppy={false}
+        note="📋 Image Requirements: Maximum file size 10MB • Recommended: 1080x1080 pixels or larger • Square images work best • JPEG or PNG format"
       />
     </div>
   );
