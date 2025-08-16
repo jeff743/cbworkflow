@@ -70,6 +70,7 @@ export const statements = pgTable("statements", {
   textAlignment: varchar("text_alignment").default("center"), // left, center, right
   backgroundColor: varchar("background_color").default("#4CAF50"),
   backgroundImageUrl: varchar("background_image_url"),
+  footer: text("footer"), // Optional footer text
   // Generated colorblock image
   colorblockImageUrl: varchar("colorblock_image_url"),
   createdAt: timestamp("created_at").defaultNow(),
