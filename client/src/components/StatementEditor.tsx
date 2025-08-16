@@ -110,28 +110,25 @@ export function StatementEditor({ statement, onStatementUpdated }: StatementEdit
     };
   };
 
+  // Legacy upload handler - no longer used as images are now managed at project level
   const handleUploadComplete = async (result: UploadResult<Record<string, unknown>, Record<string, unknown>>) => {
-    console.log("🔄 Upload completed:", result);
     if (result.successful && result.successful.length > 0) {
       const uploadURL = result.successful[0].uploadURL;
-      console.log("📤 Upload URL:", uploadURL);
       try {
         const response = await apiRequest('PUT', '/api/background-images', {
           backgroundImageURL: uploadURL,
         });
         const data = await response.json();
-        console.log("📥 Server response:", data);
         setFormData(prev => ({
           ...prev,
           backgroundImageUrl: data.objectPath,
         }));
-        console.log("✅ FormData updated with objectPath:", data.objectPath);
         toast({
           title: "Background Image Uploaded",
           description: "Your background image has been uploaded successfully.",
         });
       } catch (error) {
-        console.error("❌ Error in upload completion:", error);
+        console.error("Error in upload completion:", error);
         toast({
           title: "Upload Failed",
           description: "Failed to set background image. Please try again.",
@@ -306,34 +303,67 @@ export function StatementEditor({ statement, onStatementUpdated }: StatementEdit
                 <div className="space-y-4">
                   <h4 className="text-sm font-medium text-gray-700">Background</h4>
                   
-                  {/* Background Type Toggle */}
-                  <div className="flex space-x-2">
-                    <button
-                      type="button"
-                      className={`flex-1 px-3 py-2 text-xs border border-gray-300 rounded transition-colors ${
-                        !formData.backgroundImageUrl
-                          ? "bg-primary text-white border-primary"
-                          : "hover:bg-gray-50"
-                      }`}
-                      onClick={() => setFormData(prev => ({ ...prev, backgroundImageUrl: "" }))}
-                      disabled={!canEdit}
-                      data-testid="button-solid-color"
-                    >
-                      Solid Color
-                    </button>
-                    <ObjectUploader
-                      maxNumberOfFiles={1}
-                      maxFileSize={10485760}
-                      onGetUploadParameters={handleGetUploadParameters}
-                      onComplete={handleUploadComplete}
-                      buttonClassName={`flex-1 px-3 py-2 text-xs border border-gray-300 rounded transition-colors ${
-                        formData.backgroundImageUrl
-                          ? "bg-primary text-white border-primary"
-                          : "hover:bg-gray-50"
-                      }`}
-                    >
-                      Upload Image
-                    </ObjectUploader>
+                  {/* Background Selection */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-gray-600">Background Type</span>
+                      <button
+                        type="button"
+                        className={`px-3 py-1 text-xs border border-gray-300 rounded transition-colors ${
+                          !formData.backgroundImageUrl
+                            ? "bg-primary text-white border-primary"
+                            : "hover:bg-gray-50"
+                        }`}
+                        onClick={() => setFormData(prev => ({ ...prev, backgroundImageUrl: "" }))}
+                        disabled={!canEdit}
+                        data-testid="button-solid-color"
+                      >
+                        Solid Color
+                      </button>
+                    </div>
+                    
+                    {/* Project Background Images */}
+                    {statement.project.backgroundImages && statement.project.backgroundImages.length > 0 && (
+                      <div>
+                        <Label className="text-xs text-gray-600 mb-2 block">Project Background Images</Label>
+                        <div className="grid grid-cols-3 gap-2">
+                          {statement.project.backgroundImages.map((imageUrl, index) => (
+                            <button
+                              key={index}
+                              type="button"
+                              className={`relative h-16 bg-cover bg-center border-2 rounded transition-colors ${
+                                formData.backgroundImageUrl === imageUrl
+                                  ? "border-primary"
+                                  : "border-gray-300 hover:border-gray-400"
+                              }`}
+                              style={{
+                                backgroundImage: `url(${
+                                  imageUrl.startsWith('/') 
+                                    ? `${window.location.origin}${imageUrl}`
+                                    : imageUrl
+                                })`,
+                              }}
+                              onClick={() => setFormData(prev => ({ ...prev, backgroundImageUrl: imageUrl }))}
+                              disabled={!canEdit}
+                              data-testid={`button-project-image-${index}`}
+                            >
+                              {formData.backgroundImageUrl === imageUrl && (
+                                <div className="absolute inset-0 bg-primary bg-opacity-20 flex items-center justify-center rounded">
+                                  <i className="fas fa-check text-primary text-lg"></i>
+                                </div>
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {(!statement.project.backgroundImages || statement.project.backgroundImages.length === 0) && (
+                      <div className="text-center py-4 text-gray-500 text-xs border-2 border-dashed border-gray-300 rounded">
+                        <p>No project background images available.</p>
+                        <p>Add images in Project Settings.</p>
+                      </div>
+                    )}
                   </div>
 
                   {!formData.backgroundImageUrl && (

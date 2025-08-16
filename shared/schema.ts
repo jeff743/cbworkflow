@@ -43,6 +43,7 @@ export const projects = pgTable("projects", {
   description: text("description"),
   clientName: varchar("client_name"),
   status: varchar("status").notNull().default("active"), // active, paused, completed
+  backgroundImages: text("background_images").array(), // Array of background image URLs for this project
   createdBy: varchar("created_by").notNull().references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),

@@ -26,6 +26,8 @@ export interface IStorage {
   getProjects(userId: string): Promise<ProjectWithStats[]>;
   getProject(id: string): Promise<Project | undefined>;
   createProject(project: InsertProject): Promise<Project>;
+  addProjectBackgroundImage(projectId: string, imageUrl: string): Promise<Project | null>;
+  removeProjectBackgroundImage(projectId: string, imageUrl: string): Promise<Project | null>;
   
   // Statement operations
   getAllStatements(): Promise<StatementWithRelations[]>;
@@ -96,6 +98,7 @@ export class DatabaseStorage implements IStorage {
         description: projects.description,
         clientName: projects.clientName,
         status: projects.status,
+        backgroundImages: projects.backgroundImages,
         createdBy: projects.createdBy,
         createdAt: projects.createdAt,
         updatedAt: projects.updatedAt,
@@ -143,6 +146,64 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       logError(`Failed to create project: ${project.name}`, 'database', error as Error);
       throw error;
+    }
+  }
+
+  // Add background image to project
+  async addProjectBackgroundImage(
+    projectId: string,
+    imageUrl: string
+  ): Promise<Project | null> {
+    try {
+      const project = await this.getProject(projectId);
+      if (!project) {
+        throw new Error("Project not found");
+      }
+
+      const currentImages = project.backgroundImages || [];
+      const updatedImages = [...currentImages, imageUrl];
+
+      const [updatedProject] = await db
+        .update(projects)
+        .set({
+          backgroundImages: updatedImages,
+          updatedAt: new Date(),
+        })
+        .where(eq(projects.id, projectId))
+        .returning();
+      return updatedProject;
+    } catch (error) {
+      logError('Failed to add background image to project:', error);
+      throw new Error("Failed to add background image to project");
+    }
+  }
+
+  // Remove background image from project
+  async removeProjectBackgroundImage(
+    projectId: string,
+    imageUrl: string
+  ): Promise<Project | null> {
+    try {
+      const project = await this.getProject(projectId);
+      if (!project) {
+        throw new Error("Project not found");
+      }
+
+      const currentImages = project.backgroundImages || [];
+      const updatedImages = currentImages.filter(img => img !== imageUrl);
+
+      const [updatedProject] = await db
+        .update(projects)
+        .set({
+          backgroundImages: updatedImages,
+          updatedAt: new Date(),
+        })
+        .where(eq(projects.id, projectId))
+        .returning();
+      return updatedProject;
+    } catch (error) {
+      logError('Failed to remove background image from project:', error);
+      throw new Error("Failed to remove background image from project");
     }
   }
 

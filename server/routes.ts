@@ -353,6 +353,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Add background image to project
+  app.post("/api/projects/:projectId/background-images", isAuthenticated, async (req: any, res) => {
+    if (!req.body.backgroundImageURL) {
+      return res.status(400).json({ error: "backgroundImageURL is required" });
+    }
+
+    const userId = req.currentUser?.id;
+    if (!userId) {
+      return res.status(401).json({ error: "User not found" });
+    }
+
+    try {
+      const { projectId } = req.params;
+      const objectStorageService = new ObjectStorageService();
+      const objectPath = await objectStorageService.trySetObjectEntityAclPolicy(
+        req.body.backgroundImageURL,
+        {
+          owner: userId,
+          visibility: "public",
+        },
+      );
+
+      // Add the background image to the project
+      await storage.addProjectBackgroundImage(projectId, objectPath);
+      
+      res.status(200).json({
+        objectPath: objectPath,
+      });
+    } catch (error) {
+      console.error("Error adding project background image:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Remove background image from project
+  app.delete("/api/projects/:projectId/background-images", isAuthenticated, async (req: any, res) => {
+    const { projectId } = req.params;
+    const { imageUrl } = req.body;
+
+    if (!imageUrl) {
+      return res.status(400).json({ error: "imageUrl is required" });
+    }
+
+    try {
+      await storage.removeProjectBackgroundImage(projectId, imageUrl);
+      res.status(200).json({ message: "Background image removed successfully" });
+    } catch (error) {
+      console.error("Error removing project background image:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Legacy endpoint for backward compatibility (now unused)
   app.put("/api/background-images", isAuthenticated, async (req: any, res) => {
     if (!req.body.backgroundImageURL) {
       return res.status(400).json({ error: "backgroundImageURL is required" });
@@ -384,18 +437,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Serve uploaded objects from Google Cloud Storage
   app.get("/objects/*", async (req, res) => {
-    console.log("🔍 Serving object request:", req.path);
     try {
       const objectPath = req.path;
-      console.log("📁 Object path:", objectPath);
       const objectStorageService = new ObjectStorageService();
       const objectFile = await objectStorageService.getObjectEntityFile(objectPath);
-      console.log("✅ Object file obtained:", objectFile.name);
       await objectStorageService.downloadObject(objectFile, res);
-      console.log("✅ Object served successfully");
     } catch (error) {
-      console.error("❌ Error serving object:", error);
-      console.error("❌ Error stack:", error.stack);
+      console.error("Error serving object:", error);
       if (!res.headersSent) {
         res.status(404).json({ error: "Object not found" });
       }
