@@ -28,7 +28,14 @@ export default function ProjectView() {
 
   // Reset selection when navigating directly to project page (e.g., from sidebar)
   useEffect(() => {
-    if (location === `/projects/${projectId}`) {
+    // More flexible URL matching that handles trailing slashes and query params
+    const projectPath = `/projects/${projectId}`;
+    const isDirectProjectAccess = location === projectPath || 
+                                 location === `${projectPath}/` ||
+                                 location.startsWith(`${projectPath}?`) ||
+                                 location.startsWith(`${projectPath}#`);
+                                 
+    if (isDirectProjectAccess) {
       setSelectedTestId(null);
       setSelectedStatementId(null);
     }
