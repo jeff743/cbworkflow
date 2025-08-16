@@ -26,20 +26,20 @@ export default function ProjectView() {
   const [showNewStatementModal, setShowNewStatementModal] = useState(false);
   const [testToDelete, setTestToDelete] = useState<{ id: string; testBatchId?: string | null; statementsCount: number } | null>(null);
 
-  // Reset selection when navigating directly to project page (e.g., from sidebar)
+  // Phase 2: Comprehensive navigation reset - Force state reset on any navigation to project page
   useEffect(() => {
-    // More flexible URL matching that handles trailing slashes and query params
-    const projectPath = `/projects/${projectId}`;
-    const isDirectProjectAccess = location === projectPath || 
-                                 location === `${projectPath}/` ||
-                                 location.startsWith(`${projectPath}?`) ||
-                                 location.startsWith(`${projectPath}#`);
-                                 
-    if (isDirectProjectAccess) {
+    // Reset on ANY navigation to this project page  
+    if (location.startsWith(`/projects/${projectId}`)) {
       setSelectedTestId(null);
       setSelectedStatementId(null);
     }
   }, [location, projectId]);
+
+  // Additional: Reset when projectId changes (different project)
+  useEffect(() => {
+    setSelectedTestId(null);
+    setSelectedStatementId(null);
+  }, [projectId]);
 
   const { data: project, isLoading: projectLoading } = useQuery<Project>({
     queryKey: ['/api/projects', projectId],
