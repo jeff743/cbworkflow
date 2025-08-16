@@ -26,16 +26,20 @@ export default function ProjectView() {
   const [showNewStatementModal, setShowNewStatementModal] = useState(false);
   const [testToDelete, setTestToDelete] = useState<{ id: string; testBatchId?: string | null; statementsCount: number } | null>(null);
 
-  // Phase 2: Comprehensive navigation reset - Force state reset on any navigation to project page
+  // Phase 3: Navigation Event Handler - Listen for navigation reset signals
+  const { data: navReset } = useQuery({
+    queryKey: ['project-nav-reset', projectId],
+    enabled: false,
+  });
+
   useEffect(() => {
-    // Reset on ANY navigation to this project page  
-    if (location.startsWith(`/projects/${projectId}`)) {
+    if (navReset) {
       setSelectedTestId(null);
       setSelectedStatementId(null);
     }
-  }, [location, projectId]);
+  }, [navReset]);
 
-  // Additional: Reset when projectId changes (different project)
+  // Backup: Reset when projectId changes (different project)
   useEffect(() => {
     setSelectedTestId(null);
     setSelectedStatementId(null);
