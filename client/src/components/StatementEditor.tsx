@@ -325,7 +325,7 @@ export function StatementEditor({ statement, onStatementUpdated, navigationReque
                   </Label>
                   <Textarea
                     id="content"
-                    placeholder="Enter your statement content..."
+                    placeholder="Enter statement here..."
                     className="resize-none"
                     rows={4}
                     value={formData.content}
