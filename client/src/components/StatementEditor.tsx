@@ -17,10 +17,11 @@ import type { UploadResult } from "@uppy/core";
 interface StatementEditorProps {
   statement: StatementWithRelations;
   onStatementUpdated: () => void;
-  onNavigationAttempt?: (callback: () => void) => void;
+  navigationRequest?: { targetStatementId: string; timestamp: number } | null;
+  onNavigationComplete?: (statementId: string) => void;
 }
 
-export function StatementEditor({ statement, onStatementUpdated, onNavigationAttempt }: StatementEditorProps) {
+export function StatementEditor({ statement, onStatementUpdated, navigationRequest, onNavigationComplete }: StatementEditorProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -42,8 +43,9 @@ export function StatementEditor({ statement, onStatementUpdated, onNavigationAtt
 
   // Phase 2 Fix: Add unsaved changes detection
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const hasUnsavedChangesRef = useRef(false); // Step 3: Immediate state access
   const [showUnsavedChangesDialog, setShowUnsavedChangesDialog] = useState(false);
-  const [pendingNavigation, setPendingNavigation] = useState<(() => void) | null>(null);
+  const [pendingNavigationRequest, setPendingNavigationRequest] = useState<{ targetStatementId: string; timestamp: number } | null>(null);
 
   // Phase 1 Fix: Add useEffect for Statement Prop Changes
   useEffect(() => {
@@ -72,6 +74,7 @@ export function StatementEditor({ statement, onStatementUpdated, onNavigationAtt
       formData.backgroundImageUrl !== (statement.backgroundImageUrl || "");
     
     setHasUnsavedChanges(hasChanges);
+    hasUnsavedChangesRef.current = hasChanges; // Step 3: Immediate access
   }, [formData, statement]);
 
   // Handle True/False checkbox toggle
@@ -121,6 +124,7 @@ export function StatementEditor({ statement, onStatementUpdated, onNavigationAtt
   const handleSaveDraft = () => {
     updateMutation.mutate(formData);
     setHasUnsavedChanges(false); // Reset unsaved changes after save
+    hasUnsavedChangesRef.current = false; // Reset ref as well
   };
 
   const handleSubmitForReview = () => {
@@ -129,48 +133,56 @@ export function StatementEditor({ statement, onStatementUpdated, onNavigationAtt
       status: "under_review",
     });
     setHasUnsavedChanges(false); // Reset unsaved changes after submit
+    hasUnsavedChangesRef.current = false; // Reset ref as well
   };
 
-  // Phase 2 Fix: Handle unsaved changes confirmation
+  // Step 4: Improved dialog state management
   const handleDiscardChanges = () => {
-    if (pendingNavigation) {
-      pendingNavigation();
-      setPendingNavigation(null);
+    if (pendingNavigationRequest) {
+      onNavigationComplete?.(pendingNavigationRequest.targetStatementId);
+      setPendingNavigationRequest(null);
     }
     setShowUnsavedChangesDialog(false);
   };
 
   const handleSaveAndContinue = () => {
-    handleSaveDraft();
+    handleSaveDraft(); // Save current changes
+    
+    // Wait for save to complete, then navigate
     setTimeout(() => {
-      if (pendingNavigation) {
-        pendingNavigation();
-        setPendingNavigation(null);
+      if (pendingNavigationRequest) {
+        onNavigationComplete?.(pendingNavigationRequest.targetStatementId);
+        setPendingNavigationRequest(null);
       }
       setShowUnsavedChangesDialog(false);
     }, 100);
   };
 
-  // Phase 2 Fix: Expose navigation handler to parent
-  const handleNavigationRequest = useCallback((navigationCallback: () => void) => {
-    if (typeof navigationCallback !== 'function') {
-      console.error('navigationCallback is not a function:', navigationCallback);
-      return;
-    }
-    if (hasUnsavedChanges) {
-      setPendingNavigation(() => navigationCallback);
+  // Step 1: New navigation request handler using immediate ref access
+  const handleInternalNavigationRequest = useCallback((request: { targetStatementId: string; timestamp: number }) => {
+    console.log('🧭 NAVIGATION REQUEST:', {
+      currentStatement: statement.id,
+      targetStatement: request.targetStatementId,
+      hasUnsavedChanges: hasUnsavedChangesRef.current,
+      timestamp: request.timestamp
+    });
+
+    if (hasUnsavedChangesRef.current) {
+      // Show confirmation dialog
+      setPendingNavigationRequest(request);
       setShowUnsavedChangesDialog(true);
     } else {
-      navigationCallback();
+      // Allow immediate navigation
+      onNavigationComplete?.(request.targetStatementId);
     }
-  }, [hasUnsavedChanges]);
+  }, [statement.id, onNavigationComplete]);
 
-  // Phase 2 Fix: Set up navigation interception
-  React.useEffect(() => {
-    if (onNavigationAttempt) {
-      onNavigationAttempt(handleNavigationRequest);
+  // Step 1: Watch for navigation requests from parent
+  useEffect(() => {
+    if (navigationRequest && navigationRequest.targetStatementId !== statement.id) {
+      handleInternalNavigationRequest(navigationRequest);
     }
-  }, [handleNavigationRequest, onNavigationAttempt]);
+  }, [navigationRequest, statement.id, handleInternalNavigationRequest]);
 
   const handleReviewAction = (action: "approved" | "needs_revision") => {
     updateMutation.mutate({
