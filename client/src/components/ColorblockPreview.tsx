@@ -53,13 +53,21 @@ export function ColorblockPreview({
             ctx.fillRect(0, 0, 1080, 1080);
             drawText();
           };
-          image.onerror = () => {
+          image.onerror = (error) => {
+            console.error("Error loading background image:", error, "URL:", backgroundImageUrl);
             // Fallback to solid color
             ctx.fillStyle = backgroundColor;
             ctx.fillRect(0, 0, 1080, 1080);
             drawText();
           };
-          image.src = backgroundImageUrl;
+          
+          // Convert relative path to full URL if needed
+          const imageUrl = backgroundImageUrl.startsWith('/') 
+            ? `${window.location.origin}${backgroundImageUrl}`
+            : backgroundImageUrl;
+          
+          console.log("Loading background image from:", imageUrl);
+          image.src = imageUrl;
         } catch (error) {
           console.error("Error loading background image:", error);
           ctx.fillStyle = backgroundColor;

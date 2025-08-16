@@ -286,7 +286,7 @@ export function StatementEditor({ statement, onStatementUpdated }: StatementEdit
                               ? "bg-primary text-white border-primary"
                               : "hover:bg-gray-50"
                           }`}
-                          onClick={() => setFormData(prev => ({ ...prev, textAlignment: alignment as any }))}
+                          onClick={() => setFormData(prev => ({ ...prev, textAlignment: alignment as "left" | "center" | "right" }))}
                           disabled={!canEdit}
                           data-testid={`button-align-${alignment}`}
                         >
