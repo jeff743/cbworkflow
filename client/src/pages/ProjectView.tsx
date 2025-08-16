@@ -380,8 +380,15 @@ export default function ProjectView() {
                       }`}
                       onClick={() => {
                         const targetStatementId = statement.id;
-                        // Step 2: Send navigation request to StatementEditor
-                        setNavigationRequest({ targetStatementId, timestamp: Date.now() });
+                        
+                        // If no statement is currently selected, select directly
+                        if (!selectedStatementId) {
+                          setSelectedStatementId(targetStatementId);
+                        } else if (selectedStatementId !== targetStatementId) {
+                          // If different statement selected, send navigation request to check for unsaved changes
+                          setNavigationRequest({ targetStatementId, timestamp: Date.now() });
+                        }
+                        // If same statement clicked, do nothing
                       }}
                       data-testid={`card-statement-${statement.id}`}
                     >
