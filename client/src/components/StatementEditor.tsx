@@ -27,8 +27,8 @@ export function StatementEditor({ statement, onStatementUpdated }: StatementEdit
   const [formData, setFormData] = useState({
     heading: statement.heading || "",
     content: statement.content || "",
-    headingFontSize: statement.headingFontSize || 48,
-    statementFontSize: statement.statementFontSize || 43,
+    headingFontSize: statement.headingFontSize || 80,
+    statementFontSize: statement.statementFontSize || 60,
     textAlignment: statement.textAlignment || "center",
     backgroundColor: statement.backgroundColor || "#4CAF50",
     backgroundImageUrl: statement.backgroundImageUrl || "",
@@ -249,8 +249,8 @@ export function StatementEditor({ statement, onStatementUpdated }: StatementEdit
                     <Slider
                       value={[formData.headingFontSize]}
                       onValueChange={([value]) => setFormData(prev => ({ ...prev, headingFontSize: value }))}
-                      min={32}
-                      max={64}
+                      min={50}
+                      max={120}
                       step={1}
                       disabled={!canEdit}
                       data-testid="slider-heading-font-size"
@@ -265,8 +265,8 @@ export function StatementEditor({ statement, onStatementUpdated }: StatementEdit
                     <Slider
                       value={[formData.statementFontSize]}
                       onValueChange={([value]) => setFormData(prev => ({ ...prev, statementFontSize: value }))}
-                      min={32}
-                      max={64}
+                      min={40}
+                      max={100}
                       step={1}
                       disabled={!canEdit}
                       data-testid="slider-statement-font-size"
