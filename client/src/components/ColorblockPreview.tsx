@@ -11,6 +11,7 @@ interface ColorblockPreviewProps {
   textAlignment: "left" | "center" | "right";
   backgroundColor: string;
   backgroundImageUrl?: string;
+  footer?: string;
 }
 
 export function ColorblockPreview({
@@ -21,6 +22,7 @@ export function ColorblockPreview({
   textAlignment,
   backgroundColor,
   backgroundImageUrl,
+  footer,
 }: ColorblockPreviewProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isMobilePreview, setIsMobilePreview] = useState(false);
@@ -91,9 +93,12 @@ export function ColorblockPreview({
 
       let currentY = 540; // Center vertically
 
-      // Calculate text layout
-      if (heading && content) {
-        // Both heading and content
+      // Calculate text layout - adjust for heading, content, and footer
+      if (heading && content && footer) {
+        // All three elements
+        currentY = 300; // Start higher to accommodate all
+      } else if ((heading && content) || (heading && footer) || (content && footer)) {
+        // Two elements
         currentY = 400; // Start higher to accommodate both
       }
 
@@ -116,8 +121,8 @@ export function ColorblockPreview({
         ctx.font = `${statementFontSize}px Inter, Arial, sans-serif`;
         const contentLines = wrapText(ctx, content, 1080 - (padding * 2));
         
-        // If no heading, center the content vertically
-        if (!heading) {
+        // If only content (no heading or footer), center it vertically
+        if (!heading && !footer) {
           const totalHeight = contentLines.length * statementFontSize * 1.2;
           currentY = (1080 - totalHeight) / 2 + statementFontSize;
         }
@@ -127,11 +132,29 @@ export function ColorblockPreview({
                     textAlignment === 'right' ? 1080 - padding : centerX;
           ctx.fillText(line, x, currentY + (index * statementFontSize * 1.2));
         });
+        
+        currentY += contentLines.length * statementFontSize * 1.2 + 40;
+      }
+      
+      // Draw footer if present
+      if (footer) {
+        const footerFontSize = Math.floor(statementFontSize * 0.8); // Slightly smaller than content
+        ctx.font = `${footerFontSize}px Inter, Arial, sans-serif`;
+        const footerLines = wrapText(ctx, footer, 1080 - (padding * 2));
+        
+        // Position footer at bottom with some padding
+        const footerY = 1080 - (footerLines.length * footerFontSize * 1.2) - 60;
+        
+        footerLines.forEach((line, index) => {
+          const x = textAlignment === 'left' ? padding :
+                    textAlignment === 'right' ? 1080 - padding : centerX;
+          ctx.fillText(line, x, footerY + (index * footerFontSize * 1.2));
+        });
       }
     };
 
     drawColorblock();
-  }, [heading, content, headingFontSize, statementFontSize, textAlignment, backgroundColor, backgroundImageUrl]);
+  }, [heading, content, headingFontSize, statementFontSize, textAlignment, backgroundColor, backgroundImageUrl, footer]);
 
   const handleDownload = () => {
     const canvas = canvasRef.current;

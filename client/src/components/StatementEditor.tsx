@@ -30,6 +30,7 @@ export function StatementEditor({ statement, onStatementUpdated, navigationReque
   const [formData, setFormData] = useState({
     heading: statement.heading || "",
     content: statement.content || "",
+    footer: statement.footer || "",
     headingFontSize: statement.headingFontSize || 80,
     statementFontSize: statement.statementFontSize || 60,
     textAlignment: (statement.textAlignment || "center") as "left" | "center" | "right",
@@ -52,6 +53,7 @@ export function StatementEditor({ statement, onStatementUpdated, navigationReque
     setFormData({
       heading: statement.heading || "",
       content: statement.content || "",
+      footer: statement.footer || "",
       headingFontSize: statement.headingFontSize || 80,
       statementFontSize: statement.statementFontSize || 60,
       textAlignment: (statement.textAlignment || "center") as "left" | "center" | "right",
@@ -67,6 +69,7 @@ export function StatementEditor({ statement, onStatementUpdated, navigationReque
     const hasChanges = 
       formData.heading !== (statement.heading || "") ||
       formData.content !== (statement.content || "") ||
+      formData.footer !== (statement.footer || "") ||
       formData.headingFontSize !== (statement.headingFontSize || 80) ||
       formData.statementFontSize !== (statement.statementFontSize || 60) ||
       formData.textAlignment !== (statement.textAlignment || "center") ||
@@ -329,6 +332,23 @@ export function StatementEditor({ statement, onStatementUpdated, navigationReque
                   />
                 </div>
 
+                {/* Footer Field */}
+                <div>
+                  <Label htmlFor="footer" className="block text-sm font-medium text-gray-700 mb-2">
+                    Footer (Optional)
+                  </Label>
+                  <Textarea
+                    id="footer"
+                    placeholder="Enter optional footer text..."
+                    className="resize-none"
+                    rows={2}
+                    value={formData.footer}
+                    onChange={(e) => setFormData(prev => ({ ...prev, footer: e.target.value }))}
+                    disabled={!canEdit}
+                    data-testid="input-footer"
+                  />
+                </div>
+
                 {/* Typography Controls */}
                 <div className="space-y-4">
                   <h4 className="text-sm font-medium text-gray-700">Typography Settings</h4>
@@ -535,6 +555,7 @@ export function StatementEditor({ statement, onStatementUpdated, navigationReque
               <ColorblockPreview
                 heading={formData.heading}
                 content={formData.content}
+                footer={formData.footer}
                 headingFontSize={formData.headingFontSize}
                 statementFontSize={formData.statementFontSize}
                 textAlignment={formData.textAlignment}
