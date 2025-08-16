@@ -1,8 +1,8 @@
-import { useParams } from "wouter";
+import { useParams, useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { StatementEditor } from "@/components/StatementEditor";
 import { NewStatementModal } from "@/components/NewStatementModal";
@@ -16,6 +16,7 @@ import type { Project, StatementWithRelations } from "@shared/schema";
 
 export default function ProjectView() {
   const { id: projectId } = useParams();
+  const [location] = useLocation();
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -24,6 +25,14 @@ export default function ProjectView() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [showNewStatementModal, setShowNewStatementModal] = useState(false);
   const [testToDelete, setTestToDelete] = useState<{ id: string; testBatchId?: string | null; statementsCount: number } | null>(null);
+
+  // Reset selection when navigating directly to project page (e.g., from sidebar)
+  useEffect(() => {
+    if (location === `/projects/${projectId}`) {
+      setSelectedTestId(null);
+      setSelectedStatementId(null);
+    }
+  }, [location, projectId]);
 
   const { data: project, isLoading: projectLoading } = useQuery<Project>({
     queryKey: ['/api/projects', projectId],
