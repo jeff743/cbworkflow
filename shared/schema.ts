@@ -67,6 +67,7 @@ export const statements = pgTable("statements", {
   // Colorblock settings
   headingFontSize: integer("heading_font_size").default(48),
   statementFontSize: integer("statement_font_size").default(43),
+  footerFontSize: integer("footer_font_size").default(35),
   textAlignment: varchar("text_alignment").default("center"), // left, center, right
   backgroundColor: varchar("background_color").default("#4CAF50"),
   backgroundImageUrl: varchar("background_image_url"),
