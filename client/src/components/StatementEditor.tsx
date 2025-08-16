@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { ColorblockPreview } from "./ColorblockPreview";
 import { ObjectUploader } from "./ObjectUploader";
 import { apiRequest } from "@/lib/queryClient";
@@ -38,6 +39,11 @@ export function StatementEditor({ statement, onStatementUpdated }: StatementEdit
   );
   const [reviewNotes, setReviewNotes] = useState(statement.reviewNotes || "");
 
+  // Phase 2 Fix: Add unsaved changes detection
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [showUnsavedChangesDialog, setShowUnsavedChangesDialog] = useState(false);
+  const [pendingNavigation, setPendingNavigation] = useState<(() => void) | null>(null);
+
   // Phase 1 Fix: Add useEffect for Statement Prop Changes
   useEffect(() => {
     setFormData({
@@ -52,6 +58,20 @@ export function StatementEditor({ statement, onStatementUpdated }: StatementEdit
     setUseTrueFalse(statement.heading?.includes("True or False?") || false);
     setReviewNotes(statement.reviewNotes || "");
   }, [statement.id]); // Key on statement.id to detect changes
+
+  // Phase 2 Fix: Add useEffect to detect form changes
+  useEffect(() => {
+    const hasChanges = 
+      formData.heading !== (statement.heading || "") ||
+      formData.content !== (statement.content || "") ||
+      formData.headingFontSize !== (statement.headingFontSize || 80) ||
+      formData.statementFontSize !== (statement.statementFontSize || 60) ||
+      formData.textAlignment !== (statement.textAlignment || "center") ||
+      formData.backgroundColor !== (statement.backgroundColor || "#4CAF50") ||
+      formData.backgroundImageUrl !== (statement.backgroundImageUrl || "");
+    
+    setHasUnsavedChanges(hasChanges);
+  }, [formData, statement]);
 
   // Handle True/False checkbox toggle
   const handleTrueFalseToggle = (checked: boolean) => {
@@ -99,6 +119,7 @@ export function StatementEditor({ statement, onStatementUpdated }: StatementEdit
 
   const handleSaveDraft = () => {
     updateMutation.mutate(formData);
+    setHasUnsavedChanges(false); // Reset unsaved changes after save
   };
 
   const handleSubmitForReview = () => {
@@ -106,6 +127,27 @@ export function StatementEditor({ statement, onStatementUpdated }: StatementEdit
       ...formData,
       status: "under_review",
     });
+    setHasUnsavedChanges(false); // Reset unsaved changes after submit
+  };
+
+  // Phase 2 Fix: Handle unsaved changes confirmation
+  const handleDiscardChanges = () => {
+    if (pendingNavigation) {
+      pendingNavigation();
+      setPendingNavigation(null);
+    }
+    setShowUnsavedChangesDialog(false);
+  };
+
+  const handleSaveAndContinue = () => {
+    handleSaveDraft();
+    setTimeout(() => {
+      if (pendingNavigation) {
+        pendingNavigation();
+        setPendingNavigation(null);
+      }
+      setShowUnsavedChangesDialog(false);
+    }, 100);
   };
 
   const handleReviewAction = (action: "approved" | "needs_revision") => {
@@ -436,6 +478,7 @@ export function StatementEditor({ statement, onStatementUpdated }: StatementEdit
                       disabled={updateMutation.isPending}
                       data-testid="button-save-draft"
                     >
+                      {hasUnsavedChanges && <span className="inline-block w-2 h-2 bg-orange-400 rounded-full mr-2"></span>}
                       {updateMutation.isPending ? "Saving..." : "Save Draft"}
                     </Button>
                     <Button
@@ -445,6 +488,7 @@ export function StatementEditor({ statement, onStatementUpdated }: StatementEdit
                       disabled={updateMutation.isPending || !formData.content.trim()}
                       data-testid="button-submit-review"
                     >
+                      {hasUnsavedChanges && <span className="inline-block w-2 h-2 bg-orange-400 rounded-full mr-2"></span>}
                       {updateMutation.isPending ? "Submitting..." : "Submit for Review"}
                     </Button>
                   </div>
@@ -549,6 +593,33 @@ export function StatementEditor({ statement, onStatementUpdated }: StatementEdit
           </div>
         )}
       </div>
+
+      {/* Phase 2 Fix: Unsaved Changes Confirmation Dialog */}
+      <AlertDialog open={showUnsavedChangesDialog} onOpenChange={setShowUnsavedChangesDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Unsaved Changes</AlertDialogTitle>
+            <AlertDialogDescription>
+              You have unsaved changes to this statement. What would you like to do?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setShowUnsavedChangesDialog(false)}>
+              Cancel
+            </AlertDialogCancel>
+            <Button
+              variant="outline"
+              onClick={handleDiscardChanges}
+              className="text-red-600 hover:text-red-800"
+            >
+              Discard Changes
+            </Button>
+            <AlertDialogAction onClick={handleSaveAndContinue}>
+              Save & Continue
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
