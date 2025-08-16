@@ -379,10 +379,13 @@ export default function ProjectView() {
                         selectedStatementId === statement.id ? 'border-primary shadow-md' : ''
                       }`}
                       onClick={() => {
-                        if (navigationHandler) {
-                          navigationHandler(() => setSelectedStatementId(statement.id));
+                        const targetStatementId = statement.id;
+                        if (navigationHandler && typeof navigationHandler === 'function') {
+                          navigationHandler(() => {
+                            setSelectedStatementId(targetStatementId);
+                          });
                         } else {
-                          setSelectedStatementId(statement.id);
+                          setSelectedStatementId(targetStatementId);
                         }
                       }}
                       data-testid={`card-statement-${statement.id}`}

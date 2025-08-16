@@ -153,8 +153,12 @@ export function StatementEditor({ statement, onStatementUpdated, onNavigationAtt
 
   // Phase 2 Fix: Expose navigation handler to parent
   const handleNavigationRequest = useCallback((navigationCallback: () => void) => {
+    if (typeof navigationCallback !== 'function') {
+      console.error('navigationCallback is not a function:', navigationCallback);
+      return;
+    }
     if (hasUnsavedChanges) {
-      setPendingNavigation(() => () => navigationCallback());
+      setPendingNavigation(() => navigationCallback);
       setShowUnsavedChangesDialog(true);
     } else {
       navigationCallback();
