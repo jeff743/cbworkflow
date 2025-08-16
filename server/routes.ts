@@ -384,15 +384,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Serve uploaded objects from Google Cloud Storage
   app.get("/objects/*", async (req, res) => {
+    console.log("🔍 Serving object request:", req.path);
     try {
-      const objectPath = req.path; // e.g., "/objects/uploads/abc123..."
+      const objectPath = req.path;
+      console.log("📁 Object path:", objectPath);
       const objectStorageService = new ObjectStorageService();
       const objectFile = await objectStorageService.getObjectEntityFile(objectPath);
-      
-      // Use the service's downloadObject method to properly stream the file
+      console.log("✅ Object file obtained:", objectFile.name);
       await objectStorageService.downloadObject(objectFile, res);
+      console.log("✅ Object served successfully");
     } catch (error) {
-      console.error("Error serving object:", error);
+      console.error("❌ Error serving object:", error);
+      console.error("❌ Error stack:", error.stack);
       if (!res.headersSent) {
         res.status(404).json({ error: "Object not found" });
       }
