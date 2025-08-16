@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
@@ -17,9 +17,10 @@ import type { UploadResult } from "@uppy/core";
 interface StatementEditorProps {
   statement: StatementWithRelations;
   onStatementUpdated: () => void;
+  onNavigationAttempt?: (callback: () => void) => void;
 }
 
-export function StatementEditor({ statement, onStatementUpdated }: StatementEditorProps) {
+export function StatementEditor({ statement, onStatementUpdated, onNavigationAttempt }: StatementEditorProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -149,6 +150,23 @@ export function StatementEditor({ statement, onStatementUpdated }: StatementEdit
       setShowUnsavedChangesDialog(false);
     }, 100);
   };
+
+  // Phase 2 Fix: Expose navigation handler to parent
+  const handleNavigationRequest = useCallback((navigationCallback: () => void) => {
+    if (hasUnsavedChanges) {
+      setPendingNavigation(() => () => navigationCallback());
+      setShowUnsavedChangesDialog(true);
+    } else {
+      navigationCallback();
+    }
+  }, [hasUnsavedChanges]);
+
+  // Phase 2 Fix: Set up navigation interception
+  React.useEffect(() => {
+    if (onNavigationAttempt) {
+      onNavigationAttempt(handleNavigationRequest);
+    }
+  }, [handleNavigationRequest, onNavigationAttempt]);
 
   const handleReviewAction = (action: "approved" | "needs_revision") => {
     updateMutation.mutate({

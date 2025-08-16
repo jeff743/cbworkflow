@@ -23,6 +23,7 @@ export default function ProjectView() {
   const queryClient = useQueryClient();
   const [selectedTestId, setSelectedTestId] = useState<string | null>(null);
   const [selectedStatementId, setSelectedStatementId] = useState<string | null>(null);
+  const [navigationHandler, setNavigationHandler] = useState<((callback: () => void) => void) | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [showNewStatementModal, setShowNewStatementModal] = useState(false);
   const [showProjectSettings, setShowProjectSettings] = useState(false);
@@ -377,7 +378,13 @@ export default function ProjectView() {
                       className={`bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer ${
                         selectedStatementId === statement.id ? 'border-primary shadow-md' : ''
                       }`}
-                      onClick={() => setSelectedStatementId(statement.id)}
+                      onClick={() => {
+                        if (navigationHandler) {
+                          navigationHandler(() => setSelectedStatementId(statement.id));
+                        } else {
+                          setSelectedStatementId(statement.id);
+                        }
+                      }}
                       data-testid={`card-statement-${statement.id}`}
                     >
                       <div className="flex items-start justify-between mb-3">
@@ -417,6 +424,7 @@ export default function ProjectView() {
                 queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'statements'] });
                 queryClient.invalidateQueries({ queryKey: ['/api/statements', selectedStatementId] });
               }}
+              onNavigationAttempt={setNavigationHandler} // Phase 2 Fix: Navigation interception
             />
           ) : (
             <div className="flex-1 flex items-center justify-center bg-gray-50">
