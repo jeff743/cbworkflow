@@ -1,12 +1,33 @@
 import { useAuth } from "@/hooks/useAuth";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
-import type { ProjectWithStats, StatementWithRelations } from "@shared/schema";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { insertProjectSchema } from "@shared/schema";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { z } from "zod";
+import type { ProjectWithStats, StatementWithRelations, User } from "@shared/schema";
+
+const createProjectFormSchema = z.object({
+  name: z.string().min(1, "Client name is required"),
+});
+
+type CreateProjectFormData = z.infer<typeof createProjectFormSchema>;
 
 export function Sidebar() {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [location] = useLocation();
+  const [showCreateProject, setShowCreateProject] = useState(false);
+  const [showManageUsers, setShowManageUsers] = useState(false);
 
   const { data: projects } = useQuery<ProjectWithStats[]>({
     queryKey: ['/api/projects'],
@@ -18,6 +39,73 @@ export function Sidebar() {
 
   const { data: reviewStatements } = useQuery<StatementWithRelations[]>({
     queryKey: ['/api/dashboard/review-statements'],
+  });
+
+  const { data: allUsers } = useQuery<User[]>({
+    queryKey: ['/api/users'],
+    enabled: (user as any)?.role === 'super_admin',
+  });
+
+  const projectForm = useForm<CreateProjectFormData>({
+    resolver: zodResolver(createProjectFormSchema),
+    defaultValues: {
+      name: "",
+    },
+  });
+
+  const onCreateProject = (data: CreateProjectFormData) => {
+    const projectData = {
+      name: data.name,
+      clientName: data.name,
+      description: `Project for ${data.name}`,
+      status: "active" as const,
+    };
+    createProjectMutation.mutate(projectData);
+  };
+
+  const createProjectMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const response = await apiRequest('POST', '/api/projects', data);
+      const result = await response.json();
+      return result;
+    },
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
+      setShowCreateProject(false);
+      projectForm.reset();
+      toast({
+        title: "Success",
+        description: "Project created successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to create project",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updateUserRoleMutation = useMutation({
+    mutationFn: async ({ userId, role }: { userId: string; role: string }) => {
+      const response = await apiRequest('PATCH', `/api/users/${userId}/role`, { role });
+      return response;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/users'] });
+      toast({
+        title: "Success",
+        description: "User role updated successfully",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update user role",
+        variant: "destructive",
+      });
+    },
   });
 
   const newStatementsCount = myStatements?.filter(s => s.status === 'draft').length || 0;
@@ -129,6 +217,114 @@ export function Sidebar() {
                 )}
               </div>
             </Link>
+          </div>
+        </div>
+        
+        {/* Admin Actions */}
+        <div className="pt-4 border-t border-gray-200">
+          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Actions</h3>
+          <div className="space-y-2">
+            <Dialog open={showCreateProject} onOpenChange={setShowCreateProject}>
+              <DialogTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-start text-left"
+                  data-testid="button-sidebar-create-project"
+                >
+                  <i className="fas fa-plus mr-2"></i>
+                  New Project
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Create New Project</DialogTitle>
+                  <DialogDescription>
+                    Enter the client's name to create a new project.
+                  </DialogDescription>
+                </DialogHeader>
+                <Form {...projectForm}>
+                  <form onSubmit={projectForm.handleSubmit(onCreateProject)} className="space-y-4">
+                    <FormField
+                      control={projectForm.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Client Name</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Enter client name" {...field} data-testid="input-sidebar-project-name" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <div className="flex justify-end space-x-3">
+                      <Button type="button" variant="outline" onClick={() => setShowCreateProject(false)}>
+                        Cancel
+                      </Button>
+                      <Button 
+                        type="submit" 
+                        disabled={createProjectMutation.isPending}
+                        data-testid="button-sidebar-submit-project"
+                      >
+                        {createProjectMutation.isPending ? "Creating..." : "Create Project"}
+                      </Button>
+                    </div>
+                  </form>
+                </Form>
+              </DialogContent>
+            </Dialog>
+            
+            {(user as any)?.role === 'super_admin' && (
+              <Dialog open={showManageUsers} onOpenChange={setShowManageUsers}>
+                <DialogTrigger asChild>
+                  <Button 
+                    variant="outline"
+                    className="w-full justify-start text-left"
+                    data-testid="button-sidebar-manage-users"
+                  >
+                    <i className="fas fa-users mr-2"></i>
+                    Manage Users
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-2xl">
+                  <DialogHeader>
+                    <DialogTitle>Manage Users</DialogTitle>
+                    <DialogDescription>
+                      Update user roles and permissions.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 max-h-96 overflow-y-auto">
+                    {allUsers?.map(userItem => (
+                      <div key={userItem.id} className="flex items-center justify-between p-4 border rounded-lg">
+                        <div>
+                          <p className="font-medium" data-testid={`text-sidebar-user-${userItem.id}`}>
+                            {userItem.firstName} {userItem.lastName}
+                          </p>
+                          <p className="text-sm text-gray-500">{userItem.email}</p>
+                        </div>
+                        <Select 
+                          value={userItem.role} 
+                          onValueChange={(role) => updateUserRoleMutation.mutate({ userId: userItem.id, role })}
+                          disabled={updateUserRoleMutation.isPending}
+                        >
+                          <SelectTrigger className="w-48" data-testid={`select-sidebar-role-${userItem.id}`}>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="creative_strategist">Creative Strategist</SelectItem>
+                            <SelectItem value="growth_strategist">Growth Strategist</SelectItem>
+                            <SelectItem value="super_admin">Super Admin</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    ))}
+                    {!allUsers?.length && (
+                      <p className="text-center text-gray-500 py-4">No users found</p>
+                    )}
+                  </div>
+                </DialogContent>
+              </Dialog>
+            )}
           </div>
         </div>
       </nav>
