@@ -279,25 +279,25 @@ export default function ProjectView() {
 
   // Check for completed test batches that are ready for deployment
   useEffect(() => {
-    if (tests && project) {
-      for (const test of tests) {
-        // Only check test batches (not individual statements)
-        if (test.testBatchId && test.statements.length > 0) {
-          const allApproved = test.statements.every((s: StatementWithRelations) => s.status === 'approved');
-          const notYetMarkedForDeployment = test.statements.every((s: StatementWithRelations) => 
-            !s.deploymentStatus || s.deploymentStatus === 'pending'
-          );
-          
-          if (allApproved && notYetMarkedForDeployment) {
-            // Show deployment ready dialog
-            setDeploymentReadyTest({
-              id: test.id,
-              testBatchId: test.testBatchId,
-              statements: test.statements,
-              projectName: project.name,
-            });
-            break; // Only show one dialog at a time
-          }
+    if (!tests || !project) return;
+    
+    for (const test of tests) {
+      // Only check test batches (not individual statements)
+      if (test.testBatchId && test.statements.length > 0) {
+        const allApproved = test.statements.every((s: StatementWithRelations) => s.status === 'approved');
+        const notYetMarkedForDeployment = test.statements.every((s: StatementWithRelations) => 
+          !s.deploymentStatus || s.deploymentStatus === 'pending'
+        );
+        
+        if (allApproved && notYetMarkedForDeployment) {
+          // Show deployment ready dialog
+          setDeploymentReadyTest({
+            id: test.id,
+            testBatchId: test.testBatchId,
+            statements: test.statements,
+            projectName: project.name,
+          });
+          break; // Only show one dialog at a time
         }
       }
     }
