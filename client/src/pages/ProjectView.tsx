@@ -171,7 +171,7 @@ export default function ProjectView() {
         queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'statements'] });
         console.log('Invalidated queries after deploy success');
         
-        // Clear tracking after data refresh completes
+        // Clear tracking after data refresh completes - longer delay to prevent reopening
         setTimeout(() => {
           if (testBatchId) {
             setRecentlyMarkedTestIds(prev => {
@@ -181,7 +181,7 @@ export default function ProjectView() {
               return newSet;
             });
           }
-        }, 1000); // Increased timeout for better reliability
+        }, 5000); // 5 second delay to ensure database has fully updated
       }, 500); // Increased timeout for better database consistency
     },
     onError: (error) => {
@@ -316,10 +316,15 @@ export default function ProjectView() {
           !s.deploymentStatus || s.deploymentStatus === 'pending'
         ) && !recentlyMarkedTestIds.has(test.testBatchId);
         
-        console.log(`Test ${test.testBatchId} - allApproved: ${allApproved}, notYetMarkedForDeployment: ${notYetMarkedForDeployment}, deploymentReadyTest: ${!!deploymentReadyTest}, isPending: ${markReadyToDeployMutation.isPending}`);
+        // Additional check: if any statement has 'ready' status, don't show dialog
+        const hasReadyStatus = test.statements.some((s: StatementWithRelations) => 
+          s.deploymentStatus === 'ready'
+        );
+        
+        console.log(`Test ${test.testBatchId} - allApproved: ${allApproved}, notYetMarked: ${notYetMarkedForDeployment}, hasReady: ${hasReadyStatus}, dialogOpen: ${!!deploymentReadyTest}, isPending: ${markReadyToDeployMutation.isPending}`);
         console.log(`Recently marked IDs:`, Array.from(recentlyMarkedTestIds));
         
-        if (allApproved && notYetMarkedForDeployment && !deploymentReadyTest && !markReadyToDeployMutation.isPending) {
+        if (allApproved && notYetMarkedForDeployment && !hasReadyStatus && !deploymentReadyTest && !markReadyToDeployMutation.isPending) {
           // Show deployment ready dialog
           setDeploymentReadyTest({
             id: test.id,
