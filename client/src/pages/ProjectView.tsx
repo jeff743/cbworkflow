@@ -279,9 +279,23 @@ export default function ProjectView() {
 
   // Check for completed test batches that are ready for deployment
   useEffect(() => {
-    if (!tests || !project) return;
+    if (!statements || !project || deploymentReadyTest) return;
     
-    for (const test of tests) {
+    // Group statements and check for deployment readiness
+    const testGroups = statements.reduce((acc, statement) => {
+      const testKey = statement.testBatchId || statement.id;
+      if (!acc[testKey]) {
+        acc[testKey] = {
+          id: testKey,
+          testBatchId: statement.testBatchId,
+          statements: [] as StatementWithRelations[],
+        };
+      }
+      acc[testKey].statements.push(statement);
+      return acc;
+    }, {} as Record<string, any>);
+
+    for (const test of Object.values(testGroups)) {
       // Only check test batches (not individual statements)
       if (test.testBatchId && test.statements.length > 0) {
         const allApproved = test.statements.every((s: StatementWithRelations) => s.status === 'approved');
@@ -301,7 +315,7 @@ export default function ProjectView() {
         }
       }
     }
-  }, [tests, project]);
+  }, [statements, project, deploymentReadyTest]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
