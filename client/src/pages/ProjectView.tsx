@@ -152,8 +152,10 @@ export default function ProjectView() {
       });
       // Close dialog first
       setDeploymentReadyTest(null);
-      // Then refresh the statements list
-      queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'statements'] });
+      // Then refresh the statements list after a small delay to allow DB to update
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'statements'] });
+      }, 100);
     },
     onError: (error) => {
       if (isUnauthorizedError(error)) {
@@ -263,7 +265,7 @@ export default function ProjectView() {
 
   // Check for completed test batches that are ready for deployment
   useEffect(() => {
-    if (!statements || !project || deploymentReadyTest) return;
+    if (!statements || !project || deploymentReadyTest || markReadyToDeployMutation.isPending) return;
     
     // Group statements and check for deployment readiness
     const testGroups = statements.reduce((acc, statement) => {
@@ -299,7 +301,7 @@ export default function ProjectView() {
         }
       }
     }
-  }, [statements, project, deploymentReadyTest]);
+  }, [statements, project, deploymentReadyTest, markReadyToDeployMutation.isPending]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
