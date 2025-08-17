@@ -153,14 +153,20 @@ export function DeploymentReadyDialog({
         <DialogFooter className="flex items-center justify-between pt-6">
           <Button
             variant="outline"
-            onClick={() => onOpenChange(false)}
+            onClick={() => {
+              console.log('Not Yet button clicked - closing dialog');
+              onOpenChange(false);
+            }}
             disabled={isProcessing}
           >
             Not Yet
           </Button>
           
           <Button
-            onClick={onMarkReadyToDeploy}
+            onClick={() => {
+              console.log('Mark Ready to Deploy button clicked');
+              onMarkReadyToDeploy();
+            }}
             disabled={isProcessing}
             className="bg-success text-white hover:bg-green-600"
           >

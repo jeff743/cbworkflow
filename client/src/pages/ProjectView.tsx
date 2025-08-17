@@ -150,13 +150,15 @@ export default function ProjectView() {
     onSuccess: () => {
       console.log('Mark ready to deploy mutation success - closing dialog');
       const testBatchId = deploymentReadyTest?.testBatchId;
+      
+      // CRITICAL: Close dialog immediately and unconditionally
+      setDeploymentReadyTest(null);
+      
       if (testBatchId) {
         // Add to recently marked set to prevent re-detection
         setRecentlyMarkedTestIds(prev => new Set([...Array.from(prev), testBatchId]));
+        console.log('Added to recently marked set:', testBatchId);
       }
-      
-      // Close dialog immediately
-      setDeploymentReadyTest(null);
       
       // Toast notification
       toast({
@@ -167,6 +169,7 @@ export default function ProjectView() {
       // Refresh data with longer delay for database consistency
       setTimeout(() => {
         queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'statements'] });
+        console.log('Invalidated queries after deploy success');
         
         // Clear tracking after data refresh completes
         setTimeout(() => {
@@ -174,11 +177,12 @@ export default function ProjectView() {
             setRecentlyMarkedTestIds(prev => {
               const newSet = new Set([...Array.from(prev)]);
               newSet.delete(testBatchId);
+              console.log('Removed from recently marked set:', testBatchId);
               return newSet;
             });
           }
-        }, 500);
-      }, 250);
+        }, 1000); // Increased timeout for better reliability
+      }, 500); // Increased timeout for better database consistency
     },
     onError: (error) => {
       if (isUnauthorizedError(error)) {
@@ -312,7 +316,10 @@ export default function ProjectView() {
           !s.deploymentStatus || s.deploymentStatus === 'pending'
         ) && !recentlyMarkedTestIds.has(test.testBatchId);
         
-        if (allApproved && notYetMarkedForDeployment) {
+        console.log(`Test ${test.testBatchId} - allApproved: ${allApproved}, notYetMarkedForDeployment: ${notYetMarkedForDeployment}, deploymentReadyTest: ${!!deploymentReadyTest}, isPending: ${markReadyToDeployMutation.isPending}`);
+        console.log(`Recently marked IDs:`, Array.from(recentlyMarkedTestIds));
+        
+        if (allApproved && notYetMarkedForDeployment && !deploymentReadyTest && !markReadyToDeployMutation.isPending) {
           // Show deployment ready dialog
           setDeploymentReadyTest({
             id: test.id,
