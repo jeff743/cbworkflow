@@ -5,6 +5,9 @@ import { setupAuth, isAuthenticated } from "./replitAuth";
 import { ObjectStorageService } from "./objectStorage";
 import { insertProjectSchema, insertStatementSchema, updateStatementSchema, type User } from "@shared/schema";
 import canvas from "canvas";
+import archiver from "archiver";
+import https from "https";
+import http from "http";
 import { logger } from "./logger";
 import { Permission, requirePermissionMiddleware, hasPermission, getUserRoleDisplayName } from "./permissions";
 
@@ -452,7 +455,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Export approved colorblocks
+  // Export approved colorblocks as ZIP
   app.get('/api/projects/:projectId/export', isAuthenticated, async (req, res) => {
     try {
       const statements = await storage.getStatements(req.params.projectId, 'approved');
@@ -462,19 +465,83 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "No approved colorblocks found" });
       }
 
-      // In a real implementation, you would create a zip file with all images
-      // For now, return the list of image URLs
-      res.json({
-        count: approvedStatements.length,
-        images: approvedStatements.map(s => ({
-          id: s.id,
-          heading: s.heading,
-          imageUrl: s.colorblockImageUrl,
-        }))
+      // Get project info for filename
+      const project = await storage.getProject(req.params.projectId);
+      const projectName = project?.name || 'project';
+      const timestamp = new Date().toISOString().split('T')[0];
+      const filename = `${projectName}_approved_colorblocks_${timestamp}.zip`;
+
+      // Set response headers for zip download
+      res.set({
+        'Content-Type': 'application/zip',
+        'Content-Disposition': `attachment; filename="${filename}"`,
       });
+
+      // Create zip archive
+      const archive = archiver('zip', {
+        zlib: { level: 9 } // Maximum compression
+      });
+
+      // Pipe archive to response
+      archive.pipe(res);
+
+      // Handle archive errors
+      archive.on('error', (err) => {
+        console.error('Archive error:', err);
+        if (!res.headersSent) {
+          res.status(500).json({ message: 'Failed to create archive' });
+        }
+      });
+
+      // Add each approved colorblock image to the zip
+      for (let i = 0; i < approvedStatements.length; i++) {
+        const statement = approvedStatements[i];
+        if (statement.colorblockImageUrl) {
+          try {
+            // Generate a clean filename for the image
+            const sanitizedHeading = statement.heading 
+              ? statement.heading.replace(/[^a-zA-Z0-9\s-_]/g, '').replace(/\s+/g, '_').slice(0, 50)
+              : `statement_${i + 1}`;
+            const imageFilename = `${sanitizedHeading}_${statement.id.slice(0, 8)}.png`;
+
+            // Download the image and add to archive
+            const imageUrl = statement.colorblockImageUrl.startsWith('http') 
+              ? statement.colorblockImageUrl 
+              : `${req.protocol}://${req.get('host')}${statement.colorblockImageUrl}`;
+
+            // Create a promise to download the image
+            const downloadImage = new Promise<Buffer>((resolve, reject) => {
+              const client = imageUrl.startsWith('https') ? https : http;
+              client.get(imageUrl, (imageRes) => {
+                if (imageRes.statusCode !== 200) {
+                  reject(new Error(`Failed to download image: ${imageRes.statusCode}`));
+                  return;
+                }
+                
+                const chunks: Buffer[] = [];
+                imageRes.on('data', (chunk) => chunks.push(chunk));
+                imageRes.on('end', () => resolve(Buffer.concat(chunks)));
+                imageRes.on('error', reject);
+              }).on('error', reject);
+            });
+
+            const imageBuffer = await downloadImage;
+            archive.append(imageBuffer, { name: imageFilename });
+          } catch (error) {
+            console.error(`Error adding image ${statement.id} to archive:`, error);
+            // Continue with other images even if one fails
+          }
+        }
+      }
+
+      // Finalize the archive
+      await archive.finalize();
+      
     } catch (error) {
       console.error("Error exporting colorblocks:", error);
-      res.status(500).json({ message: "Failed to export colorblocks" });
+      if (!res.headersSent) {
+        res.status(500).json({ message: "Failed to export colorblocks" });
+      }
     }
   });
 
