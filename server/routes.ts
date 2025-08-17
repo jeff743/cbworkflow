@@ -458,11 +458,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Export approved colorblocks as ZIP
   app.get('/api/projects/:projectId/export', isAuthenticated, async (req, res) => {
     try {
-      const statements = await storage.getStatements(req.params.projectId, 'approved');
-      const approvedStatements = statements.filter(s => s.colorblockImageUrl);
+      // Get selected statement IDs from query params
+      const selectedIds = req.query.ids ? 
+        (Array.isArray(req.query.ids) ? req.query.ids : [req.query.ids]) as string[] 
+        : null;
       
-      if (approvedStatements.length === 0) {
-        return res.status(404).json({ message: "No approved colorblocks found" });
+      // Get statements - either all approved or filtered by IDs
+      let statements;
+      if (selectedIds && selectedIds.length > 0) {
+        // Get all statements and filter by IDs
+        const allStatements = await storage.getStatements(req.params.projectId);
+        statements = allStatements.filter(s => selectedIds.includes(s.id) && s.colorblockImageUrl);
+      } else {
+        // Get all approved statements with colorblock images
+        statements = await storage.getStatements(req.params.projectId, 'approved');
+        statements = statements.filter(s => s.colorblockImageUrl);
+      }
+      
+      if (statements.length === 0) {
+        return res.status(404).json({ message: "No colorblocks found for export" });
       }
 
       // Get project info for filename
@@ -493,9 +507,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       });
 
-      // Add each approved colorblock image to the zip
-      for (let i = 0; i < approvedStatements.length; i++) {
-        const statement = approvedStatements[i];
+      // Add each colorblock image to the zip
+      for (let i = 0; i < statements.length; i++) {
+        const statement = statements[i];
         if (statement.colorblockImageUrl) {
           try {
             // Generate a clean filename for the image
