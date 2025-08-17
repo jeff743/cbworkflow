@@ -599,6 +599,142 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Deployment routes
+  app.get('/api/deployment/tests', isAuthenticated, async (req: any, res) => {
+    try {
+      const status = req.query.status as string;
+      const deploymentTests = await storage.getDeploymentTests(status);
+      res.json(deploymentTests);
+    } catch (error) {
+      logger.error('Failed to fetch deployment tests', 'deployment', error as Error);
+      res.status(500).json({ message: 'Failed to fetch deployment tests' });
+    }
+  });
+
+  app.put('/api/deployment/tests/:testId/status', isAuthenticated, async (req: any, res) => {
+    try {
+      const { testId } = req.params;
+      const { status } = req.body;
+      
+      const validStatuses = ['ready', 'deploying', 'deployed', 'failed'];
+      if (!validStatuses.includes(status)) {
+        return res.status(400).json({ message: 'Invalid deployment status' });
+      }
+
+      const result = await storage.updateDeploymentStatus(testId, status);
+      if (!result) {
+        return res.status(404).json({ message: 'Test batch not found' });
+      }
+
+      logger.info(`Deployment status updated: ${testId} -> ${status}`, 'deployment');
+      res.json({ success: true, status });
+    } catch (error) {
+      logger.error('Failed to update deployment status', 'deployment', error as Error);
+      res.status(500).json({ message: 'Failed to update deployment status' });
+    }
+  });
+
+  app.get('/api/deployment/export', isAuthenticated, async (req, res) => {
+    try {
+      // Get selected statement IDs from query params
+      const selectedIds = req.query.ids ? 
+        (Array.isArray(req.query.ids) ? req.query.ids : [req.query.ids]) as string[] 
+        : null;
+      
+      // Get ready-to-deploy statements
+      let statements;
+      if (selectedIds && selectedIds.length > 0) {
+        statements = await storage.getStatementsByIds(selectedIds);
+        statements = statements.filter(s => s.deploymentStatus === 'ready' && s.colorblockImageUrl);
+      } else {
+        statements = await storage.getReadyToDeployStatements();
+        statements = statements.filter(s => s.colorblockImageUrl);
+      }
+      
+      if (statements.length === 0) {
+        return res.status(404).json({ message: "No ready-to-deploy colorblocks found" });
+      }
+
+      // Generate ZIP filename
+      const timestamp = new Date().toISOString().split('T')[0];
+      const filename = `deployment_colorblocks_${timestamp}.zip`;
+
+      // Set response headers for zip download
+      res.set({
+        'Content-Type': 'application/zip',
+        'Content-Disposition': `attachment; filename="${filename}"`,
+      });
+
+      // Create zip archive
+      const archive = archiver('zip', {
+        zlib: { level: 9 } // Maximum compression
+      });
+
+      // Pipe archive to response
+      archive.pipe(res);
+
+      // Handle archive errors
+      archive.on('error', (err) => {
+        console.error('Archive error:', err);
+        if (!res.headersSent) {
+          res.status(500).json({ message: 'Failed to create archive' });
+        }
+      });
+
+      // Add each colorblock image to the zip
+      for (let i = 0; i < statements.length; i++) {
+        const statement = statements[i];
+        if (statement.colorblockImageUrl) {
+          try {
+            // Generate a clean filename for the image
+            const sanitizedHeading = statement.heading 
+              ? statement.heading.replace(/[^a-zA-Z0-9\s-_]/g, '').replace(/\s+/g, '_').slice(0, 50)
+              : `statement_${i + 1}`;
+            const imageFilename = `${sanitizedHeading}_${statement.id.slice(0, 8)}.png`;
+
+            // Download the image and add to archive
+            const response = await fetch(statement.colorblockImageUrl);
+            if (response.ok) {
+              const imageBuffer = await response.arrayBuffer();
+              archive.append(Buffer.from(imageBuffer), { name: imageFilename });
+            }
+          } catch (imageError) {
+            console.error(`Failed to add image for statement ${statement.id}:`, imageError);
+            // Continue with other images even if one fails
+          }
+        }
+      }
+
+      // Finalize the archive
+      await archive.finalize();
+      
+      logger.info(`Deployment export completed: ${statements.length} colorblocks`, 'export');
+    } catch (error) {
+      logger.error('Failed to export deployment colorblocks', 'export', error as Error);
+      console.error("Error exporting deployment colorblocks:", error);
+      if (!res.headersSent) {
+        res.status(500).json({ message: "Failed to export colorblocks" });
+      }
+    }
+  });
+
+  app.post('/api/deployment/mark-ready/:testBatchId', isAuthenticated, async (req: any, res) => {
+    try {
+      const { testBatchId } = req.params;
+      const result = await storage.markTestBatchReadyToDeploy(testBatchId);
+      
+      if (!result) {
+        return res.status(404).json({ message: 'Test batch not found' });
+      }
+
+      logger.info(`Test batch marked ready to deploy: ${testBatchId}`, 'deployment');
+      res.json({ success: true, message: 'Test batch marked as ready to deploy' });
+    } catch (error) {
+      logger.error('Failed to mark test batch as ready to deploy', 'deployment', error as Error);
+      res.status(500).json({ message: 'Failed to mark test batch as ready to deploy' });
+    }
+  });
+
   // Logs route for debugging
   app.get('/api/logs', requirePermissionMiddleware(Permission.MANAGE_USER_ROLES), (req: any, res) => {
     try {

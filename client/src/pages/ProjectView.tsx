@@ -9,6 +9,7 @@ import { NewStatementModal } from "@/components/NewStatementModal";
 import { DeleteTestBatchDialog } from "@/components/DeleteTestBatchDialog";
 import { ProjectSettings } from "@/components/ProjectSettings";
 import { ExportModal } from "@/components/ExportModal";
+import { DeploymentReadyDialog } from "@/components/DeploymentReadyDialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -30,6 +31,12 @@ export default function ProjectView() {
   const [showProjectSettings, setShowProjectSettings] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [testToDelete, setTestToDelete] = useState<{ id: string; testBatchId?: string | null; statementsCount: number } | null>(null);
+  const [deploymentReadyTest, setDeploymentReadyTest] = useState<{
+    id: string;
+    testBatchId?: string | null;
+    statements: StatementWithRelations[];
+    projectName: string;
+  } | null>(null);
 
   // Phase 3: Navigation Event Handler - Listen for navigation reset signals
   const { data: navReset } = useQuery({
@@ -127,6 +134,40 @@ export default function ProjectView() {
       toast({
         title: "Export Failed",
         description: "Failed to export colorblocks",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const markReadyToDeployMutation = useMutation({
+    mutationFn: async (testBatchId: string) => {
+      const response = await apiRequest('POST', `/api/deployment/mark-ready/${testBatchId}`);
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Ready to Deploy",
+        description: "Test batch has been marked as ready for deployment",
+      });
+      // Refresh the statements list
+      queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'statements'] });
+      setDeploymentReadyTest(null);
+    },
+    onError: (error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+      toast({
+        title: "Failed",
+        description: "Failed to mark test as ready to deploy",
         variant: "destructive",
       });
     },
@@ -235,6 +276,32 @@ export default function ProjectView() {
   const tests = Object.values(groupedTests);
   const selectedTest = tests.find((t: any) => t.id === selectedTestId);
   const selectedStatement = selectedTest?.statements.find((s: any) => s.id === selectedStatementId);
+
+  // Check for completed test batches that are ready for deployment
+  useEffect(() => {
+    if (tests && project) {
+      for (const test of tests) {
+        // Only check test batches (not individual statements)
+        if (test.testBatchId && test.statements.length > 0) {
+          const allApproved = test.statements.every((s: StatementWithRelations) => s.status === 'approved');
+          const notYetMarkedForDeployment = test.statements.every((s: StatementWithRelations) => 
+            !s.deploymentStatus || s.deploymentStatus === 'pending'
+          );
+          
+          if (allApproved && notYetMarkedForDeployment) {
+            // Show deployment ready dialog
+            setDeploymentReadyTest({
+              id: test.id,
+              testBatchId: test.testBatchId,
+              statements: test.statements,
+              projectName: project.name,
+            });
+            break; // Only show one dialog at a time
+          }
+        }
+      }
+    }
+  }, [tests, project]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -540,6 +607,23 @@ export default function ProjectView() {
         onExport={(statementIds, exportType) => exportMutation.mutate({ statementIds, exportType })}
         isExporting={exportMutation.isPending}
       />
+
+      {/* Deployment Ready Dialog */}
+      {deploymentReadyTest && (
+        <DeploymentReadyDialog
+          open={!!deploymentReadyTest}
+          onOpenChange={(open) => {
+            if (!open) setDeploymentReadyTest(null);
+          }}
+          testBatch={deploymentReadyTest}
+          onMarkReadyToDeploy={() => {
+            if (deploymentReadyTest.testBatchId) {
+              markReadyToDeployMutation.mutate(deploymentReadyTest.testBatchId);
+            }
+          }}
+          isProcessing={markReadyToDeployMutation.isPending}
+        />
+      )}
     </div>
   );
 }

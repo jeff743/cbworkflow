@@ -55,6 +55,8 @@ export const statements = pgTable("statements", {
   projectId: varchar("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
   testBatchId: varchar("test_batch_id"), // Groups statements created together as a test
   description: text("description"), // Task description for the test batch
+  deploymentStatus: varchar("deployment_status").default("pending"), // pending, ready, deploying, deployed, failed
+  deploymentReadyDate: timestamp("deployment_ready_date"),
   heading: text("heading"),
   content: text("content").notNull(),
   status: varchar("status").notNull().default("draft"), // draft, under_review, needs_revision, approved, in_design, completed
