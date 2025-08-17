@@ -820,7 +820,7 @@ export function StatementEditor({ statement, onStatementUpdated, navigationReque
                   ...statement,
                   ...formData,
                 }}
-                backgroundImages={backgroundImages}
+                backgroundImages={statement.project?.backgroundImages || []}
                 onBackgroundImageSelect={(imageUrl) => 
                   setFormData(prev => ({ ...prev, backgroundImageUrl: imageUrl }))
                 }
