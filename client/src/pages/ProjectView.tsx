@@ -37,6 +37,9 @@ export default function ProjectView() {
     statements: StatementWithRelations[];
     projectName: string;
   } | null>(null);
+  
+  // Phase 1 Fix: Add deployment tracking state to prevent race condition
+  const [recentlyMarkedTestIds, setRecentlyMarkedTestIds] = useState<Set<string>>(new Set());
 
   // Phase 3: Navigation Event Handler - Listen for navigation reset signals
   const { data: navReset } = useQuery({
@@ -146,16 +149,36 @@ export default function ProjectView() {
     },
     onSuccess: () => {
       console.log('Mark ready to deploy mutation success - closing dialog');
+      const testBatchId = deploymentReadyTest?.testBatchId;
+      if (testBatchId) {
+        // Add to recently marked set to prevent re-detection
+        setRecentlyMarkedTestIds(prev => new Set([...prev, testBatchId]));
+      }
+      
+      // Close dialog immediately
+      setDeploymentReadyTest(null);
+      
+      // Toast notification
       toast({
         title: "Ready to Deploy",
         description: "Test batch has been marked as ready for deployment",
       });
-      // Close dialog first
-      setDeploymentReadyTest(null);
-      // Then refresh the statements list after a small delay to allow DB to update
+      
+      // Refresh data with longer delay for database consistency
       setTimeout(() => {
         queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'statements'] });
-      }, 100);
+        
+        // Clear tracking after data refresh completes
+        setTimeout(() => {
+          if (testBatchId) {
+            setRecentlyMarkedTestIds(prev => {
+              const newSet = new Set([...prev]);
+              newSet.delete(testBatchId);
+              return newSet;
+            });
+          }
+        }, 500);
+      }, 250);
     },
     onError: (error) => {
       if (isUnauthorizedError(error)) {
@@ -287,7 +310,7 @@ export default function ProjectView() {
         const allApproved = test.statements.every((s: StatementWithRelations) => s.status === 'approved');
         const notYetMarkedForDeployment = test.statements.every((s: StatementWithRelations) => 
           !s.deploymentStatus || s.deploymentStatus === 'pending'
-        );
+        ) && !recentlyMarkedTestIds.has(test.testBatchId);
         
         if (allApproved && notYetMarkedForDeployment) {
           // Show deployment ready dialog
@@ -301,7 +324,7 @@ export default function ProjectView() {
         }
       }
     }
-  }, [statements, project, deploymentReadyTest, markReadyToDeployMutation.isPending]);
+  }, [statements, project, deploymentReadyTest, markReadyToDeployMutation.isPending, recentlyMarkedTestIds]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
