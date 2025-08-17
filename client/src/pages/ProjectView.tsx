@@ -8,6 +8,7 @@ import { StatementEditor } from "@/components/StatementEditor";
 import { NewStatementModal } from "@/components/NewStatementModal";
 import { DeleteTestBatchDialog } from "@/components/DeleteTestBatchDialog";
 import { ProjectSettings } from "@/components/ProjectSettings";
+import { ExportModal } from "@/components/ExportModal";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -27,6 +28,7 @@ export default function ProjectView() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [showNewStatementModal, setShowNewStatementModal] = useState(false);
   const [showProjectSettings, setShowProjectSettings] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
   const [testToDelete, setTestToDelete] = useState<{ id: string; testBatchId?: string | null; statementsCount: number } | null>(null);
 
   // Phase 3: Navigation Event Handler - Listen for navigation reset signals
@@ -57,15 +59,58 @@ export default function ProjectView() {
   });
 
   const exportMutation = useMutation({
-    mutationFn: async () => {
-      const response = await apiRequest('GET', `/api/projects/${projectId}/export`);
-      return response.json();
+    mutationFn: async ({ statementIds, exportType }: { statementIds: string[], exportType: 'all' | 'selected' | 'single' }) => {
+      // Create the export URL with selected statement IDs
+      const params = new URLSearchParams();
+      if (exportType !== 'all') {
+        statementIds.forEach(id => params.append('ids', id));
+      }
+      const url = `/api/projects/${projectId}/export${params.toString() ? '?' + params.toString() : ''}`;
+      
+      // Create a temporary link to trigger download
+      const response = await fetch(url, {
+        method: 'GET',
+        credentials: 'include',
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Export failed: ${response.status}`);
+      }
+      
+      // Get the filename from Content-Disposition header
+      const contentDisposition = response.headers.get('Content-Disposition');
+      let filename = 'colorblocks.zip';
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename="?([^"]*)"?/);
+        if (filenameMatch) {
+          filename = filenameMatch[1];
+        }
+      }
+      
+      // Create blob and download
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(downloadUrl);
+      
+      return { count: statementIds.length };
     },
-    onSuccess: (data) => {
+    onSuccess: (data, variables) => {
+      const { exportType } = variables;
+      const description = exportType === 'single' 
+        ? 'Downloaded 1 colorblock'
+        : `Downloaded ${data.count} approved colorblock${data.count !== 1 ? 's' : ''}`;
+      
       toast({
         title: "Export Complete",
-        description: `Downloaded ${data.count} approved colorblocks`,
+        description,
       });
+      setShowExportModal(false);
     },
     onError: (error) => {
       if (isUnauthorizedError(error)) {
@@ -220,13 +265,13 @@ export default function ProjectView() {
             </div>
             <div className="flex items-center space-x-4">
               <Button
-                onClick={() => exportMutation.mutate()}
+                onClick={() => setShowExportModal(true)}
                 disabled={exportMutation.isPending}
                 className="bg-success text-white hover:bg-green-600"
                 data-testid="button-export-approved"
               >
                 <i className="fas fa-download text-sm mr-2"></i>
-                {exportMutation.isPending ? "Exporting..." : "Export Approved"}
+                {exportMutation.isPending ? "Exporting..." : "Export Colorblocks"}
               </Button>
               <Button
                 onClick={() => setShowNewStatementModal(true)}
@@ -486,6 +531,15 @@ export default function ProjectView() {
           onClose={() => setShowProjectSettings(false)}
         />
       )}
+
+      {/* Export Modal */}
+      <ExportModal
+        open={showExportModal}
+        onOpenChange={setShowExportModal}
+        statements={statements || []}
+        onExport={(statementIds, exportType) => exportMutation.mutate({ statementIds, exportType })}
+        isExporting={exportMutation.isPending}
+      />
     </div>
   );
 }
