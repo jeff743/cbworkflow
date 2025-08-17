@@ -1,0 +1,63 @@
+chunk-RPCDYKBN.js?v=3aaad9e4:21551 Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+content.js:1392 NOT a vento tab
+content.js:1398 GOT VALUE ventoRecording: false
+ProjectView.tsx:319 Test c5x8mww07RU2UHvVdj_VZ - allApproved: true, notYetMarkedForDeployment: true, deploymentReadyTest: false, isPending: false
+ProjectView.tsx:320 Recently marked IDs: Array(0)
+chunk-PMJRZ6FE.js?v=3aaad9e4:337 Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+(anonymous) @ chunk-PMJRZ6FE.js?v=3aaad9e4:337
+ProjectView.tsx:661 Dialog onOpenChange called with: false
+ProjectView.tsx:663 Closing deployment dialog via onOpenChange
+ProjectView.tsx:319 Test c5x8mww07RU2UHvVdj_VZ - allApproved: true, notYetMarkedForDeployment: true, deploymentReadyTest: false, isPending: false
+ProjectView.tsx:320 Recently marked IDs: Array(0)
+chunk-PMJRZ6FE.js?v=3aaad9e4:337 Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+(anonymous) @ chunk-PMJRZ6FE.js?v=3aaad9e4:337
+DeploymentReadyDialog.tsx:167 Mark Ready to Deploy button clicked
+ProjectView.tsx:151 Mark ready to deploy mutation success - closing dialog
+ProjectView.tsx:160 Added to recently marked set: c5x8mww07RU2UHvVdj_VZ
+ProjectView.tsx:319 Test c5x8mww07RU2UHvVdj_VZ - allApproved: true, notYetMarkedForDeployment: false, deploymentReadyTest: false, isPending: false
+ProjectView.tsx:320 Recently marked IDs: Array(1)
+ProjectView.tsx:172 Invalidated queries after deploy success
+ProjectView.tsx:319 Test c5x8mww07RU2UHvVdj_VZ - allApproved: true, notYetMarkedForDeployment: false, deploymentReadyTest: false, isPending: false
+ProjectView.tsx:320 Recently marked IDs: Array(1)
+ProjectView.tsx:180 Removed from recently marked set: c5x8mww07RU2UHvVdj_VZ
+ProjectView.tsx:319 Test c5x8mww07RU2UHvVdj_VZ - allApproved: true, notYetMarkedForDeployment: true, deploymentReadyTest: false, isPending: false
+ProjectView.tsx:320 Recently marked IDs: Array(0)
+chunk-PMJRZ6FE.js?v=3aaad9e4:337 Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+(anonymous) @ chunk-PMJRZ6FE.js?v=3aaad9e4:337
+ProjectView.tsx:661 Dialog onOpenChange called with: false
+ProjectView.tsx:663 Closing deployment dialog via onOpenChange
+ProjectView.tsx:319 Test c5x8mww07RU2UHvVdj_VZ - allApproved: true, notYetMarkedForDeployment: true, deploymentReadyTest: false, isPending: false
+ProjectView.tsx:320 Recently marked IDs: Array(0)
+chunk-PMJRZ6FE.js?v=3aaad9e4:337 Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+(anonymous) @ chunk-PMJRZ6FE.js?v=3aaad9e4:337
+DeploymentReadyDialog.tsx:167 Mark Ready to Deploy button clicked
+ProjectView.tsx:151 Mark ready to deploy mutation success - closing dialog
+ProjectView.tsx:160 Added to recently marked set: c5x8mww07RU2UHvVdj_VZ
+ProjectView.tsx:319 Test c5x8mww07RU2UHvVdj_VZ - allApproved: true, notYetMarkedForDeployment: false, deploymentReadyTest: false, isPending: false
+ProjectView.tsx:320 Recently marked IDs: ['c5x8mww07RU2UHvVdj_VZ']
+ProjectView.tsx:172 Invalidated queries after deploy success
+ProjectView.tsx:319 Test c5x8mww07RU2UHvVdj_VZ - allApproved: true, notYetMarkedForDeployment: false, deploymentReadyTest: false, isPending: false
+ProjectView.tsx:320 Recently marked IDs: ['c5x8mww07RU2UHvVdj_VZ']
+ProjectView.tsx:180 Removed from recently marked set: c5x8mww07RU2UHvVdj_VZ
+ProjectView.tsx:319 Test c5x8mww07RU2UHvVdj_VZ - allApproved: true, notYetMarkedForDeployment: true, deploymentReadyTest: false, isPending: false
+ProjectView.tsx:320 Recently marked IDs: []
+chunk-PMJRZ6FE.js?v=3aaad9e4:337 Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+(anonymous) @ chunk-PMJRZ6FE.js?v=3aaad9e4:337
+commitHookEffectListMount @ chunk-RPCDYKBN.js?v=3aaad9e4:16915
+commitPassiveMountOnFiber @ chunk-RPCDYKBN.js?v=3aaad9e4:18156
+commitPassiveMountEffects_complete @ chunk-RPCDYKBN.js?v=3aaad9e4:18129
+commitPassiveMountEffects_begin @ chunk-RPCDYKBN.js?v=3aaad9e4:18119
+commitPassiveMountEffects @ chunk-RPCDYKBN.js?v=3aaad9e4:18109
+flushPassiveEffectsImpl @ chunk-RPCDYKBN.js?v=3aaad9e4:19490
+flushPassiveEffects @ chunk-RPCDYKBN.js?v=3aaad9e4:19447
+commitRootImpl @ chunk-RPCDYKBN.js?v=3aaad9e4:19416
+commitRoot @ chunk-RPCDYKBN.js?v=3aaad9e4:19277
+performSyncWorkOnRoot @ chunk-RPCDYKBN.js?v=3aaad9e4:18895
+flushSyncCallbacks @ chunk-RPCDYKBN.js?v=3aaad9e4:9119
+commitRootImpl @ chunk-RPCDYKBN.js?v=3aaad9e4:19432
+commitRoot @ chunk-RPCDYKBN.js?v=3aaad9e4:19277
+finishConcurrentRender @ chunk-RPCDYKBN.js?v=3aaad9e4:18805
+performConcurrentWorkOnRoot @ chunk-RPCDYKBN.js?v=3aaad9e4:18718
+workLoop @ chunk-RPCDYKBN.js?v=3aaad9e4:197
+flushWork @ chunk-RPCDYKBN.js?v=3aaad9e4:176
+performWorkUntilDeadline @ chunk-RPCDYKBN.js?v=3aaad9e4:384
