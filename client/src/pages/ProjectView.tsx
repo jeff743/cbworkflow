@@ -145,13 +145,15 @@ export default function ProjectView() {
       return response.json();
     },
     onSuccess: () => {
+      console.log('Mark ready to deploy mutation success - closing dialog');
       toast({
         title: "Ready to Deploy",
         description: "Test batch has been marked as ready for deployment",
       });
-      // Refresh the statements list
-      queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'statements'] });
+      // Close dialog first
       setDeploymentReadyTest(null);
+      // Then refresh the statements list
+      queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'statements'] });
     },
     onError: (error) => {
       if (isUnauthorizedError(error)) {
@@ -624,7 +626,11 @@ export default function ProjectView() {
         <DeploymentReadyDialog
           open={!!deploymentReadyTest}
           onOpenChange={(open) => {
-            if (!open) setDeploymentReadyTest(null);
+            console.log('Dialog onOpenChange called with:', open);
+            if (!open) {
+              console.log('Closing deployment dialog via onOpenChange');
+              setDeploymentReadyTest(null);
+            }
           }}
           testBatch={deploymentReadyTest}
           onMarkReadyToDeploy={() => {
