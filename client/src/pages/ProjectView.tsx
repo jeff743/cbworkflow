@@ -236,25 +236,7 @@ export default function ProjectView() {
     }
   };
 
-  if (projectLoading || statementsLoading) {
-    return (
-      <div className="flex h-screen overflow-hidden">
-        <div className="w-64 bg-surface animate-pulse"></div>
-        <div className="flex-1 animate-pulse bg-gray-50"></div>
-      </div>
-    );
-  }
-
-  if (!project) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Project Not Found</h1>
-          <p className="text-gray-600">The project you're looking for doesn't exist.</p>
-        </div>
-      </div>
-    );
-  }
+  // Removed early returns to fix React hooks error - now using conditional JSX rendering
 
   // Group statements into tests by testBatchId
   const groupedTests = statements?.reduce((acc, statement) => {
@@ -330,93 +312,106 @@ export default function ProjectView() {
 
   return (
     <div className="flex h-screen overflow-hidden">
-      <Sidebar />
-
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Header */}
-        <header className="bg-surface border-b border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-bold text-secondary" data-testid="text-project-name">
-                {project.name}
-              </h2>
-              <p className="text-gray-600 mt-1" data-testid="text-project-description">
-                {project.description || "Create and manage colorblock statements for Facebook ads testing"}
-              </p>
-            </div>
-            <div className="flex items-center space-x-4">
-              <Button
-                onClick={() => setShowExportModal(true)}
-                disabled={exportMutation.isPending}
-                className="bg-success text-white hover:bg-green-600"
-                data-testid="button-export-approved"
-              >
-                <i className="fas fa-download text-sm mr-2"></i>
-                {exportMutation.isPending ? "Exporting..." : "Export Colorblocks"}
-              </Button>
-              <Button
-                onClick={() => setShowNewStatementModal(true)}
-                className="bg-primary text-white hover:bg-primary-dark"
-                data-testid="button-new-test"
-              >
-                <i className="fas fa-plus text-sm mr-2"></i>
-                New Test
-              </Button>
-              <Button
-                onClick={() => setShowProjectSettings(true)}
-                variant="outline"
-                data-testid="button-project-settings"
-              >
-                <i className="fas fa-cog text-sm mr-2"></i>
-                Project Settings
-              </Button>
-            </div>
+      {(projectLoading || statementsLoading) ? (
+        <>
+          <div className="w-64 bg-surface animate-pulse"></div>
+          <div className="flex-1 animate-pulse bg-gray-50"></div>
+        </>
+      ) : !project ? (
+        <div className="min-h-screen flex items-center justify-center w-full">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">Project Not Found</h1>
+            <p className="text-gray-600">The project you're looking for doesn't exist.</p>
           </div>
-        </header>
-
-        {/* Main Content Area */}
-        <div className="flex-1 flex overflow-hidden">
-          {/* Statements List */}
-          <div className="w-1/2 bg-surface border-r border-gray-200 flex flex-col">
-            <div className="p-6 border-b border-gray-200">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold">Tests</h3>
-                <div className="flex items-center space-x-2">
-                  <span className="text-sm text-gray-500">Filter:</span>
-                  <Select value={statusFilter} onValueChange={setStatusFilter}>
-                    <SelectTrigger className="w-32">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Status</SelectItem>
-                      <SelectItem value="draft">Draft</SelectItem>
-                      <SelectItem value="under_review">Under Review</SelectItem>
-                      <SelectItem value="needs_revision">Needs Revision</SelectItem>
-                      <SelectItem value="approved">Approved</SelectItem>
-                    </SelectContent>
-                  </Select>
+        </div>
+      ) : (
+        <>
+          <Sidebar />
+          <div className="flex-1 flex flex-col overflow-hidden">
+            {/* Header */}
+            <header className="bg-surface border-b border-gray-200 p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold text-secondary" data-testid="text-project-name">
+                    {project.name}
+                  </h2>
+                  <p className="text-gray-600 mt-1" data-testid="text-project-description">
+                    {project.description || "Create and manage colorblock statements for Facebook ads testing"}
+                  </p>
+                </div>
+                <div className="flex items-center space-x-4">
+                  <Button
+                    onClick={() => setShowExportModal(true)}
+                    disabled={exportMutation.isPending}
+                    className="bg-success text-white hover:bg-green-600"
+                    data-testid="button-export-approved"
+                  >
+                    <i className="fas fa-download text-sm mr-2"></i>
+                    {exportMutation.isPending ? "Exporting..." : "Export Colorblocks"}
+                  </Button>
+                  <Button
+                    onClick={() => setShowNewStatementModal(true)}
+                    className="bg-primary text-white hover:bg-primary-dark"
+                    data-testid="button-new-test"
+                  >
+                    <i className="fas fa-plus text-sm mr-2"></i>
+                    New Test
+                  </Button>
+                  <Button
+                    onClick={() => setShowProjectSettings(true)}
+                    variant="outline"
+                    data-testid="button-project-settings"
+                  >
+                    <i className="fas fa-cog text-sm mr-2"></i>
+                    Project Settings
+                  </Button>
                 </div>
               </div>
-            </div>
+            </header>
 
-            <div className="flex-1 overflow-y-auto p-6 space-y-4">
-              {/* Always start by showing test cards, drill down when test is selected */}
-              {!selectedTestId ? (
-                // Show test cards when no test is selected
-                <>
-                  {tests.map((test: any) => {
-                    const completedCount = test.statements.filter((s: any) => s.status === 'completed').length;
-                    const approvedCount = test.statements.filter((s: any) => s.status === 'approved').length;
-                    const pendingCount = test.statements.filter((s: any) => s.status === 'under_review').length;
-                    const draftCount = test.statements.filter((s: any) => s.status === 'draft').length;
+            {/* Main Content Area */}
+            <div className="flex-1 flex overflow-hidden">
+              {/* Statements List */}
+              <div className="w-1/2 bg-surface border-r border-gray-200 flex flex-col">
+                <div className="p-6 border-b border-gray-200">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold">Tests</h3>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm text-gray-500">Filter:</span>
+                      <Select value={statusFilter} onValueChange={setStatusFilter}>
+                        <SelectTrigger className="w-32">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Status</SelectItem>
+                          <SelectItem value="draft">Draft</SelectItem>
+                          <SelectItem value="under_review">Under Review</SelectItem>
+                          <SelectItem value="needs_revision">Needs Revision</SelectItem>
+                          <SelectItem value="approved">Approved</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                  {/* Always start by showing test cards, drill down when test is selected */}
+                  {!selectedTestId ? (
+                    // Show test cards when no test is selected
+                    <>
+                      {tests.map((test: any) => {
+                        const completedCount = test.statements.filter((s: any) => s.status === 'completed').length;
+                        const approvedCount = test.statements.filter((s: any) => s.status === 'approved').length;
+                        const pendingCount = test.statements.filter((s: any) => s.status === 'under_review').length;
+                        const draftCount = test.statements.filter((s: any) => s.status === 'draft').length;
                     
-                    return (
-                      <div
-                        key={test.id}
-                        className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
-                        onClick={() => setSelectedTestId(test.id)}
-                        data-testid={`card-test-${test.id}`}
-                      >
+                        return (
+                          <div
+                            key={test.id}
+                            className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
+                            onClick={() => setSelectedTestId(test.id)}
+                            data-testid={`card-test-${test.id}`}
+                          >
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex-1">
                             <h4 className="font-medium text-gray-900 mb-1" data-testid={`text-test-title-${test.id}`}>
@@ -578,6 +573,8 @@ export default function ProjectView() {
           )}
         </div>
       </div>
+        </>
+      )}
 
       {/* New Statement Modal */}
       {showNewStatementModal && (
