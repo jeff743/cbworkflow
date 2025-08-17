@@ -40,6 +40,8 @@ export default function ProjectView() {
   
   // Phase 1 Fix: Add deployment tracking state to prevent race condition
   const [recentlyMarkedTestIds, setRecentlyMarkedTestIds] = useState<Set<string>>(new Set());
+  // Additional state to track deployment in progress more aggressively
+  const [deploymentInProgress, setDeploymentInProgress] = useState<string | null>(null);
 
   // Phase 3: Navigation Event Handler - Listen for navigation reset signals
   const { data: navReset } = useQuery({
@@ -155,9 +157,12 @@ export default function ProjectView() {
       setDeploymentReadyTest(null);
       
       if (testBatchId) {
+        // Set deployment in progress to completely block dialog reopening
+        setDeploymentInProgress(testBatchId);
+        
         // Add to recently marked set to prevent re-detection
         setRecentlyMarkedTestIds(prev => new Set([...Array.from(prev), testBatchId]));
-        console.log('Added to recently marked set:', testBatchId);
+        console.log('Set deployment in progress and added to recently marked set:', testBatchId);
       }
       
       // Toast notification
@@ -171,18 +176,19 @@ export default function ProjectView() {
         queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'statements'] });
         console.log('Invalidated queries after deploy success');
         
-        // Clear tracking after data refresh completes - longer delay to prevent reopening
+        // Clear all tracking after much longer delay to ensure database consistency
         setTimeout(() => {
           if (testBatchId) {
             setRecentlyMarkedTestIds(prev => {
               const newSet = new Set([...Array.from(prev)]);
               newSet.delete(testBatchId);
-              console.log('Removed from recently marked set:', testBatchId);
               return newSet;
             });
+            setDeploymentInProgress(null);
+            console.log('Cleared all deployment tracking for:', testBatchId);
           }
-        }, 5000); // 5 second delay to ensure database has fully updated
-      }, 500); // Increased timeout for better database consistency
+        }, 15000); // 15 second delay to ensure complete database consistency
+      }, 1000); // 1 second delay for initial data refresh
     },
     onError: (error) => {
       if (isUnauthorizedError(error)) {
@@ -321,10 +327,10 @@ export default function ProjectView() {
           s.deploymentStatus === 'ready'
         );
         
-        console.log(`Test ${test.testBatchId} - allApproved: ${allApproved}, notYetMarked: ${notYetMarkedForDeployment}, hasReady: ${hasReadyStatus}, dialogOpen: ${!!deploymentReadyTest}, isPending: ${markReadyToDeployMutation.isPending}`);
-        console.log(`Recently marked IDs:`, Array.from(recentlyMarkedTestIds));
+        console.log(`Test ${test.testBatchId} - allApproved: ${allApproved}, notYetMarked: ${notYetMarkedForDeployment}, hasReady: ${hasReadyStatus}, dialogOpen: ${!!deploymentReadyTest}, isPending: ${markReadyToDeployMutation.isPending}, inProgress: ${deploymentInProgress === test.testBatchId}`);
+        console.log(`Recently marked IDs:`, Array.from(recentlyMarkedTestIds), `Deployment in progress:`, deploymentInProgress);
         
-        if (allApproved && notYetMarkedForDeployment && !hasReadyStatus && !deploymentReadyTest && !markReadyToDeployMutation.isPending) {
+        if (allApproved && notYetMarkedForDeployment && !hasReadyStatus && !deploymentReadyTest && !markReadyToDeployMutation.isPending && deploymentInProgress !== test.testBatchId) {
           // Show deployment ready dialog
           setDeploymentReadyTest({
             id: test.id,
@@ -336,7 +342,7 @@ export default function ProjectView() {
         }
       }
     }
-  }, [statements, project, deploymentReadyTest, markReadyToDeployMutation.isPending, recentlyMarkedTestIds]);
+  }, [statements, project, deploymentReadyTest, markReadyToDeployMutation.isPending, recentlyMarkedTestIds, deploymentInProgress]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
