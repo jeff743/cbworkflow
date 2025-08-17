@@ -250,7 +250,7 @@ export function StatementEditor({ statement, onStatementUpdated, navigationReque
   };
 
   const canEdit = statement.status === "draft" || statement.status === "needs_revision";
-  const canReview = (user as any)?.role === "growth_strategist" && statement.status === "under_review";
+  const canReview = ((user as any)?.role === "growth_strategist" || (user as any)?.role === "super_admin") && statement.status === "under_review";
 
   const colorOptions = [
     "#EF4444", "#3B82F6", "#10B981", "#F59E0B", 
