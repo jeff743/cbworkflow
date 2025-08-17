@@ -152,7 +152,7 @@ export default function ProjectView() {
       const testBatchId = deploymentReadyTest?.testBatchId;
       if (testBatchId) {
         // Add to recently marked set to prevent re-detection
-        setRecentlyMarkedTestIds(prev => new Set([...prev, testBatchId]));
+        setRecentlyMarkedTestIds(prev => new Set([...Array.from(prev), testBatchId]));
       }
       
       // Close dialog immediately
@@ -172,7 +172,7 @@ export default function ProjectView() {
         setTimeout(() => {
           if (testBatchId) {
             setRecentlyMarkedTestIds(prev => {
-              const newSet = new Set([...prev]);
+              const newSet = new Set([...Array.from(prev)]);
               newSet.delete(testBatchId);
               return newSet;
             });
