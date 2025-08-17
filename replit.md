@@ -26,6 +26,9 @@ The platform integrates with Google Cloud Storage for file uploads, particularly
 ## Visual Generation System
 The application includes a canvas-based colorblock preview system that generates 1080x1080 pixel images suitable for social media advertising. The system supports custom typography with independent font sizing for heading, statement, and footer text, background colors, images, and text alignment. It uses HTML5 Canvas API for real-time preview rendering with export capabilities for approved designs. New statements automatically include placeholder text to guide users.
 
+## Deployment Workflow System
+The platform implements an automated deployment readiness detection system that monitors test batches for completion. When all statements in a test batch reach approved status, the system automatically triggers a DeploymentReadyDialog component to confirm deployment readiness. Once confirmed, test batches are marked with deployment status tracking (ready, deploying, deployed, failed) and timestamped with deployment ready dates. The DeploymentDashboard provides centralized management of ready-to-deploy tests with bulk export functionality for Facebook ad deployment. The system includes ZIP export capabilities for downloading approved colorblock images with sanitized filenames.
+
 # External Dependencies
 
 ## Cloud Services
