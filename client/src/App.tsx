@@ -7,6 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import Landing from "@/pages/Landing";
 import Dashboard from "@/pages/Dashboard";
 import ProjectView from "@/pages/ProjectView";
+import DeploymentDashboard from "@/pages/DeploymentDashboard";
 import NewTestsView from "@/pages/NewTestsView";
 import PendingReviewView from "@/pages/PendingReviewView";
 import ReadyToDeployView from "@/pages/ReadyToDeployView";
@@ -26,6 +27,7 @@ function Router() {
           <Route path="/tests/new" component={NewTestsView} />
           <Route path="/tests/pending-review" component={PendingReviewView} />
           <Route path="/tests/ready-to-deploy" component={ReadyToDeployView} />
+          <Route path="/deployment" component={DeploymentDashboard} />
           <Route path="/tests/completed" component={CompletedView} />
           <Route path="/projects/:id">
             {(params) => <ProjectView key={`project-${params.id}-${Date.now()}`} />}

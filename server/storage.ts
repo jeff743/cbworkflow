@@ -46,6 +46,13 @@ export interface IStorage {
   // User management (for role management)
   getAllUsers(): Promise<User[]>;
   updateUserRole(userId: string, role: string): Promise<User | undefined>;
+  
+  // Deployment operations
+  getDeploymentTests(status?: string): Promise<any[]>;
+  updateDeploymentStatus(testId: string, status: string): Promise<boolean>;
+  getStatementsByIds(ids: string[]): Promise<StatementWithRelations[]>;
+  getReadyToDeployStatements(): Promise<StatementWithRelations[]>;
+  markTestBatchReadyToDeploy(testBatchId: string): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -679,6 +686,228 @@ export class DatabaseStorage implements IStorage {
       return updatedUser;
     } catch (error) {
       logError(`Failed to update user role: ${userId}`, 'database', error as Error);
+      throw error;
+    }
+  }
+
+  // Deployment methods
+  async getDeploymentTests(status?: string): Promise<any[]> {
+    try {
+      logDatabase(`Fetching deployment tests${status ? ` with status: ${status}` : ''}`, 'getDeploymentTests');
+      
+      // Get test batches with their statements grouped by testBatchId
+      const testBatches = await db
+        .select({
+          testBatchId: statements.testBatchId,
+          projectId: statements.projectId,
+          deploymentStatus: statements.deploymentStatus,
+          deploymentReadyDate: statements.deploymentReadyDate,
+        })
+        .from(statements)
+        .where(
+          and(
+            eq(statements.status, 'approved'),
+            status ? eq(statements.deploymentStatus, status) : undefined
+          )
+        )
+        .groupBy(statements.testBatchId, statements.projectId, statements.deploymentStatus, statements.deploymentReadyDate);
+
+      // Get all statements for each test batch
+      const result = [];
+      for (const batch of testBatches) {
+        if (!batch.testBatchId) continue;
+
+        const batchStatements = await this.getStatementsByBatchId(batch.testBatchId);
+        const project = await this.getProject(batch.projectId);
+        
+        if (batchStatements.length > 0 && batchStatements.every(s => s.status === 'approved')) {
+          result.push({
+            id: batch.testBatchId,
+            testBatchId: batch.testBatchId,
+            projectId: batch.projectId,
+            projectName: project?.name || 'Unknown Project',
+            statements: batchStatements,
+            readyDate: batch.deploymentReadyDate || new Date().toISOString(),
+            status: batch.deploymentStatus || 'ready',
+          });
+        }
+      }
+
+      logDatabase(`Found ${result.length} deployment tests`, 'getDeploymentTests');
+      return result;
+    } catch (error) {
+      logError('Failed to get deployment tests', 'database', error as Error);
+      throw error;
+    }
+  }
+
+  async updateDeploymentStatus(testId: string, status: string): Promise<boolean> {
+    try {
+      logDatabase(`Updating deployment status: ${testId} -> ${status}`, 'updateDeploymentStatus');
+      const result = await db
+        .update(statements)
+        .set({ deploymentStatus: status, updatedAt: new Date() })
+        .where(eq(statements.testBatchId, testId));
+      
+      logDatabase(`Deployment status updated for test batch: ${testId}`, 'updateDeploymentStatus');
+      return true;
+    } catch (error) {
+      logError(`Failed to update deployment status: ${testId}`, 'database', error as Error);
+      throw error;
+    }
+  }
+
+  async getStatementsByIds(ids: string[]): Promise<StatementWithRelations[]> {
+    try {
+      logDatabase(`Fetching statements by IDs: ${ids.length} statements`, 'getStatementsByIds');
+      
+      const results = await db
+        .select({
+          id: statements.id,
+          projectId: statements.projectId,
+          testBatchId: statements.testBatchId,
+          description: statements.description,
+          deploymentStatus: statements.deploymentStatus,
+          deploymentReadyDate: statements.deploymentReadyDate,
+          heading: statements.heading,
+          content: statements.content,
+          status: statements.status,
+          priority: statements.priority,
+          dueDate: statements.dueDate,
+          assignedTo: statements.assignedTo,
+          createdBy: statements.createdBy,
+          reviewedBy: statements.reviewedBy,
+          reviewNotes: statements.reviewNotes,
+          headingFontSize: statements.headingFontSize,
+          statementFontSize: statements.statementFontSize,
+          footerFontSize: statements.footerFontSize,
+          textAlignment: statements.textAlignment,
+          backgroundColor: statements.backgroundColor,
+          backgroundImageUrl: statements.backgroundImageUrl,
+          footer: statements.footer,
+          colorblockImageUrl: statements.colorblockImageUrl,
+          createdAt: statements.createdAt,
+          updatedAt: statements.updatedAt,
+          project: {
+            id: projects.id,
+            name: projects.name,
+            description: projects.description,
+            clientName: projects.clientName,
+            status: projects.status,
+            backgroundImages: projects.backgroundImages,
+            createdBy: projects.createdBy,
+            createdAt: projects.createdAt,
+            updatedAt: projects.updatedAt,
+          },
+          creator: {
+            id: users.id,
+            email: users.email,
+            firstName: users.firstName,
+            lastName: users.lastName,
+            profileImageUrl: users.profileImageUrl,
+            role: users.role,
+            createdAt: users.createdAt,
+            updatedAt: users.updatedAt,
+          },
+        })
+        .from(statements)
+        .innerJoin(projects, eq(statements.projectId, projects.id))
+        .innerJoin(users, eq(statements.createdBy, users.id));
+
+      return results.map(result => ({ ...result, assignee: undefined, reviewer: undefined }));
+    } catch (error) {
+      logError('Failed to get statements by IDs', 'database', error as Error);
+      throw error;
+    }
+  }
+
+  async getReadyToDeployStatements(): Promise<StatementWithRelations[]> {
+    try {
+      logDatabase('Fetching ready-to-deploy statements', 'getReadyToDeployStatements');
+      
+      const results = await db
+        .select({
+          id: statements.id,
+          projectId: statements.projectId,
+          testBatchId: statements.testBatchId,
+          description: statements.description,
+          deploymentStatus: statements.deploymentStatus,
+          deploymentReadyDate: statements.deploymentReadyDate,
+          heading: statements.heading,
+          content: statements.content,
+          status: statements.status,
+          priority: statements.priority,
+          dueDate: statements.dueDate,
+          assignedTo: statements.assignedTo,
+          createdBy: statements.createdBy,
+          reviewedBy: statements.reviewedBy,
+          reviewNotes: statements.reviewNotes,
+          headingFontSize: statements.headingFontSize,
+          statementFontSize: statements.statementFontSize,
+          footerFontSize: statements.footerFontSize,
+          textAlignment: statements.textAlignment,
+          backgroundColor: statements.backgroundColor,
+          backgroundImageUrl: statements.backgroundImageUrl,
+          footer: statements.footer,
+          colorblockImageUrl: statements.colorblockImageUrl,
+          createdAt: statements.createdAt,
+          updatedAt: statements.updatedAt,
+          project: {
+            id: projects.id,
+            name: projects.name,
+            description: projects.description,
+            clientName: projects.clientName,
+            status: projects.status,
+            backgroundImages: projects.backgroundImages,
+            createdBy: projects.createdBy,
+            createdAt: projects.createdAt,
+            updatedAt: projects.updatedAt,
+          },
+          creator: {
+            id: users.id,
+            email: users.email,
+            firstName: users.firstName,
+            lastName: users.lastName,
+            profileImageUrl: users.profileImageUrl,
+            role: users.role,
+            createdAt: users.createdAt,
+            updatedAt: users.updatedAt,
+          },
+        })
+        .from(statements)
+        .innerJoin(projects, eq(statements.projectId, projects.id))
+        .innerJoin(users, eq(statements.createdBy, users.id))
+        .where(
+          and(
+            eq(statements.status, 'approved'),
+            eq(statements.deploymentStatus, 'ready')
+          )
+        );
+
+      return results.map(result => ({ ...result, assignee: undefined, reviewer: undefined }));
+    } catch (error) {
+      logError('Failed to get ready-to-deploy statements', 'database', error as Error);
+      throw error;
+    }
+  }
+
+  async markTestBatchReadyToDeploy(testBatchId: string): Promise<boolean> {
+    try {
+      logDatabase(`Marking test batch ready to deploy: ${testBatchId}`, 'markTestBatchReadyToDeploy');
+      
+      const result = await db
+        .update(statements)
+        .set({ 
+          deploymentStatus: 'ready',
+          deploymentReadyDate: new Date(),
+          updatedAt: new Date()
+        })
+        .where(eq(statements.testBatchId, testBatchId));
+      
+      logDatabase(`Test batch marked ready to deploy: ${testBatchId}`, 'markTestBatchReadyToDeploy');
+      return true;
+    } catch (error) {
+      logError(`Failed to mark test batch ready to deploy: ${testBatchId}`, 'database', error as Error);
       throw error;
     }
   }
