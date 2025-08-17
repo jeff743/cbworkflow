@@ -31,7 +31,7 @@ export function StatementEditor({ statement, onStatementUpdated, navigationReque
     return content.match(/^Facebook ad statement \d+ - write your compelling ad text here$/);
   };
 
-  const [activeTab, setActiveTab] = useState<"edit" | "review">("edit");
+  const [activeTab, setActiveTab] = useState<"edit" | "review" | "design">("edit");
   const [formData, setFormData] = useState({
     heading: statement.heading || "",
     content: isTemplateContent(statement.content) ? "" : (statement.content || ""),
@@ -212,6 +212,12 @@ export function StatementEditor({ statement, onStatementUpdated, navigationReque
     });
   };
 
+  const handleDesignAction = (action: "in_design" | "completed") => {
+    updateMutation.mutate({
+      status: action,
+    });
+  };
+
   const handleGetUploadParameters = async () => {
     const response = await apiRequest('POST', '/api/objects/upload');
     const data = await response.json();
@@ -251,6 +257,7 @@ export function StatementEditor({ statement, onStatementUpdated, navigationReque
 
   const canEdit = statement.status === "draft" || statement.status === "needs_revision";
   const canReview = ((user as any)?.role === "growth_strategist" || (user as any)?.role === "super_admin") && statement.status === "under_review";
+  const canManageDesign = ((user as any)?.role === "super_admin") && (statement.status === "approved" || statement.status === "in_design");
 
   const colorOptions = [
     "#EF4444", "#3B82F6", "#10B981", "#F59E0B", 
@@ -284,6 +291,19 @@ export function StatementEditor({ statement, onStatementUpdated, navigationReque
           >
             Review & Approve
           </button>
+          {canManageDesign && (
+            <button
+              className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === "design"
+                  ? "text-primary border-primary bg-blue-50"
+                  : "text-gray-500 border-transparent hover:text-gray-700"
+              }`}
+              onClick={() => setActiveTab("design")}
+              data-testid="tab-design-deploy"
+            >
+              Design & Deploy
+            </button>
+          )}
         </div>
       </div>
 
@@ -620,7 +640,7 @@ export function StatementEditor({ statement, onStatementUpdated, navigationReque
               />
             </div>
           </>
-        ) : (
+        ) : activeTab === "review" ? (
           /* Review Tab Content */
           <div className="flex-1 p-6 bg-gray-50 overflow-y-auto">
             <div className="max-w-2xl mx-auto space-y-6">
@@ -702,7 +722,112 @@ export function StatementEditor({ statement, onStatementUpdated, navigationReque
               )}
             </div>
           </div>
-        )}
+        ) : activeTab === "design" && canManageDesign ? (
+          <div className="flex-1 flex">
+            {/* Design Workflow Panel */}
+            <div className="w-1/2 p-6 bg-gray-50 overflow-y-auto">
+              <div className="space-y-6">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <div className="flex items-start">
+                    <div className="flex-shrink-0">
+                      <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <div className="ml-3">
+                      <h3 className="text-sm font-medium text-blue-800">
+                        Design Workflow Status
+                      </h3>
+                      <div className="mt-2 text-sm text-blue-700">
+                        <p>Statement Status: <strong>{statement.status === "approved" ? "Ready for Design" : "In Design"}</strong></p>
+                        <p className="mt-1">This statement has been approved and is ready to move through the design and deployment workflow.</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="border rounded-lg p-4">
+                    <h3 className="text-lg font-semibold mb-3">Design Workflow Steps</h3>
+                    <div className="space-y-3">
+                      <div className={`flex items-center p-3 rounded ${statement.status === "approved" ? "bg-yellow-50" : "bg-gray-50"}`}>
+                        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${
+                          statement.status === "approved" ? "bg-yellow-500 text-white" : "bg-gray-300 text-gray-600"
+                        }`}>
+                          1
+                        </div>
+                        <div className="ml-3">
+                          <p className="font-medium">Send to Design</p>
+                          <p className="text-sm text-gray-600">Move statement to design team for colorblock creation</p>
+                        </div>
+                      </div>
+                      
+                      <div className={`flex items-center p-3 rounded ${statement.status === "in_design" ? "bg-blue-50" : "bg-gray-50"}`}>
+                        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${
+                          statement.status === "in_design" ? "bg-blue-500 text-white" : "bg-gray-300 text-gray-600"
+                        }`}>
+                          2
+                        </div>
+                        <div className="ml-3">
+                          <p className="font-medium">Design & Production</p>
+                          <p className="text-sm text-gray-600">Design team creates final colorblock assets</p>
+                        </div>
+                      </div>
+                      
+                      <div className={`flex items-center p-3 rounded ${statement.status === "completed" ? "bg-green-50" : "bg-gray-50"}`}>
+                        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${
+                          statement.status === "completed" ? "bg-green-500 text-white" : "bg-gray-300 text-gray-600"
+                        }`}>
+                          3
+                        </div>
+                        <div className="ml-3">
+                          <p className="font-medium">Ready for Deployment</p>
+                          <p className="text-sm text-gray-600">Assets ready for Facebook ads deployment</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {statement.status === "approved" && (
+                    <Button
+                      className="w-full bg-blue-600 hover:bg-blue-700"
+                      onClick={() => handleDesignAction("in_design")}
+                      disabled={updateMutation.isPending}
+                      data-testid="button-send-to-design"
+                    >
+                      {updateMutation.isPending ? "Processing..." : "Send to Design Team"}
+                    </Button>
+                  )}
+
+                  {statement.status === "in_design" && (
+                    <Button
+                      className="w-full bg-green-600 hover:bg-green-700"
+                      onClick={() => handleDesignAction("completed")}
+                      disabled={updateMutation.isPending}
+                      data-testid="button-mark-completed"
+                    >
+                      {updateMutation.isPending ? "Processing..." : "Mark as Completed"}
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Preview Panel - Same as other tabs */}
+            <div className="w-1/2 p-6 bg-white border-l">
+              <ColorblockPreview 
+                statement={{
+                  ...statement,
+                  ...formData,
+                }}
+                backgroundImages={backgroundImages}
+                onBackgroundImageSelect={(imageUrl) => 
+                  setFormData(prev => ({ ...prev, backgroundImageUrl: imageUrl }))
+                }
+              />
+            </div>
+          </div>
+        ) : null}
       </div>
 
       {/* Phase 2 Fix: Unsaved Changes Confirmation Dialog */}
