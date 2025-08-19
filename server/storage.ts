@@ -654,7 +654,7 @@ export class DatabaseStorage implements IStorage {
       .from(statements)
       .innerJoin(projects, eq(statements.projectId, projects.id))
       .innerJoin(users, eq(statements.createdBy, users.id))
-      .where(eq(statements.status, "under_review"))
+      .where(inArray(statements.status, ["under_review", "needs_revision"]))
       .orderBy(desc(statements.updatedAt));
 
     return results.map(result => ({ ...result, assignee: undefined, reviewer: undefined }));
