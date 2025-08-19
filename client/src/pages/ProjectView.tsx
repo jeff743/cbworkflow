@@ -67,7 +67,16 @@ export default function ProjectView() {
   });
 
   const { data: statements, isLoading: statementsLoading } = useQuery<StatementWithRelations[]>({
-    queryKey: ['/api/projects', projectId, 'statements', statusFilter === 'all' ? undefined : statusFilter],
+    queryKey: ['/api/projects', projectId, 'statements', statusFilter],
+    queryFn: async () => {
+      const baseUrl = `/api/projects/${projectId}/statements`;
+      const url = statusFilter === 'all' ? baseUrl : `${baseUrl}?status=${statusFilter}`;
+      const response = await fetch(url, { credentials: 'include' });
+      if (!response.ok) {
+        throw new Error(`Failed to fetch statements: ${response.status}`);
+      }
+      return response.json();
+    },
   });
 
   const exportMutation = useMutation({
