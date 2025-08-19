@@ -27,8 +27,7 @@ export function ExportModal({
   // Filter statements that have colorblock images (exportable)
   const exportableStatements = useMemo(() => {
     return statements.filter(s => 
-      (s.status === 'approved' || s.status === 'in_design' || s.status === 'completed') && 
-      s.colorblockImageUrl
+      s.status === 'approved' && s.colorblockImageUrl
     );
   }, [statements]);
 
