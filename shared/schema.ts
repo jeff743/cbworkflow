@@ -59,7 +59,7 @@ export const statements = pgTable("statements", {
   deploymentReadyDate: timestamp("deployment_ready_date"),
   heading: text("heading"),
   content: text("content").notNull(),
-  status: varchar("status").notNull().default("draft"), // draft, under_review, needs_revision, approved, in_design, completed
+  status: varchar("status").notNull().default("draft"), // draft, under_review, needs_revision, approved
   priority: varchar("priority").notNull().default("normal"), // normal, high, urgent
   dueDate: timestamp("due_date"),
   assignedTo: varchar("assigned_to").references(() => users.id),

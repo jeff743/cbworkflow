@@ -349,8 +349,6 @@ export default function ProjectView() {
       case 'under_review': return 'bg-warning text-white';
       case 'approved': return 'bg-success text-white';
       case 'needs_revision': return 'bg-error text-white';
-      case 'in_design': return 'bg-accent text-white';
-      case 'completed': return 'bg-success text-white';
       default: return 'bg-gray-100';
     }
   };
