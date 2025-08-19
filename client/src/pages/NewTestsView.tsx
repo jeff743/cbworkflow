@@ -17,10 +17,15 @@ export default function NewTestsView() {
     queryKey: ['/api/statements'],
   });
 
-  // Group statements into tests based on testBatchId
+  // Group statements into tests based on testBatchId, excluding completed/ready tests
   const groupedTests = statements?.reduce((acc, statement) => {
     // Skip statements without testBatchId (legacy statements)
     if (!statement.testBatchId) return acc;
+    
+    // Skip tests that have been moved to Ready to Deploy or Completed
+    if (statement.deploymentStatus === 'ready' || statement.deploymentStatus === 'completed') {
+      return acc;
+    }
     
     const testKey = statement.testBatchId;
     if (!acc[testKey]) {

@@ -479,9 +479,15 @@ export default function ProjectView() {
                                   {approvedCount} approved
                                 </Badge>
                               )}
-                              {completedCount > 0 && (
-                                <Badge className="bg-gray-500 text-white text-xs">
-                                  {completedCount} completed
+                              {/* Show deployment status */}
+                              {test.statements[0]?.deploymentStatus === 'ready' && (
+                                <Badge className="bg-green-600 text-white text-xs">
+                                  🚀 Ready to Deploy
+                                </Badge>
+                              )}
+                              {test.statements[0]?.deploymentStatus === 'completed' && (
+                                <Badge className="bg-gray-600 text-white text-xs">
+                                  ✓ Completed
                                 </Badge>
                               )}
                             </div>
