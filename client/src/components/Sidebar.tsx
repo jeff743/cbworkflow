@@ -356,7 +356,10 @@ export function Sidebar() {
             <p className="text-sm font-medium" data-testid="text-user-name">
               {(user as any)?.firstName} {(user as any)?.lastName}
             </p>
-            <p className="text-xs text-gray-500" data-testid="text-user-role">
+            <p className="text-xs text-gray-500 truncate" data-testid="text-user-email">
+              {(user as any)?.email}
+            </p>
+            <p className="text-xs text-gray-400 capitalize" data-testid="text-user-role">
               {(user as any)?.role?.replace('_', ' ') || 'User'}
             </p>
           </div>
