@@ -256,7 +256,8 @@ export function StatementEditor({ statement, onStatementUpdated, navigationReque
   const isReviewer = userRole === "growth_strategist" || userRole === "super_admin";
   
   const canEdit = (statement.status === "draft" || statement.status === "needs_revision") && !isReviewer;
-  const canReview = isReviewer && (statement.status === "under_review" || statement.status === "needs_revision");
+  const canReview = isReviewer && statement.status === "under_review";
+  const hasBeenReviewed = statement.status === "approved" || statement.status === "needs_revision";
   // Removed canManageDesign - Design & Deploy step eliminated
 
   const colorOptions = [
@@ -744,7 +745,46 @@ export function StatementEditor({ statement, onStatementUpdated, navigationReque
                 </div>
               )}
 
-              {!canReview && statement.status === "under_review" && (
+              {/* Review Completed Message */}
+              {hasBeenReviewed && (
+                <div className="bg-green-50 border-2 border-green-200 rounded-lg p-6">
+                  <div className="flex items-center mb-3">
+                    <div className="flex-shrink-0">
+                      <svg className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <div className="ml-3">
+                      <h3 className="text-lg font-semibold text-green-800">
+                        ✅ Review Completed
+                      </h3>
+                      <p className="text-sm text-green-700 mt-1">
+                        This statement has been reviewed and {statement.status === "approved" ? "approved" : "returned for revision"}.
+                      </p>
+                    </div>
+                  </div>
+                  
+                  {statement.reviewNotes && (
+                    <div className="mt-4 bg-white rounded-lg p-4 border border-green-200">
+                      <Label className="text-sm font-medium text-gray-700 mb-2 block">Final Review Notes</Label>
+                      <p className="text-gray-900 whitespace-pre-wrap" data-testid="text-final-review-notes">
+                        {statement.reviewNotes}
+                      </p>
+                    </div>
+                  )}
+                  
+                  <div className="mt-4 text-center">
+                    <p className="text-sm text-green-700">
+                      {statement.status === "approved" 
+                        ? "🎉 Statement is ready for deployment"
+                        : "📝 Statement has been returned to the creator for revision"
+                      }
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {!canReview && !hasBeenReviewed && statement.status === "under_review" && (
                 <div className="text-center py-4">
                   <p className="text-gray-600">This statement is awaiting review by a growth strategist.</p>
                 </div>
