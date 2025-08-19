@@ -127,17 +127,12 @@ export default function ReadyToDeployView() {
                 <div className="space-y-2 mb-4">
                   {test.statements.slice(0, 3).map((statement) => (
                     <div key={statement.id} className="text-sm">
-                      <div className="flex items-center justify-between">
-                        <span className="text-gray-700 truncate">{statement.heading || statement.content.slice(0, 30) + '...'}</span>
-                        <Badge className="bg-success text-white text-xs">
-                          Ready
-                        </Badge>
-                      </div>
+                      <span className="text-gray-700 truncate">{statement.heading || statement.content.slice(0, 30) + '...'}</span>
                     </div>
                   ))}
                   {test.statements.length > 3 && (
                     <p className="text-xs text-gray-500">
-                      +{test.statements.length - 3} more ready
+                      +{test.statements.length - 3} more statements
                     </p>
                   )}
                 </div>
