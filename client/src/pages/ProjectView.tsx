@@ -455,6 +455,7 @@ export default function ProjectView() {
                         const completedCount = test.statements.filter((s: any) => s.status === 'completed').length;
                         const approvedCount = test.statements.filter((s: any) => s.status === 'approved').length;
                         const pendingCount = test.statements.filter((s: any) => s.status === 'under_review').length;
+                        const revisionCount = test.statements.filter((s: any) => s.status === 'needs_revision').length;
                         const draftCount = test.statements.filter((s: any) => s.status === 'draft').length;
                     
                         return (
@@ -481,6 +482,11 @@ export default function ProjectView() {
                               {pendingCount > 0 && (
                                 <Badge className="bg-warning text-white text-xs">
                                   {pendingCount} pending
+                                </Badge>
+                              )}
+                              {revisionCount > 0 && (
+                                <Badge className="bg-orange-500 text-white text-xs">
+                                  {revisionCount} revision{revisionCount > 1 ? 's' : ''}
                                 </Badge>
                               )}
                               {approvedCount > 0 && (
