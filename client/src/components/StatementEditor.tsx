@@ -661,41 +661,82 @@ export function StatementEditor({ statement, onStatementUpdated, navigationReque
               </div>
 
               {canReview && (
-                <div>
-                  <Label htmlFor="reviewNotes" className="block text-sm font-medium text-gray-700 mb-2">
-                    Review Notes
-                  </Label>
+                <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-6">
+                  <div className="flex items-center mb-3">
+                    <div className="flex-shrink-0">
+                      <svg className="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                    </div>
+                    <div className="ml-3">
+                      <Label htmlFor="reviewNotes" className="text-lg font-semibold text-blue-800 mb-1">
+                        📝 Review Notes & Feedback
+                      </Label>
+                      <p className="text-sm text-blue-700 mt-1">
+                        Add specific feedback here when requesting revisions. This will be sent to the copywriter to guide improvements.
+                      </p>
+                    </div>
+                  </div>
                   <Textarea
                     id="reviewNotes"
-                    placeholder="Add any feedback or notes for the copywriter..."
-                    className="resize-none"
-                    rows={4}
+                    placeholder="Example: 'Please make the headline more compelling and add specific benefits in bullet points. The call-to-action should be stronger and more urgent.'"
+                    className="resize-none border-blue-300 focus:border-blue-500 focus:ring-blue-500"
+                    rows={5}
                     value={reviewNotes}
                     onChange={(e) => setReviewNotes(e.target.value)}
                     data-testid="input-review-notes"
                   />
+                  <div className="mt-2 flex items-center text-xs text-blue-600">
+                    <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    💡 Tip: Detailed feedback helps copywriters understand exactly what needs improvement
+                  </div>
                 </div>
               )}
 
               {canReview && (
-                <div className="flex space-x-3">
-                  <Button
-                    variant="destructive"
-                    className="flex-1"
-                    onClick={() => handleReviewAction("needs_revision")}
-                    disabled={updateMutation.isPending}
-                    data-testid="button-request-revision"
-                  >
-                    {updateMutation.isPending ? "Processing..." : "Request Revision"}
-                  </Button>
-                  <Button
-                    className="flex-1 bg-success hover:bg-green-600"
-                    onClick={() => handleReviewAction("approved")}
-                    disabled={updateMutation.isPending}
-                    data-testid="button-approve"
-                  >
-                    {updateMutation.isPending ? "Processing..." : "Approve"}
-                  </Button>
+                <div className="bg-white border border-gray-200 rounded-lg p-4">
+                  <h4 className="text-md font-semibold text-gray-800 mb-3">🎯 Review Decision</h4>
+                  <div className="flex space-x-3">
+                    <Button
+                      variant="destructive"
+                      className="flex-1 h-12 text-base font-medium"
+                      onClick={() => {
+                        if (!reviewNotes.trim()) {
+                          alert("Please add review notes before requesting revision. This helps the copywriter understand what needs to be improved.");
+                          return;
+                        }
+                        handleReviewAction("needs_revision");
+                      }}
+                      disabled={updateMutation.isPending}
+                      data-testid="button-request-revision"
+                    >
+                      <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                      {updateMutation.isPending ? "Processing..." : "Request Revision"}
+                    </Button>
+                    <Button
+                      className="flex-1 h-12 text-base font-medium bg-success hover:bg-green-600"
+                      onClick={() => handleReviewAction("approved")}
+                      disabled={updateMutation.isPending}
+                      data-testid="button-approve"
+                    >
+                      <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      {updateMutation.isPending ? "Processing..." : "Approve Statement"}
+                    </Button>
+                  </div>
+                  <div className="mt-3 grid grid-cols-2 gap-4 text-xs text-gray-600">
+                    <div className="text-center">
+                      <p>💬 <strong>Request Revision:</strong> Send back with feedback for improvements</p>
+                    </div>
+                    <div className="text-center">
+                      <p>✅ <strong>Approve:</strong> Move to ready-to-deploy status</p>
+                    </div>
+                  </div>
                 </div>
               )}
 
