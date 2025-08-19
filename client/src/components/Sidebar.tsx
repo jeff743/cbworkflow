@@ -220,18 +220,6 @@ export function Sidebar() {
                 )}
               </div>
             </Link>
-            <Link href="/deployment">
-              <div className={`flex items-center justify-between p-3 text-sm rounded-lg cursor-pointer transition-colors ${
-                location === '/deployment' 
-                  ? 'bg-primary text-white' 
-                  : 'text-gray-600 hover:bg-gray-50'
-              }`}>
-                <div className="flex items-center space-x-3">
-                  <i className="fas fa-rocket"></i>
-                  <span>Deployment Dashboard</span>
-                </div>
-              </div>
-            </Link>
             <Link href="/tests/completed">
               <div className={`flex items-center justify-between p-3 text-sm rounded-lg cursor-pointer transition-colors ${
                 location === '/tests/completed' 
