@@ -12,9 +12,14 @@ export default function PendingReviewView() {
     queryKey: ['/api/dashboard/review-statements'],
   });
 
-  // Group statements into tests that have at least one pending statement
+  // Group statements into tests that have at least one pending statement, excluding deployed tests
   const groupedTests = statements?.reduce((acc, statement) => {
-    const testKey = `${statement.projectId}-${statement.createdAt ? new Date(statement.createdAt).toISOString().split('T')[0] : 'no-date'}`;
+    // Skip tests that have been moved to Ready to Deploy or Completed
+    if (statement.deploymentStatus === 'ready' || statement.deploymentStatus === 'completed') {
+      return acc;
+    }
+    
+    const testKey = statement.testBatchId || `${statement.projectId}-${statement.createdAt ? new Date(statement.createdAt).toISOString().split('T')[0] : 'no-date'}`;
     if (!acc[testKey]) {
       acc[testKey] = {
         id: testKey,
