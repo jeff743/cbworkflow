@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,22 +22,38 @@ interface NewStatementModalProps {
 export function NewStatementModal({ projectId, onClose, onStatementCreated }: NewStatementModalProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   const [formData, setFormData] = useState({
-    assignedTo: "unassigned",
+    assignedTo: (user as any)?.id || "unassigned", // Default to current user if they're a creative strategist
     description: "",
     priority: "normal" as const,
     dueDate: "",
     quantity: 1,
   });
 
-  // Fetch all users to populate assignment dropdown
+  // Try to fetch all users for Super Admin, but fallback to current user for others
   const { data: users } = useQuery<User[]>({
     queryKey: ['/api/users'],
+    retry: false, // Don't retry on permission failure
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });
 
-  // Filter for copywriters (creative_strategists)
-  const copywriters = users?.filter(user => user.role === 'creative_strategist') || [];
+  // Build available assignees list
+  const availableAssignees = (() => {
+    // If we have full user list (Super Admin), filter for creative strategists
+    if (users && users.length > 0) {
+      return users.filter(u => u.role === 'creative_strategist');
+    }
+    
+    // Otherwise, if current user is a creative strategist, include them
+    if ((user as any)?.role === 'creative_strategist') {
+      return [user as User];
+    }
+    
+    // Fallback to empty array
+    return [];
+  })();
 
   const createMutation = useMutation({
     mutationFn: async () => {
@@ -149,11 +166,11 @@ export function NewStatementModal({ projectId, onClose, onStatementCreated }: Ne
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="unassigned">Unassigned</SelectItem>
-                {copywriters.map(copywriter => (
-                  <SelectItem key={copywriter.id} value={copywriter.id}>
-                    {copywriter.firstName && copywriter.lastName 
-                      ? `${copywriter.firstName} ${copywriter.lastName}` 
-                      : copywriter.email}
+                {availableAssignees.map(assignee => (
+                  <SelectItem key={assignee.id} value={assignee.id}>
+                    {assignee.firstName && assignee.lastName 
+                      ? `${assignee.firstName} ${assignee.lastName}` 
+                      : assignee.email}
                   </SelectItem>
                 ))}
               </SelectContent>
