@@ -6,7 +6,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
+import { ExportCompletionDialog } from "@/components/ExportCompletionDialog";
 import type { StatementWithRelations } from "@shared/schema";
+import { useState } from "react";
 
 interface DeploymentTest {
   id: string;
@@ -22,6 +24,8 @@ export default function ReadyToDeployView() {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [showCompletionDialog, setShowCompletionDialog] = useState(false);
+  const [exportedTestIds, setExportedTestIds] = useState<string[]>([]);
 
   const { data: readyTests = [], isLoading } = useQuery<DeploymentTest[]>({
     queryKey: ['/api/deployment/tests', 'ready'],
@@ -66,17 +70,44 @@ export default function ReadyToDeployView() {
       
       return response.json();
     },
-    onSuccess: (data) => {
+    onSuccess: (data, testBatchIds) => {
       toast({
         title: "Export Complete",
         description: `Downloaded ${data.count} ready-to-deploy colorblocks`,
       });
+      setExportedTestIds(testBatchIds);
+      setShowCompletionDialog(true);
       queryClient.invalidateQueries({ queryKey: ['/api/deployment/tests'] });
     },
     onError: () => {
       toast({
         title: "Export Failed",
         description: "Failed to export colorblocks",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const markCompletedMutation = useMutation({
+    mutationFn: async (testBatchIds: string[]) => {
+      const response = await apiRequest('POST', '/api/deployment/complete', {
+        testBatchIds,
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Tests Marked as Completed",
+        description: `${exportedTestIds.length} test${exportedTestIds.length !== 1 ? 's' : ''} moved to Completed section`,
+      });
+      setShowCompletionDialog(false);
+      setExportedTestIds([]);
+      queryClient.invalidateQueries({ queryKey: ['/api/deployment/tests'] });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to mark tests as completed",
         variant: "destructive",
       });
     },
@@ -173,6 +204,16 @@ export default function ReadyToDeployView() {
           )}
         </div>
       </div>
+
+      <ExportCompletionDialog
+        isOpen={showCompletionDialog}
+        onClose={() => {
+          setShowCompletionDialog(false);
+          setExportedTestIds([]);
+        }}
+        onMarkCompleted={() => markCompletedMutation.mutate(exportedTestIds)}
+        testCount={exportedTestIds.length}
+      />
     </div>
   );
 }

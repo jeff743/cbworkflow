@@ -13,7 +13,7 @@ import {
   type StatementWithRelations,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, count, and } from "drizzle-orm";
+import { eq, desc, count, and, inArray } from "drizzle-orm";
 import { logDatabase, logError } from "./logger";
 
 export interface IStorage {
@@ -53,6 +53,7 @@ export interface IStorage {
   getStatementsByIds(ids: string[]): Promise<StatementWithRelations[]>;
   getReadyToDeployStatements(): Promise<StatementWithRelations[]>;
   markTestBatchReadyToDeploy(testBatchId: string): Promise<boolean>;
+  markTestsAsCompleted(testBatchIds: string[]): Promise<number>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -912,6 +913,26 @@ export class DatabaseStorage implements IStorage {
       return true;
     } catch (error) {
       logError(`Failed to mark test batch ready to deploy: ${testBatchId}`, 'database', error as Error);
+      throw error;
+    }
+  }
+
+  async markTestsAsCompleted(testBatchIds: string[]): Promise<number> {
+    try {
+      logDatabase(`Marking test batches as completed: ${testBatchIds.join(', ')}`, 'markTestsAsCompleted');
+      
+      const result = await db
+        .update(statements)
+        .set({ 
+          deploymentStatus: 'completed',
+          updatedAt: new Date()
+        })
+        .where(inArray(statements.testBatchId, testBatchIds));
+      
+      logDatabase(`Marked ${testBatchIds.length} test batches as completed`, 'markTestsAsCompleted');
+      return testBatchIds.length;
+    } catch (error) {
+      logError(`Failed to mark test batches as completed: ${testBatchIds.join(', ')}`, 'database', error as Error);
       throw error;
     }
   }

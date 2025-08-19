@@ -634,6 +634,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post('/api/deployment/complete', isAuthenticated, async (req: any, res) => {
+    try {
+      const { testBatchIds } = req.body;
+      
+      if (!Array.isArray(testBatchIds) || testBatchIds.length === 0) {
+        return res.status(400).json({ message: 'Invalid testBatchIds' });
+      }
+
+      const result = await storage.markTestsAsCompleted(testBatchIds);
+      logger.info(`Tests marked as completed: ${testBatchIds.join(', ')}`, 'deployment');
+      res.json({ success: true, count: result });
+    } catch (error) {
+      logger.error('Failed to mark tests as completed', 'deployment', error as Error);
+      res.status(500).json({ message: 'Failed to mark tests as completed' });
+    }
+  });
+
   app.get('/api/deployment/export', isAuthenticated, async (req, res) => {
     try {
       // Get selected statement IDs from query params
