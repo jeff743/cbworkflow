@@ -8,48 +8,70 @@ import { Link } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
 import type { StatementWithRelations } from "@shared/schema";
 
+interface DeploymentTest {
+  id: string;
+  testBatchId: string;
+  projectId: string;
+  projectName: string;
+  statements: StatementWithRelations[];
+  readyDate: string;
+  status: string;
+}
+
 export default function ReadyToDeployView() {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: statements, isLoading } = useQuery<StatementWithRelations[]>({
-    queryKey: ['/api/statements', { status: 'approved' }],
+  const { data: readyTests = [], isLoading } = useQuery<DeploymentTest[]>({
+    queryKey: ['/api/deployment/tests', 'ready'],
+    queryFn: async () => {
+      const response = await apiRequest('GET', '/api/deployment/tests?status=ready');
+      return response.json();
+    },
   });
 
-  // Group approved statements into deployable tests
-  const groupedTests = statements?.reduce((acc, statement) => {
-    const testKey = `${statement.projectId}-${statement.createdAt ? new Date(statement.createdAt).toISOString().split('T')[0] : 'no-date'}`;
-    if (!acc[testKey]) {
-      acc[testKey] = {
-        id: testKey,
-        projectId: statement.projectId,
-        projectName: statement.project?.name || 'Unknown Project',
-        statements: [],
-        createdAt: statement.createdAt,
-        approvedCount: 0
-      };
-    }
-    acc[testKey].statements.push(statement);
-    if (statement.status === 'approved') {
-      acc[testKey].approvedCount++;
-    }
-    return acc;
-  }, {} as Record<string, any>) || {};
-
-  const readyTests = Object.values(groupedTests).filter((test: any) => test.approvedCount > 0);
-
   const exportMutation = useMutation({
-    mutationFn: async (projectId: string) => {
-      const response = await apiRequest('GET', `/api/projects/${projectId}/export`);
+    mutationFn: async (testBatchIds: string[]) => {
+      // Get statement IDs for the selected test batches
+      const statementIds: string[] = [];
+      
+      readyTests.forEach((test) => {
+        if (testBatchIds.includes(test.testBatchId)) {
+          test.statements.forEach((statement) => {
+            statementIds.push(statement.id);
+          });
+        }
+      });
+      
+      const queryParams = statementIds.length > 0 
+        ? `?${statementIds.map(id => `ids=${id}`).join('&')}`
+        : '';
+      
+      const response = await apiRequest('GET', `/api/deployment/export${queryParams}`);
+      
+      // Handle blob response for ZIP file
+      if (response.headers.get('content-type')?.includes('application/zip')) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = response.headers.get('content-disposition')?.split('filename=')[1]?.replace(/"/g, '') || 'deployment_colorblocks.zip';
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        return { count: statementIds.length };
+      }
+      
       return response.json();
     },
     onSuccess: (data) => {
       toast({
         title: "Export Complete",
-        description: `Downloaded ${data.count} approved colorblocks`,
+        description: `Downloaded ${data.count} ready-to-deploy colorblocks`,
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/statements'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/deployment/tests'] });
     },
     onError: () => {
       toast({
@@ -94,7 +116,7 @@ export default function ReadyToDeployView() {
                   <div>
                     <h3 className="font-semibold text-gray-900 mb-1">{test.projectName}</h3>
                     <p className="text-sm text-gray-600">
-                      {test.approvedCount} approved ad{test.approvedCount > 1 ? 's' : ''}
+                      {test.statements.length} approved ad{test.statements.length > 1 ? 's' : ''}
                     </p>
                   </div>
                   <Badge className="bg-success text-white">
@@ -103,19 +125,19 @@ export default function ReadyToDeployView() {
                 </div>
                 
                 <div className="space-y-2 mb-4">
-                  {test.statements.filter((s: any) => s.status === 'approved').slice(0, 3).map((statement: any) => (
+                  {test.statements.slice(0, 3).map((statement) => (
                     <div key={statement.id} className="text-sm">
                       <div className="flex items-center justify-between">
-                        <span className="text-gray-700 truncate">{statement.heading}</span>
+                        <span className="text-gray-700 truncate">{statement.heading || statement.content.slice(0, 30) + '...'}</span>
                         <Badge className="bg-success text-white text-xs">
-                          Approved
+                          Ready
                         </Badge>
                       </div>
                     </div>
                   ))}
-                  {test.approvedCount > 3 && (
+                  {test.statements.length > 3 && (
                     <p className="text-xs text-gray-500">
-                      +{test.approvedCount - 3} more approved
+                      +{test.statements.length - 3} more ready
                     </p>
                   )}
                 </div>
@@ -130,7 +152,7 @@ export default function ReadyToDeployView() {
                   <Button 
                     size="sm" 
                     className="flex-1 bg-success text-white hover:bg-green-600"
-                    onClick={() => exportMutation.mutate(test.projectId)}
+                    onClick={() => exportMutation.mutate([test.testBatchId])}
                     disabled={exportMutation.isPending}
                   >
                     <i className="fas fa-download mr-1 text-xs"></i>
@@ -140,7 +162,7 @@ export default function ReadyToDeployView() {
                 
                 <div className="pt-4 border-t border-gray-100">
                   <p className="text-xs text-gray-500">
-                    Created {test.createdAt ? new Date(test.createdAt).toLocaleDateString() : 'Unknown date'}
+                    Ready {test.readyDate ? new Date(test.readyDate).toLocaleDateString() : 'Unknown date'}
                   </p>
                 </div>
               </div>
