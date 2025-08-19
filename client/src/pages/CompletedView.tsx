@@ -74,9 +74,11 @@ export default function CompletedView() {
                 <div key={test.id} className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
                   <div className="flex items-start justify-between mb-4">
                     <div>
-                      <h3 className="font-semibold text-gray-900 mb-1">{test.projectName}</h3>
+                      <h3 className="font-semibold text-gray-900 mb-1">
+                        {test.statements[0]?.description || (test.testBatchId ? 'Test Batch' : 'Legacy Statement')}
+                      </h3>
                       <p className="text-sm text-gray-600">
-                        {test.statements.length} completed ad{test.statements.length > 1 ? 's' : ''}
+                        {test.projectName} • {test.statements.length} completed ad{test.statements.length > 1 ? 's' : ''}
                       </p>
                     </div>
                     <Badge className="bg-gray-600 text-white">
