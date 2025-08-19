@@ -4,36 +4,29 @@ import { Sidebar } from "@/components/Sidebar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
+import { apiRequest } from "@/lib/queryClient";
 import type { StatementWithRelations } from "@shared/schema";
+
+interface CompletedTest {
+  id: string;
+  testBatchId: string;
+  projectId: string;
+  projectName: string;
+  statements: StatementWithRelations[];
+  completedDate: string;
+  status: string;
+}
 
 export default function CompletedView() {
   const { user } = useAuth();
 
-  const { data: statements, isLoading } = useQuery<StatementWithRelations[]>({
-    queryKey: ['/api/statements', { status: 'completed' }],
+  const { data: completedTests = [], isLoading } = useQuery<CompletedTest[]>({
+    queryKey: ['/api/deployment/tests', 'completed'],
+    queryFn: async () => {
+      const response = await apiRequest('GET', '/api/deployment/tests?status=completed');
+      return response.json();
+    },
   });
-
-  // Group completed statements into finished tests
-  const groupedTests = statements?.reduce((acc, statement) => {
-    const testKey = `${statement.projectId}-${statement.createdAt ? new Date(statement.createdAt).toISOString().split('T')[0] : 'no-date'}`;
-    if (!acc[testKey]) {
-      acc[testKey] = {
-        id: testKey,
-        projectId: statement.projectId,
-        projectName: statement.project?.name || 'Unknown Project',
-        statements: [],
-        createdAt: statement.createdAt,
-        completedCount: 0
-      };
-    }
-    acc[testKey].statements.push(statement);
-    if (statement.status === 'completed') {
-      acc[testKey].completedCount++;
-    }
-    return acc;
-  }, {} as Record<string, any>) || {};
-
-  const completedTests = Object.values(groupedTests).filter((test: any) => test.completedCount > 0);
 
   if (isLoading) {
     return (
@@ -53,99 +46,78 @@ export default function CompletedView() {
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-2xl font-bold text-secondary">Completed Tests</h2>
-              <p className="text-gray-600 mt-1">Finished Facebook advertising campaigns and their results</p>
+              <p className="text-gray-600 mt-1">Successfully deployed and completed advertising campaigns</p>
             </div>
-            <Badge className="bg-gray-500 text-white text-lg px-4 py-2">
-              {completedTests.length} completed
+            <Badge className="bg-gray-600 text-white text-lg px-4 py-2">
+              {completedTests.length} test{completedTests.length !== 1 ? 's' : ''} completed
             </Badge>
           </div>
         </header>
 
         <div className="flex-1 overflow-y-auto p-6">
-          {/* Table View for Completed Tests */}
-          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50 border-b border-gray-200">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Project
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Test Details
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Completed Ads
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Date Completed
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {completedTests.map(test => (
-                    <tr key={test.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div>
-                          <div className="text-sm font-medium text-gray-900">
-                            {test.projectName}
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            {test.statements.length} total statements
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="space-y-1">
-                          {test.statements.slice(0, 2).map((statement: any) => (
-                            <div key={statement.id} className="text-sm text-gray-700 truncate max-w-xs">
-                              {statement.heading}
-                            </div>
-                          ))}
-                          {test.statements.length > 2 && (
-                            <div className="text-xs text-gray-500">
-                              +{test.statements.length - 2} more...
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <Badge className="bg-gray-500 text-white">
-                          {test.completedCount} completed
-                        </Badge>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {test.createdAt ? new Date(test.createdAt).toLocaleDateString() : 'Unknown date'}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div className="flex space-x-2">
-                          <Link href={`/projects/${test.projectId}`}>
-                            <Button variant="outline" size="sm">
-                              <i className="fas fa-eye mr-1 text-xs"></i>
-                              View
-                            </Button>
-                          </Link>
-                          <Button variant="outline" size="sm" className="text-blue-600 hover:text-blue-800">
-                            <i className="fas fa-chart-bar mr-1 text-xs"></i>
-                            Analytics
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-          
-          {completedTests.length === 0 && (
+          {completedTests.length === 0 ? (
             <div className="text-center py-12">
-              <i className="fas fa-trophy text-6xl text-gray-300 mb-4"></i>
-              <h3 className="text-xl font-semibold text-gray-600 mb-2">No completed tests yet</h3>
-              <p className="text-gray-500">Complete your first advertising campaign to see results here</p>
+              <div className="text-gray-400 text-6xl mb-4">✓</div>
+              <h3 className="text-xl font-semibold text-gray-700 mb-2">No Completed Tests Yet</h3>
+              <p className="text-gray-500 mb-6">
+                Tests will appear here after being exported and marked as completed.
+              </p>
+              <Link href="/dashboard">
+                <Button className="bg-primary text-white hover:bg-primary-dark">
+                  Back to Dashboard
+                </Button>
+              </Link>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {completedTests.map(test => (
+                <div key={test.id} className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
+                  <div className="flex items-start justify-between mb-4">
+                    <div>
+                      <h3 className="font-semibold text-gray-900 mb-1">{test.projectName}</h3>
+                      <p className="text-sm text-gray-600">
+                        {test.statements.length} completed ad{test.statements.length > 1 ? 's' : ''}
+                      </p>
+                    </div>
+                    <Badge className="bg-gray-600 text-white">
+                      Completed
+                    </Badge>
+                  </div>
+                  
+                  <div className="space-y-2 mb-4">
+                    {test.statements.slice(0, 3).map((statement) => (
+                      <div key={statement.id} className="text-sm">
+                        <span className="text-gray-700 truncate">{statement.heading || statement.content.slice(0, 30) + '...'}</span>
+                      </div>
+                    ))}
+                    {test.statements.length > 3 && (
+                      <p className="text-xs text-gray-500">
+                        +{test.statements.length - 3} more statements
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="pt-4 border-t border-gray-100">
+                    <div className="flex items-center justify-between text-sm text-gray-600">
+                      <span>Completed:</span>
+                      <span>{new Date(test.completedDate).toLocaleDateString()}</span>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-4">
+                    <Link href={`/projects/${test.projectId}`}>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="w-full"
+                        data-testid={`button-view-project-${test.id}`}
+                      >
+                        View Project
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>
