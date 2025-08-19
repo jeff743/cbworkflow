@@ -251,8 +251,12 @@ export function StatementEditor({ statement, onStatementUpdated, navigationReque
     }
   };
 
-  const canEdit = statement.status === "draft" || statement.status === "needs_revision";
-  const canReview = ((user as any)?.role === "growth_strategist" || (user as any)?.role === "super_admin") && statement.status === "under_review";
+  // Growth Strategists and Super Admins should only review, not edit
+  const userRole = (user as any)?.role;
+  const isReviewer = userRole === "growth_strategist" || userRole === "super_admin";
+  
+  const canEdit = (statement.status === "draft" || statement.status === "needs_revision") && !isReviewer;
+  const canReview = isReviewer && (statement.status === "under_review" || statement.status === "needs_revision");
   // Removed canManageDesign - Design & Deploy step eliminated
 
   const colorOptions = [
