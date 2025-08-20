@@ -20,12 +20,21 @@ export default function NewTestsView() {
 
   // Extract project context from URL parameters or current location
   useEffect(() => {
+    console.log('🔍 NewTestsView: Detecting project context', {
+      location,
+      search: window.location.search,
+      pathname: window.location.pathname
+    });
+
     // First, try to get project from URL query parameter
     const urlParams = new URLSearchParams(window.location.search);
     const projectIdFromUrl = urlParams.get('project');
     
     if (projectIdFromUrl) {
+      console.log('🎯 NewTestsView: Using project from URL parameter:', projectIdFromUrl);
       setCurrentProjectId(projectIdFromUrl);
+      // Store for future reference
+      localStorage.setItem('lastVisitedProject', projectIdFromUrl);
       return;
     }
 
@@ -33,17 +42,31 @@ export default function NewTestsView() {
     const urlPath = window.location.pathname;
     const projectMatch = urlPath.match(/\/projects\/([^\/]+)/);
     if (projectMatch) {
+      console.log('🎯 NewTestsView: Using project from URL path:', projectMatch[1]);
       setCurrentProjectId(projectMatch[1]);
+      localStorage.setItem('lastVisitedProject', projectMatch[1]);
       return;
     }
 
-    // Third, fallback to user's most recent project from localStorage
+    // Third, check for recent navigation from localStorage with timestamp
     const lastProjectId = localStorage.getItem('lastVisitedProject');
-    if (lastProjectId) {
+    const navigationTimestamp = localStorage.getItem('lastNavTimestamp');
+    const recentNavigation = navigationTimestamp && (Date.now() - parseInt(navigationTimestamp)) < 5000; // 5 seconds
+    
+    if (lastProjectId && recentNavigation) {
+      console.log('🎯 NewTestsView: Using recent project from localStorage:', lastProjectId);
       setCurrentProjectId(lastProjectId);
       return;
     }
 
+    // Fourth, fallback to user's most recent project from localStorage (without timestamp check)
+    if (lastProjectId) {
+      console.log('🎯 NewTestsView: Using last visited project:', lastProjectId);
+      setCurrentProjectId(lastProjectId);
+      return;
+    }
+
+    console.log('⚠️ NewTestsView: No project context found, will use fallback');
     // If no project context available, we'll need to get user's first available project
     // This will be handled by the projects query below
   }, [location]);
