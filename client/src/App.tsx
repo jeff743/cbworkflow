@@ -43,9 +43,6 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <div style={{ position: 'fixed', top: 0, left: 0, background: 'red', color: 'white', padding: '10px', zIndex: 9999 }}>
-          🔥 ROLE REFRESH UPDATE LOADED 🔥
-        </div>
         <Toaster />
         <Router />
       </TooltipProvider>
