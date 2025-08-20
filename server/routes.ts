@@ -49,50 +49,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-
-
-  // Force refresh user data from database
-  app.post('/api/auth/refresh', isAuthenticated, async (req: any, res) => {
-    try {
-      const userEmail = req.user?.claims?.email;
-      if (!userEmail) {
-        return res.status(401).json({ 
-          message: 'Authentication required',
-          code: 'NO_EMAIL' 
-        });
-      }
-
-      // Force fetch fresh user data from database  
-      const freshUser = await storage.getUserByEmail(userEmail);
-      if (!freshUser) {
-        return res.status(404).json({ 
-          message: 'User not found',
-          code: 'USER_NOT_FOUND' 
-        });
-      }
-
-      // Update the request object with fresh data
-      req.currentUser = freshUser;
-
-      // Return comprehensive user data
-      res.json({
-        id: freshUser.id,
-        email: freshUser.email,
-        firstName: freshUser.firstName,
-        lastName: freshUser.lastName,
-        role: freshUser.role,
-        roleDisplayName: getUserRoleDisplayName(freshUser.role),
-        lastRefreshed: new Date().toISOString()
-      });
-    } catch (error) {
-      logger.error("Error refreshing user data", 'auth-route', error as Error);
-      res.status(500).json({ 
-        message: "Failed to refresh user data",
-        code: 'REFRESH_ERROR' 
-      });
-    }
-  });
-
   // Project routes  
   app.get('/api/projects', requirePermissionMiddleware(Permission.VIEW_PROJECTS), async (req: any, res) => {
     try {

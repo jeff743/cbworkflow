@@ -23,120 +23,14 @@ const createProjectFormSchema = z.object({
 type CreateProjectFormData = z.infer<typeof createProjectFormSchema>;
 
 export function Sidebar() {
+  const { user } = useAuth();
+  const { toast } = useToast();
   const [location] = useLocation();
   const [showCreateProject, setShowCreateProject] = useState(false);
   const [showManageUsers, setShowManageUsers] = useState(false);
-  const { toast } = useToast();
-
-  const { data: user, refetch: refetchUser } = useQuery<User>({
-    queryKey: ["/api/auth/user"],
-    queryFn: async () => {
-      const response = await fetch("/api/auth/user", {
-        credentials: 'include'
-      });
-      if (!response.ok) {
-        if (response.status === 401) {
-          console.log('User not authenticated, but continuing to show UI');
-          return null; // Return null instead of redirecting immediately
-        }
-        throw new Error('Failed to fetch user');
-      }
-      return response.json();
-    },
-    retry: false, // Don't retry on auth failures
-  });
-
-  const logoutMutation = useMutation({
-    mutationFn: async () => {
-      // Pre-logout: Clear sensitive data immediately
-      queryClient.clear();
-      localStorage.clear(); 
-      sessionStorage.clear();
-      
-      // Call logout endpoint
-      const response = await fetch('/api/logout', {
-        method: 'GET',
-        credentials: 'include'
-      });
-      
-      return response;
-    },
-    onSuccess: () => {
-      // Force page reload to ensure complete state reset
-      window.location.href = '/';
-    },
-    onError: (error) => {
-      console.error('Logout error:', error);
-      // Even if logout API fails, clear local state and redirect
-      queryClient.clear();
-      localStorage.clear();
-      sessionStorage.clear();
-      window.location.href = '/api/logout';
-    }
-  });
-
-  const refreshUserProfile = useMutation({
-    mutationFn: async () => {
-      const response = await fetch("/api/auth/refresh", { 
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: 'include' // Ensure cookies are sent
-      });
-      
-      if (!response.ok) {
-        if (response.status === 401) {
-          throw new Error('Session expired');
-        }
-        throw new Error(`Refresh failed: ${response.statusText}`);
-      }
-      
-      const data = await response.json();
-      if (!data.id || !data.email) {
-        throw new Error('Invalid user data received');
-      }
-      
-      return data;
-    },
-    onSuccess: (freshUser) => {
-      // Update user data in cache
-      queryClient.setQueryData(["/api/auth/user"], freshUser);
-      
-      // Invalidate all related queries to ensure fresh data
-      queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
-      
-      toast({
-        title: "Profile Refreshed",
-        description: "Your profile data has been updated successfully.",
-      });
-    },
-    onError: (error: Error) => {
-      console.error('Profile refresh failed:', error);
-      
-      if (error.message === 'Session expired') {
-        toast({
-          title: "Session Expired", 
-          description: "Please log in again to continue.",
-          variant: "destructive",
-        });
-        // Redirect to login after short delay
-        setTimeout(() => {
-          window.location.href = '/api/login';
-        }, 2000);
-      } else {
-        toast({
-          title: "Refresh Failed",
-          description: "Could not refresh profile data. Please try again.",
-          variant: "destructive",
-        });
-      }
-    }
-  });
 
   const { data: projects } = useQuery<ProjectWithStats[]>({
     queryKey: ['/api/projects'],
-    queryFn: () => fetch("/api/projects").then((res) => res.json()),
-    enabled: !!user,
   });
 
   const { data: myStatements } = useQuery<StatementWithRelations[]>({
@@ -232,13 +126,13 @@ export function Sidebar() {
     if (projectMatch) {
       return projectMatch[1];
     }
-
+    
     // Fallback to last visited project
     const lastProjectId = localStorage.getItem('lastVisitedProject');
     if (lastProjectId && projects?.some(p => p.id === lastProjectId)) {
       return lastProjectId;
     }
-
+    
     // Fallback to first available project
     return projects?.[0]?.id || null;
   };
@@ -364,7 +258,7 @@ export function Sidebar() {
             </Link>
           </div>
         </div>
-
+        
         {/* Admin Actions */}
         <div className="pt-4 border-t border-gray-200">
           <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Actions</h3>
@@ -418,7 +312,7 @@ export function Sidebar() {
                 </Form>
               </DialogContent>
             </Dialog>
-
+            
             {(user as any)?.role === 'super_admin' && (
               <Dialog open={showManageUsers} onOpenChange={setShowManageUsers}>
                 <DialogTrigger asChild>
@@ -490,48 +384,16 @@ export function Sidebar() {
               {(user as any)?.email}
             </p>
             <p className="text-xs text-gray-400 capitalize" data-testid="text-user-role">
-              {(user as any)?.roleDisplayName || (user as any)?.role?.replace('_', ' ') || 'User'}
+              {(user as any)?.role?.replace('_', ' ') || 'User'}
             </p>
-            {/* Debug info */}
-            {process.env.NODE_ENV === 'development' && (
-              <div className="text-xs text-red-500">
-                <p>User: {user ? 'Yes' : 'No'}</p>
-                <p>Role: {(user as any)?.role}</p>
-                <p>Display: {(user as any)?.roleDisplayName}</p>
-              </div>
-            )}
           </div>
-        </div>
-        
-        {/* TEST: Force visible buttons row */}
-        <div className="w-full bg-yellow-200 p-4 mt-2 border-4 border-red-500">
-          <p className="text-black font-bold mb-2">BUTTONS TEST SECTION</p>
-          <div className="flex justify-center gap-4">
-            <button
-              onClick={() => {
-                console.log('Refresh clicked!');
-                refreshUserProfile.mutate();
-              }}
-              disabled={refreshUserProfile.isPending}
-              className="w-16 h-16 bg-blue-500 text-white rounded-lg hover:bg-blue-600 flex items-center justify-center text-2xl font-bold border-4 border-blue-300 shadow-lg"
-              title="Refresh profile"
-              data-testid="button-sidebar-refresh"
-            >
-              🔄
-            </button>
-            <button
-              onClick={() => {
-                console.log('Logout clicked!');
-                logoutMutation.mutate();
-              }}
-              disabled={logoutMutation.isPending}
-              className="w-16 h-16 bg-red-500 text-white rounded-lg hover:bg-red-600 flex items-center justify-center text-2xl font-bold border-4 border-red-300 shadow-lg"
-              title={logoutMutation.isPending ? "Logging out..." : "Logout"}
-              data-testid="button-sidebar-logout"
-            >
-              {logoutMutation.isPending ? "⏳" : "🚪"}
-            </button>
-          </div>
+          <button 
+            onClick={() => window.location.href = '/api/logout'}
+            className="text-gray-400 hover:text-gray-600"
+            data-testid="button-sidebar-logout"
+          >
+            <i className="fas fa-sign-out-alt text-sm"></i>
+          </button>
         </div>
       </div>
     </div>
