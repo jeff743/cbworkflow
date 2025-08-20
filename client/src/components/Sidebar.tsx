@@ -400,17 +400,16 @@ export function Sidebar() {
             </p>
             <div className="flex items-center gap-2">
               <p className="text-xs text-gray-400 capitalize" data-testid="text-user-role">
-                {(user as any)?.role?.replace('_', ' ') || 'User'} 
-                <span className="text-red-500 font-bold text-lg">🔥 CACHE FIX READY 🔥</span>
+{(user as any)?.role?.replace('_', ' ') || 'User'}
               </p>
-              <button 
+<button 
                 onClick={() => refreshRoleMutation.mutate()}
                 disabled={refreshRoleMutation.isPending}
-                className="text-blue-500 hover:text-blue-700 text-sm px-2 py-1 bg-blue-100 rounded"
+                className="text-gray-400 hover:text-gray-600 text-xs"
                 data-testid="button-refresh-role"
                 title="Refresh role permissions"
               >
-                🔄 Refresh
+                <i className={`fas fa-sync-alt ${refreshRoleMutation.isPending ? 'fa-spin' : ''}`}></i>
               </button>
             </div>
           </div>
