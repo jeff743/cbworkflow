@@ -65,10 +65,7 @@ export default function Dashboard() {
   return (
     <div className="flex min-h-screen bg-background">
       {/* Sidebar */}
-      <div className="bg-green-500 p-4">
-        <p className="text-white font-bold">🔧 SIDEBAR TEST: This should be the sidebar area</p>
-        <Sidebar />
-      </div>
+      <Sidebar />
       
       {/* Main Content */}
       <div className="flex-1">
@@ -78,9 +75,6 @@ export default function Dashboard() {
             <div>
               <h1 className="text-2xl font-bold text-secondary">Dashboard</h1>
               <p className="text-gray-600">Welcome back, {(user as any)?.firstName}</p>
-              <div className="bg-red-500 text-white p-2 mt-2 font-bold">
-                🚨 UI UPDATE TEST: If you see this red box, UI changes are working! 🚨
-              </div>
             </div>
             <div className="flex items-center space-x-3">
               <Button
