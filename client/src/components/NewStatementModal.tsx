@@ -178,9 +178,11 @@ export function NewStatementModal({ projectId, onClose, onStatementCreated }: Ne
           </div>
           
           <div>
-            <Label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
-              Test Title
-            </Label>
+            <div className="flex justify-between items-center mb-2">
+              <Label htmlFor="description" className="block text-sm font-medium text-gray-700">
+                Test Title
+              </Label>
+            </div>
             <Textarea
               id="description"
               placeholder="Enter a descriptive title for this test (e.g., 'Holiday Sale - Value Prop Test', 'Q1 Brand Awareness Campaign')..."
@@ -188,6 +190,7 @@ export function NewStatementModal({ projectId, onClose, onStatementCreated }: Ne
               rows={3}
               value={formData.description}
               onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+              spellCheck={true}
               data-testid="input-test-title"
             />
           </div>

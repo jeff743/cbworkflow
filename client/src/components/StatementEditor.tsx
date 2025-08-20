@@ -9,6 +9,7 @@ import { Slider } from "@/components/ui/slider";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { ColorblockPreview } from "./ColorblockPreview";
 import { ObjectUploader } from "./ObjectUploader";
+import { SpellCheckIndicator } from "./SpellCheckIndicator";
 import { apiRequest } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import type { StatementWithRelations, UpdateStatement } from "@shared/schema";
@@ -359,15 +360,23 @@ export function StatementEditor({ statement, onStatementUpdated, navigationReque
                       setUseTrueFalse(newValue.includes("True or False?"));
                     }}
                     disabled={!canEdit}
+                    spellCheck={true}
                     data-testid="input-heading"
                   />
                 </div>
 
                 {/* Statement Field */}
                 <div>
-                  <Label htmlFor="content" className="block text-sm font-medium text-gray-700 mb-2">
-                    Statement Content <span className="text-error">*</span>
-                  </Label>
+                  <div className="flex justify-between items-center mb-2">
+                    <Label htmlFor="content" className="block text-sm font-medium text-gray-700">
+                      Statement Content <span className="text-error">*</span>
+                    </Label>
+                    <SpellCheckIndicator 
+                      text={formData.content} 
+                      onTextChange={(newText) => setFormData(prev => ({ ...prev, content: newText }))}
+                      customWords={['facebook', 'ad', 'campaign', 'cro', 'conversion']}
+                    />
+                  </div>
                   <Textarea
                     id="content"
                     placeholder="Enter statement here..."
@@ -376,15 +385,23 @@ export function StatementEditor({ statement, onStatementUpdated, navigationReque
                     value={formData.content}
                     onChange={(e) => setFormData(prev => ({ ...prev, content: e.target.value }))}
                     disabled={!canEdit}
+                    spellCheck={true}
                     data-testid="input-content"
                   />
                 </div>
 
                 {/* Footer Field */}
                 <div>
-                  <Label htmlFor="footer" className="block text-sm font-medium text-gray-700 mb-2">
-                    Footer (Optional)
-                  </Label>
+                  <div className="flex justify-between items-center mb-2">
+                    <Label htmlFor="footer" className="block text-sm font-medium text-gray-700">
+                      Footer (Optional)
+                    </Label>
+                    <SpellCheckIndicator 
+                      text={formData.footer} 
+                      onTextChange={(newText) => setFormData(prev => ({ ...prev, footer: newText }))}
+                      customWords={['facebook', 'ad', 'campaign', 'cro', 'conversion']}
+                    />
+                  </div>
                   <Textarea
                     id="footer"
                     placeholder="Enter optional footer text..."
@@ -393,6 +410,7 @@ export function StatementEditor({ statement, onStatementUpdated, navigationReque
                     value={formData.footer}
                     onChange={(e) => setFormData(prev => ({ ...prev, footer: e.target.value }))}
                     disabled={!canEdit}
+                    spellCheck={true}
                     data-testid="input-footer"
                   />
                 </div>
@@ -673,13 +691,23 @@ export function StatementEditor({ statement, onStatementUpdated, navigationReque
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                       </svg>
                     </div>
-                    <div className="ml-3">
-                      <Label htmlFor="reviewNotes" className="text-lg font-semibold text-blue-800 mb-1">
-                        📝 Review Notes & Feedback
-                      </Label>
-                      <p className="text-sm text-blue-700 mt-1">
-                        Add specific feedback here when requesting revisions. This will be sent to the copywriter to guide improvements.
-                      </p>
+                    <div className="ml-3 flex-1">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <Label htmlFor="reviewNotes" className="text-lg font-semibold text-blue-800 mb-1">
+                            📝 Review Notes & Feedback
+                          </Label>
+                          <p className="text-sm text-blue-700 mt-1">
+                            Add specific feedback here when requesting revisions. This will be sent to the copywriter to guide improvements.
+                          </p>
+                        </div>
+                        <SpellCheckIndicator 
+                          text={reviewNotes} 
+                          onTextChange={setReviewNotes}
+                          customWords={['copywriter', 'headline', 'cta', 'compelling', 'benefits']}
+                          className="ml-2"
+                        />
+                      </div>
                     </div>
                   </div>
                   <Textarea
@@ -689,6 +717,7 @@ export function StatementEditor({ statement, onStatementUpdated, navigationReque
                     rows={5}
                     value={reviewNotes}
                     onChange={(e) => setReviewNotes(e.target.value)}
+                    spellCheck={true}
                     data-testid="input-review-notes"
                   />
                   <div className="mt-2 flex items-center text-xs text-blue-600">

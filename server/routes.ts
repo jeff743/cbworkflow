@@ -827,6 +827,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Spell Check API endpoints
+  app.post('/api/spellcheck', isAuthenticated, async (req: any, res) => {
+    try {
+      const { text, language = 'en-US' } = req.body;
+      
+      if (!text || typeof text !== 'string') {
+        return res.status(400).json({ message: 'Text is required' });
+      }
+      
+      const { spellChecker } = await import('./spellcheck');
+      const result = await spellChecker.checkText(text, language);
+      
+      res.json(result);
+    } catch (error) {
+      logger.error('Spell check failed', 'spellcheck', error as Error);
+      res.status(500).json({ message: 'Spell check failed' });
+    }
+  });
+
+  app.post('/api/spellcheck/dictionary/add', isAuthenticated, async (req: any, res) => {
+    try {
+      const { word } = req.body;
+      
+      if (!word || typeof word !== 'string') {
+        return res.status(400).json({ message: 'Word is required' });
+      }
+      
+      const { spellChecker } = await import('./spellcheck');
+      spellChecker.addCustomWord(word);
+      
+      logger.info(`User ${req.currentUser?.email} added custom word: ${word}`, 'spellcheck');
+      res.json({ success: true, message: 'Word added to dictionary' });
+    } catch (error) {
+      logger.error('Failed to add word to dictionary', 'spellcheck', error as Error);
+      res.status(500).json({ message: 'Failed to add word to dictionary' });
+    }
+  });
+
+  app.get('/api/spellcheck/dictionary', isAuthenticated, async (req: any, res) => {
+    try {
+      const { spellChecker } = await import('./spellcheck');
+      const customWords = spellChecker.getCustomWords();
+      
+      res.json({ customWords });
+    } catch (error) {
+      logger.error('Failed to get custom dictionary', 'spellcheck', error as Error);
+      res.status(500).json({ message: 'Failed to get custom dictionary' });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
