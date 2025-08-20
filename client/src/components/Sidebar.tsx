@@ -23,14 +23,28 @@ const createProjectFormSchema = z.object({
 type CreateProjectFormData = z.infer<typeof createProjectFormSchema>;
 
 export function Sidebar() {
-  const { user } = useAuth();
-  const { toast } = useToast();
-  const [location] = useLocation();
-  const [showCreateProject, setShowCreateProject] = useState(false);
-  const [showManageUsers, setShowManageUsers] = useState(false);
+  const { data: user, refetch: refetchUser } = useQuery<User>({
+    queryKey: ["/api/auth/user"],
+    queryFn: () => fetch("/api/auth/user").then((res) => res.json()),
+  });
+
+  const refreshUserProfile = useMutation({
+    mutationFn: () => 
+      fetch("/api/auth/refresh", { 
+        method: "POST",
+        headers: { "Content-Type": "application/json" }
+      }).then((res) => res.json()),
+    onSuccess: (freshUser) => {
+      // Update the query cache with fresh data
+      queryClient.setQueryData(["/api/auth/user"], freshUser);
+      refetchUser();
+    },
+  });
 
   const { data: projects } = useQuery<ProjectWithStats[]>({
     queryKey: ['/api/projects'],
+    queryFn: () => fetch("/api/projects").then((res) => res.json()),
+    enabled: !!user,
   });
 
   const { data: myStatements } = useQuery<StatementWithRelations[]>({
@@ -126,13 +140,13 @@ export function Sidebar() {
     if (projectMatch) {
       return projectMatch[1];
     }
-    
+
     // Fallback to last visited project
     const lastProjectId = localStorage.getItem('lastVisitedProject');
     if (lastProjectId && projects?.some(p => p.id === lastProjectId)) {
       return lastProjectId;
     }
-    
+
     // Fallback to first available project
     return projects?.[0]?.id || null;
   };
@@ -258,7 +272,7 @@ export function Sidebar() {
             </Link>
           </div>
         </div>
-        
+
         {/* Admin Actions */}
         <div className="pt-4 border-t border-gray-200">
           <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Actions</h3>
@@ -312,7 +326,7 @@ export function Sidebar() {
                 </Form>
               </DialogContent>
             </Dialog>
-            
+
             {(user as any)?.role === 'super_admin' && (
               <Dialog open={showManageUsers} onOpenChange={setShowManageUsers}>
                 <DialogTrigger asChild>
@@ -387,6 +401,16 @@ export function Sidebar() {
               {(user as any)?.role?.replace('_', ' ') || 'User'}
             </p>
           </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => refreshUserProfile.mutate()}
+            disabled={refreshUserProfile.isPending}
+            className="h-8 w-8 p-0"
+            title="Refresh profile"
+          >
+            <i className={`fas fa-sync-alt ${refreshUserProfile.isPending ? 'animate-spin' : ''}`}></i>
+          </Button>
           <button 
             onClick={() => window.location.href = '/api/logout'}
             className="text-gray-400 hover:text-gray-600"

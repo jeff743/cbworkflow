@@ -49,6 +49,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Force refresh user data from database
+  app.post('/api/auth/refresh', async (req: any, res) => {
+    try {
+      const userEmail = req.user?.claims?.email;
+      if (!userEmail) {
+        return res.status(401).json({ message: 'Authentication required' });
+      }
+
+      // Force fetch fresh user data from database
+      const freshUser = await storage.getUserByEmail(userEmail);
+      if (!freshUser) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+
+      // Update the request object with fresh data
+      req.currentUser = freshUser;
+
+      res.json({
+        ...freshUser,
+        roleDisplayName: getUserRoleDisplayName(freshUser.role)
+      });
+    } catch (error) {
+      logger.error("Error refreshing user data", 'auth-route', error as Error);
+      res.status(500).json({ message: "Failed to refresh user data" });
+    }
+  });
+
   // Project routes  
   app.get('/api/projects', requirePermissionMiddleware(Permission.VIEW_PROJECTS), async (req: any, res) => {
     try {
