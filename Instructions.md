@@ -1,249 +1,336 @@
-# Spell Check Not Working - Comprehensive Analysis & Fix Plan
+# Critical Navigation & Input Issues - Comprehensive Analysis & Fix Plan
 
 ## Issue Summary
-The spell check functionality is not working properly for test title names in the NewStatementModal and for statement editor text fields (header, statement content, footer). Users expect real-time spell checking with suggestions and error highlighting across all text input areas.
+Two critical functionality issues are impacting the deployed CB Workflow application:
+
+**Error #1 - Cross-Project Test Contamination**: New Tests module displays tests from all projects instead of being project-specific, causing users to see other clients' tests when navigating to "New Tests" from a project dashboard.
+
+**Error #2 - Input Fields Non-Functional**: Statement editor input fields (heading, statement content, footer) are completely non-operational - users cannot enter any text or make edits.
 
 ## Root Cause Analysis
 
-### 1. **Architecture Disconnect: Client vs Server Implementation**
-The application has **two separate spell check systems** that are not properly connected:
+### 1. **Cross-Project Test Contamination (Error #1)**
 
-**Client-Side System (Currently Used):**
-- Location: `client/src/hooks/useSpellCheck.ts`
-- **Implementation**: Basic word list matching using hardcoded dictionary
-- **Status**: Functional but limited - only checks against predefined word lists
-- **Issue**: Does not use the advanced server-side spell checker
+**Root Cause**: Global API endpoint with no project filtering
+- **Location**: `server/routes.ts` line 306-318 (`GET /api/statements`)
+- **Issue**: Returns `storage.getAllStatements()` - fetches ALL statements across ALL projects
+- **Frontend Impact**: `NewTestsView.tsx` line 20-22 uses this global endpoint
+- **Result**: Users see tests from every project when they should only see their current project's tests
 
-**Server-Side System (Unused):**
-- Location: `server/spellcheck.ts` + API routes (`/api/spellcheck`)
-- **Implementation**: Advanced spell checker using `simple-spellchecker` library
-- **Features**: Real dictionary, proper suggestions, custom words, comprehensive marketing terms
-- **Status**: Fully implemented but **never called by the frontend**
-
-### 2. **Missing Integration Points**
-
-#### NewStatementModal.tsx (Test Title)
-- **File**: `client/src/components/NewStatementModal.tsx`
-- **Lines 186-195**: Has `spellCheck={true}` but no `SpellCheckIndicator`
-- **Issue**: Only uses browser's basic spell check, not the custom system
-
-#### StatementEditor.tsx (Heading Field)
-- **File**: `client/src/components/StatementEditor.tsx`
-- **Lines 354-369**: Has `spellCheck={true}` but no `SpellCheckIndicator`
-- **Issue**: Heading field missing spell check integration entirely
-
-#### Current Working Areas
-- **Statement Content**: Has `SpellCheckIndicator` (lines 378-382)
-- **Footer**: Has `SpellCheckIndicator` (lines 403-407)
-- **Review Notes**: Has `SpellCheckIndicator` (lines 708-712)
-
-### 3. **Technical Implementation Issues**
-
-#### Client-Side Hook Limitations
+**Evidence from Code**:
 ```typescript
-// Current useSpellCheck.ts uses basic word matching
-const knownWords = new Set(['a', 'an', 'and', ...]) // Static list
+// NewTestsView.tsx - Uses global endpoint
+const { data: statements } = useQuery<StatementWithRelations[]>({
+  queryKey: ['/api/statements'], // ❌ No project filtering
+});
+
+// server/routes.ts - Returns everything
+app.get('/api/statements', isAuthenticated, async (req: any, res) => {
+  const statements = await storage.getAllStatements(); // ❌ All projects
+  res.json(statements);
+});
 ```
-- **Problem**: Limited vocabulary, no real spell checking algorithm
-- **Missing**: Connection to server API for comprehensive checking
 
-#### API Integration Gap
-- **Server APIs Exist**: `POST /api/spellcheck`, `POST /api/spellcheck/dictionary/add`  
-- **Frontend Never Calls Them**: `useSpellCheck` doesn't use `apiRequest`
-- **Result**: Advanced server features (suggestions, marketing terms) unused
+**Navigation Flow Issue**:
+1. User clicks "New Tests" from Project A dashboard
+2. NewTestsView fetches `/api/statements` (all projects)
+3. User sees tests from Project B, C, D mixed in
+4. Clicking a test from Project B navigates to Project B instead of Project A
 
-### 4. **Backend API Status**
-✅ **Fully Functional & Advanced**
-- `POST /api/spellcheck` endpoint with proper dictionary loading
-- `simple-spellchecker` library with real dictionaries
-- Extensive marketing terminology (35+ terms)
-- Custom word management system
-- Proper error handling and logging
-- Enhanced suggestions with business-specific corrections
+### 2. **Input Fields Non-Functional (Error #2)**
 
-## The Problem
-The frontend is using a **primitive client-side spell checker** instead of the **sophisticated server-side system**. The advanced spell checking infrastructure exists but is completely bypassed by the current implementation.
+**Root Cause**: Dual state management conflict between SpellCheckIndicator and Textarea
+- **Location**: `client/src/components/StatementEditor.tsx` lines 340-375, 384-401, 409-426
+- **Issue**: SpellCheckIndicator `onTextChange` conflicts with Textarea `onChange`
+- **Result**: Input handlers compete and override each other, blocking user input
+
+**Evidence from Code**:
+```typescript
+// CONFLICT: SpellCheckIndicator updates formData
+<SpellCheckIndicator 
+  text={formData.heading} 
+  onTextChange={(newText) => setFormData(prev => ({ ...prev, heading: newText }))}
+/>
+
+// CONFLICT: Textarea also tries to update formData
+<Textarea
+  value={formData.heading}
+  onChange={(e) => setFormData(prev => ({ ...prev, heading: e.target.value }))}
+/>
+```
+
+**Technical Analysis**:
+- **SpellCheckIndicator**: Only activates on word suggestions, not direct typing
+- **Textarea**: Should handle direct user typing
+- **Problem**: State updates from both sources cause React rendering conflicts
+- **Secondary Issue**: `canEdit` logic may be incorrectly disabling fields
+
+### 3. **Permission System Complexity**
+
+**canEdit Logic Analysis** (`StatementEditor.tsx` lines 257-261):
+```typescript
+const userRole = (user as any)?.role;
+const isReviewer = userRole === "growth_strategist" || userRole === "super_admin";
+const canEdit = (statement.status === "draft" || statement.status === "needs_revision") && !isReviewer;
+```
+
+**Potential Issues**:
+- User role detection failing
+- Statement status not matching expected values  
+- isReviewer flag incorrectly set to true
+
+### 4. **API Architecture Status**
+
+**Project-Specific Endpoint Exists** (`server/routes.ts` line 97-109):
+```typescript
+app.get('/api/projects/:projectId/statements', requirePermissionMiddleware(Permission.VIEW_TASKS), ...)
+```
+✅ **Already Implemented** but not used by NewTestsView
+
+**Global Endpoint Issues**:
+- No project context awareness
+- No filtering capabilities  
+- Violates data isolation between clients
+
+## The Problems
+1. **NewTestsView uses wrong API endpoint** - fetches global data instead of project-specific
+2. **State management collision** - SpellCheckIndicator and Textarea compete for control
+3. **Missing project context** - navigation loses project scope when using global data
 
 ## Solution Plan
 
-### Phase 1: Integrate Server-Side Spell Checking (Critical)
-**Goal**: Replace the basic client-side spell checker with the advanced server-side system that already exists.
+### Phase 1: Fix Cross-Project Contamination (Critical - Error #1)
+**Goal**: Ensure NewTestsView only shows tests from the current project context.
 
 #### Changes Required:
 
-1. **Update useSpellCheck Hook** - Replace basic word matching with API calls
+1. **Add Project Context to NewTestsView** 
    ```typescript
-   // client/src/hooks/useSpellCheck.ts
-   import { apiRequest } from '@/lib/queryClient';
+   // client/src/pages/NewTestsView.tsx
+   // Replace global /api/statements with project-specific endpoint
    
-   const checkSpelling = useCallback(async (textToCheck: string) => {
-     if (!enabled || !textToCheck.trim()) {
-       setErrors([]);
-       return;
+   // OLD (line 20-22):
+   const { data: statements } = useQuery<StatementWithRelations[]>({
+     queryKey: ['/api/statements'], // ❌ Global - shows all projects
+   });
+   
+   // NEW:
+   const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
+   
+   // Get project ID from URL or user context
+   useEffect(() => {
+     // Extract from URL path or use last visited project
+     const urlPath = window.location.pathname;
+     const projectMatch = urlPath.match(/\/projects\/([^\/]+)/);
+     if (projectMatch) {
+       setCurrentProjectId(projectMatch[1]);
+     } else {
+       // Fallback: Use user's default/recent project
+       setCurrentProjectId(user?.lastProjectId || null);
      }
-     
-     setIsChecking(true);
-     try {
-       const response = await apiRequest('POST', '/api/spellcheck', {
-         text: textToCheck,
-         language
-       });
-       const result = await response.json();
-       setErrors(result.errors);
-     } catch (error) {
-       console.error('Spell check API failed:', error);
-       setErrors([]); // Fallback to no errors
-     } finally {
-       setIsChecking(false);
-     }
-   }, [enabled, language]);
+   }, []);
+   
+   const { data: statements } = useQuery<StatementWithRelations[]>({
+     queryKey: [`/api/projects/${currentProjectId}/statements`], // ✅ Project-specific
+     enabled: !!currentProjectId,
+   });
    ```
 
-2. **Add SpellCheckIndicator to Missing Fields**
-
-   **NewStatementModal.tsx - Test Title Field**
+2. **Add Navigation Context Preservation**
    ```typescript
-   // Add after line 184
-   <div className="flex justify-between items-center mb-2">
-     <Label htmlFor="description" className="block text-sm font-medium text-gray-700">
-       Test Title
-     </Label>
-     <SpellCheckIndicator 
-       text={formData.description} 
-       onTextChange={(newText) => setFormData(prev => ({ ...prev, description: newText }))}
-       customWords={['facebook', 'ad', 'campaign', 'test', 'batch']}
-     />
-   </div>
+   // Preserve project context when navigating to NewTestsView
+   // Update all navigation links to include project context
+   
+   // In Sidebar or Dashboard cards:
+   <Link to={`/tests/new?project=${projectId}`}>New Tests</Link>
+   
+   // In NewTestsView, read project from URL:
+   const urlParams = new URLSearchParams(window.location.search);
+   const projectIdFromUrl = urlParams.get('project');
    ```
 
-   **StatementEditor.tsx - Heading Field**
+3. **Update Routing Architecture**
    ```typescript
-   // Add after line 337
+   // client/src/App.tsx
+   // Change route structure to be project-aware
+   
+   // OLD: /tests/new (global)
+   // NEW: /projects/:projectId/tests/new (project-scoped)
+   
+   <Route path="/projects/:projectId/tests/new" component={NewTestsView} />
+   ```
+
+### Phase 2: Fix Input Field Functionality (Critical - Error #2)
+**Goal**: Restore text input capability by resolving state management conflicts.
+
+#### Changes Required:
+
+1. **Remove SpellCheckIndicator State Conflicts**
+   ```typescript
+   // client/src/components/StatementEditor.tsx
+   // Strategy: SpellCheckIndicator reads-only, Textarea controls state
+   
+   // For heading field (lines 340-375):
    <SpellCheckIndicator 
      text={formData.heading} 
-     onTextChange={(newText) => setFormData(prev => ({ ...prev, heading: newText }))}
+     onTextChange={undefined} // ❌ Remove conflicting handler
      customWords={['facebook', 'ad', 'campaign', 'cro', 'conversion']}
+     className="mr-4"
+   />
+   <Textarea
+     value={formData.heading}
+     onChange={(e) => {
+       const newValue = e.target.value;
+       setFormData(prev => ({ ...prev, heading: newValue })); // ✅ Single source of truth
+       setUseTrueFalse(newValue.includes("True or False?"));
+     }}
    />
    ```
 
-3. **Add Dictionary Management Functions**
+2. **Make SpellCheckIndicator Read-Only Display**
    ```typescript
-   // In useSpellCheck.ts
-   const addToPersonalDictionary = useCallback(async (word: string) => {
-     try {
-       await apiRequest('POST', '/api/spellcheck/dictionary/add', { word });
-       // Refresh spell check to remove the word from errors
-       await checkSpelling(text);
-     } catch (error) {
-       console.error('Failed to add word to dictionary:', error);
-     }
-   }, [text, checkSpelling]);
+   // client/src/components/SpellCheckIndicator.tsx
+   // Update to support read-only mode without onTextChange
+   
+   interface SpellCheckIndicatorProps {
+     text: string;
+     onTextChange?: (newText: string) => void; // Make optional
+     className?: string;
+     customWords?: string[];
+     readOnly?: boolean; // New prop for display-only mode
+   }
+   
+   // Only show suggestions if onTextChange is provided
+   const showSuggestions = !!onTextChange && !readOnly;
    ```
 
-### Phase 2: Enhanced User Experience  
-**Goal**: Improve spell checking UX with visual feedback and advanced features.
+3. **Debug canEdit Logic**
+   ```typescript
+   // Add logging to diagnose permission issues
+   
+   const userRole = (user as any)?.role;
+   const isReviewer = userRole === "growth_strategist" || userRole === "super_admin";
+   const canEdit = (statement.status === "draft" || statement.status === "needs_revision") && !isReviewer;
+   
+   // Debug logging:
+   console.log('Edit Permissions Debug:', {
+     userRole,
+     statementStatus: statement.status,
+     isReviewer,
+     canEdit,
+     userId: (user as any)?.id
+   });
+   ```
+
+### Phase 3: Architecture Cleanup & Prevention
+**Goal**: Prevent future cross-project contamination and state conflicts.
 
 #### Changes Required:
 
-1. **Visual Error Highlighting**
+1. **Standardize Project-Scoped APIs**
    ```typescript
-   // Add to SpellCheckIndicator.tsx
-   const renderTextWithHighlights = (text: string, errors: SpellCheckError[]) => {
-     // Highlight misspelled words with red underline in text areas
-     // Show tooltip on hover with suggestions
+   // Audit all API calls to ensure project scoping
+   // Replace any remaining global endpoints with project-specific ones
+   
+   // Pattern: /api/projects/:projectId/{resource}
+   // Examples:
+   // /api/projects/:projectId/statements
+   // /api/projects/:projectId/users
+   // /api/projects/:projectId/dashboard
+   ```
+
+2. **Add Project Context Provider**
+   ```typescript
+   // client/src/contexts/ProjectContext.tsx
+   const ProjectContext = createContext<{
+     currentProject: Project | null;
+     setCurrentProject: (project: Project) => void;
+   }>();
+   
+   // Wrap components that need project context
+   export const ProjectProvider = ({ children }) => {
+     const [currentProject, setCurrentProject] = useState<Project | null>(null);
+     return (
+       <ProjectContext.Provider value={{ currentProject, setCurrentProject }}>
+         {children}
+       </ProjectContext.Provider>
+     );
    };
    ```
 
-2. **Contextual Spell Checking**
+3. **Implement State Management Best Practices**
    ```typescript
-   // Different custom words for different contexts
-   const getContextualWords = (field: string) => {
-     const baseWords = ['facebook', 'ad', 'campaign'];
-     if (field === 'title') return [...baseWords, 'test', 'batch', 'variant'];
-     if (field === 'content') return [...baseWords, 'conversion', 'cro', 'audience'];
-     return baseWords;
-   };
+   // Single source of truth for form state
+   // Clear separation between display components and input handlers  
+   // Consistent prop patterns across components
    ```
-
-3. **Bulk Dictionary Operations**
-   - Add multiple custom words at once
-   - Import/export custom dictionaries
-   - Team-shared dictionary management
-
-### Phase 3: Performance & Reliability Optimization
-**Goal**: Ensure spell checking is fast, reliable, and doesn't impact user experience.
-
-#### Changes Required:
-
-1. **Debouncing & Caching**
-   ```typescript
-   // Implement smarter debouncing (300ms for titles, 500ms for content)
-   // Cache spell check results to avoid redundant API calls
-   const [spellCheckCache, setSpellCheckCache] = useState<Map<string, SpellCheckError[]>>(new Map());
-   ```
-
-2. **Error Recovery & Fallbacks**
-   ```typescript
-   // If API fails, fall back to browser spell check
-   // Retry mechanism for failed requests
-   // Offline functionality with local dictionary
-   ```
-
-3. **Performance Monitoring**
-   - Log spell check API response times
-   - Track custom dictionary usage
-   - Monitor error rates and user satisfaction
 
 ## Implementation Priority
 
-### High Priority (Fix Immediately)
-- [ ] **Integrate server-side spell checking**: Replace client-side useSpellCheck with API calls
-- [ ] **Add SpellCheckIndicator to test titles**: NewStatementModal description field
-- [ ] **Add SpellCheckIndicator to heading**: StatementEditor heading field  
-- [ ] **Update SpellCheckIndicator**: Add dictionary management functions
-- [ ] **Test all text inputs**: Verify spell checking works across all fields
+### **CRITICAL - Fix Immediately (Both Errors)**
+- [ ] **Error #1 - Fix Cross-Project Contamination**: 
+  - [ ] Add project context to NewTestsView (extract from URL or user context)
+  - [ ] Replace global `/api/statements` with project-specific endpoint
+  - [ ] Update navigation to preserve project context
+  - [ ] Test with multiple projects to verify isolation
+- [ ] **Error #2 - Fix Input Field Functionality**:
+  - [ ] Remove SpellCheckIndicator `onTextChange` conflicts in StatementEditor
+  - [ ] Make SpellCheckIndicator read-only display component
+  - [ ] Debug and fix canEdit permission logic
+  - [ ] Test text input in all fields (heading, content, footer)
 
-### Medium Priority (Enhanced Features)
-- [ ] **Visual error highlighting**: Red underlines for misspelled words
-- [ ] **Contextual custom words**: Different word sets per field type
-- [ ] **Performance optimization**: Caching and smarter debouncing
-- [ ] **Error handling**: Fallback mechanisms when API fails
+### **High Priority (Immediate Follow-up)**
+- [ ] **Update routing architecture**: Project-scoped URLs (`/projects/:id/tests/new`)
+- [ ] **Add comprehensive testing**: Verify no cross-project data leakage
+- [ ] **Add debug logging**: Monitor permission and state issues
+- [ ] **Update all navigation links**: Ensure project context preservation
 
-### Low Priority (Future Enhancements)
-- [ ] **Bulk dictionary operations**: Team-shared dictionaries
-- [ ] **Offline spell checking**: Local dictionary fallback
-- [ ] **Usage analytics**: Monitor spell check effectiveness
-- [ ] **Advanced suggestions**: ML-based corrections
+### **Medium Priority (Stability & UX)**
+- [ ] **Create Project Context Provider**: Centralized project state management
+- [ ] **Audit all API endpoints**: Ensure proper project scoping
+- [ ] **Add error boundaries**: Graceful handling of navigation failures
+- [ ] **Implement fallback mechanisms**: Default project selection logic
+
+### **Low Priority (Future Enhancements)** 
+- [ ] **Performance optimization**: Cache project data and API responses
+- [ ] **Enhanced navigation**: Breadcrumbs and project switching UI
+- [ ] **Advanced permissions**: Fine-grained access control per project
+- [ ] **Usage analytics**: Track cross-project navigation patterns
 
 ## Files to Modify
 
-### Primary Changes
-1. **client/src/hooks/useSpellCheck.ts** - Replace with server API integration
-2. **client/src/components/NewStatementModal.tsx** - Add SpellCheckIndicator to title
-3. **client/src/components/StatementEditor.tsx** - Add SpellCheckIndicator to heading
-4. **client/src/components/SpellCheckIndicator.tsx** - Add dictionary management
+### **Critical Changes (Error #1 - Cross-Project Contamination)**
+1. **client/src/pages/NewTestsView.tsx** - Replace global API with project-specific endpoint
+2. **client/src/App.tsx** - Update routing to be project-aware  
+3. **client/src/components/Sidebar.tsx** - Update navigation links with project context
+4. **server/routes.ts** - Verify project-scoped endpoints are working correctly
 
-### Secondary Changes  
-5. **server/spellcheck.ts** - Verify and potentially enhance existing functionality
-6. **server/routes.ts** - Add any missing API endpoints if needed
-7. **replit.md** - Update documentation with spell check architecture
+### **Critical Changes (Error #2 - Input Fields Non-Functional)**
+5. **client/src/components/StatementEditor.tsx** - Remove SpellCheckIndicator state conflicts
+6. **client/src/components/SpellCheckIndicator.tsx** - Add read-only mode support
+7. **client/src/hooks/useSpellCheck.ts** - Verify spell check hook isn't blocking input
+
+### **Supporting Changes**
+8. **client/src/contexts/ProjectContext.tsx** - New file for project state management
+9. **client/src/pages/ProjectView.tsx** - Ensure project context is properly maintained
+10. **replit.md** - Update documentation with architecture fixes and lessons learned
 
 ## Detailed Implementation Steps
 
-### Step 1: Fix useSpellCheck Hook (Critical)
-**File**: `client/src/hooks/useSpellCheck.ts`
-**Current Issue**: Uses static word lists instead of server API
-**Fix**: Replace entire `checkSpelling` function with API call
+### **Step 1: Fix Cross-Project Contamination (Error #1)**
+**File**: `client/src/pages/NewTestsView.tsx` (lines 20-22)
+**Current Issue**: Uses global `/api/statements` showing all projects' tests
+**Fix**: Switch to project-specific endpoint and add project context detection
 
-### Step 2: Add Missing SpellCheckIndicators  
-**Files**: NewStatementModal.tsx (line 184), StatementEditor.tsx (line 337)
-**Current Issue**: Text fields missing spell check integration
-**Fix**: Add SpellCheckIndicator components with appropriate custom words
+### **Step 2: Fix Input Field State Conflicts (Error #2)**
+**File**: `client/src/components/StatementEditor.tsx` (lines 340-375, 384-401, 409-426)
+**Current Issue**: SpellCheckIndicator `onTextChange` conflicts with Textarea `onChange`
+**Fix**: Remove SpellCheckIndicator state management, make it display-only
 
-### Step 3: Enhance Dictionary Management
-**File**: `client/src/components/SpellCheckIndicator.tsx`  
-**Current Issue**: Cannot add words to server dictionary
-**Fix**: Implement `addToPersonalDictionary` function with API integration
+### **Step 3: Debug Permission System**
+**File**: `client/src/components/StatementEditor.tsx` (lines 257-261)  
+**Current Issue**: `canEdit` logic may be incorrectly disabling fields
+**Fix**: Add debug logging and verify user role and statement status detection
 
 ## Testing Strategy
 
@@ -277,26 +364,40 @@ The frontend is using a **primitive client-side spell checker** instead of the *
 
 ## Success Criteria
 
-### Phase 1 Success Metrics
-✅ **Test Title Spell Check**: SpellCheckIndicator appears on NewStatementModal description field
-✅ **Heading Spell Check**: SpellCheckIndicator appears on StatementEditor heading field
-✅ **Server Integration**: API calls to `/api/spellcheck` successful
-✅ **Error Detection**: Misspelled words properly identified and highlighted
-✅ **Suggestions Work**: Clicking suggestions replaces words correctly
-✅ **Dictionary Management**: Adding custom words to server dictionary functions
-✅ **All Fields Working**: Content, footer, and review notes continue working
+### **Critical Success Metrics (Error #1 - Cross-Project Contamination)**
+✅ **Project Isolation**: NewTestsView shows only current project's tests
+✅ **Navigation Context**: Clicking "New Tests" from Project A shows only Project A tests  
+✅ **No Cross-Contamination**: Users never see other clients' data
+✅ **URL Context**: NewTestsView can determine current project from navigation
+✅ **Multi-Project Testing**: Verified with 2+ projects showing different test sets
 
-### User Experience Success
-✅ **Real-time Feedback**: Spell checking updates as user types (debounced)
-✅ **No Performance Impact**: Text input remains responsive during spell checking
-✅ **Marketing Terms**: Business terminology properly recognized
-✅ **Professional Appearance**: UI indicates spell checking is active and working
+### **Critical Success Metrics (Error #2 - Input Field Functionality)**  
+✅ **Text Input Works**: Users can type in heading, content, and footer fields
+✅ **State Updates**: formData changes reflect immediately in input fields
+✅ **No Conflicts**: SpellCheckIndicator and Textarea don't compete for control
+✅ **Permission Logic**: canEdit correctly enables/disables fields based on user role
+✅ **Cross-Field Testing**: All text inputs accept and preserve user input
+
+### **System Stability Success**
+✅ **No Regression**: All previously working features remain functional
+✅ **Performance Maintained**: No additional lag or rendering issues
+✅ **Error Handling**: Graceful degradation if project context is missing
+✅ **Navigation Integrity**: All links and routing continue working correctly
 
 ## Implementation Timeline
-- **Phase 1**: 3-4 hours (API integration and missing SpellCheckIndicators)
-- **Phase 2**: 2-3 hours (Enhanced UX and visual improvements)
-- **Phase 3**: 1-2 hours (Performance optimization and error handling)
-- **Total**: 6-9 hours
+- **Phase 1 (Critical Fixes)**: 2-3 hours (Cross-project isolation and input field restoration)
+- **Phase 2 (Architecture Cleanup)**: 1-2 hours (Project-scoped routing and context management) 
+- **Phase 3 (Testing & Prevention)**: 1-2 hours (Multi-project verification and safeguards)
+- **Total**: 4-7 hours
+
+## Risk Assessment
+
+**High Risk - Data Privacy**: Cross-project contamination exposes client data inappropriately
+**High Risk - User Experience**: Non-functional input fields completely block content creation  
+**Medium Risk - Navigation**: Users may get confused by incorrect project context
+**Low Risk - Performance**: Project filtering may slightly impact load times
+
+**Mitigation Priority**: Fix Error #1 first (data privacy), then Error #2 (functionality)
 
 ## Technical Architecture After Fix
 
@@ -318,9 +419,18 @@ Visual Feedback + User Interaction
 
 ## Conclusion
 
-The spell checking infrastructure is **95% complete** - the server-side system with advanced features already exists and works perfectly. The issue is simply that the frontend is not using this sophisticated system. 
+Both issues are **critical but fixable** with targeted changes to existing code:
 
-**Root Cause**: Frontend-backend integration gap
-**Solution**: Connect existing components properly  
-**Impact**: Professional-grade spell checking across all text inputs
-**Effort**: Moderate (primarily integration work, not new development)
+**Error #1 - Cross-Project Contamination**: 
+- **Root Cause**: NewTestsView uses global API instead of project-scoped endpoint
+- **Solution**: Switch to existing `/api/projects/:projectId/statements` endpoint with proper context detection
+- **Impact**: Restores proper data isolation between clients
+- **Effort**: Low (change API endpoint + add project context)
+
+**Error #2 - Input Fields Non-Functional**:
+- **Root Cause**: State management conflicts between SpellCheckIndicator and Textarea components
+- **Solution**: Make SpellCheckIndicator read-only display, let Textarea handle input  
+- **Impact**: Restores text input functionality across all statement fields
+- **Effort**: Low (remove conflicting state handlers + debug permissions)
+
+**Overall Assessment**: Both issues stem from recent changes that introduced unintended side effects. The underlying architecture is sound and fixes should be straightforward to implement without disrupting existing functionality.
