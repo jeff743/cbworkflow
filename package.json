@@ -7,8 +7,8 @@
     "dev": "NODE_ENV=development tsx server/index.ts",
     "build": "tsc && vite build",
     "start": "node dist/server/index.js",
-    "make-super-admin": "NODE_ENV=production tsx server/makeAdmin.ts",
-    "check-env": "NODE_ENV=production tsx server/checkEnv.ts"
+    "make-super-admin": "NODE_ENV=development tsx server/makeAdmin.ts",
+    "check-env": "NODE_ENV=development tsx server/checkEnv.ts"
   },
   "dependencies": {
     "@google-cloud/storage": "^7.16.0",
