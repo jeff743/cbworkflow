@@ -79,7 +79,7 @@ export default function NewTestsView() {
         <div className="flex-1 overflow-y-auto p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {tests.map(test => (
-              <Link key={test.id} href={`/projects/${test.projectId}`}>
+              <Link key={test.id} href={`/projects/${test.projectId}?statement=${test.statements[0]?.id}`}>
                 <div className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow cursor-pointer">
                   <div className="flex items-start justify-between mb-4">
                     <div>
