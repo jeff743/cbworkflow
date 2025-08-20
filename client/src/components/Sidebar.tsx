@@ -401,7 +401,7 @@ export function Sidebar() {
             <div className="flex items-center gap-2">
               <p className="text-xs text-gray-400 capitalize" data-testid="text-user-role">
                 {(user as any)?.role?.replace('_', ' ') || 'User'} 
-                <span className="text-green-500 font-bold">*UPDATED*</span>
+                <span className="text-red-500 font-bold text-lg">🔥 CACHE FIX READY 🔥</span>
               </p>
               <button 
                 onClick={() => refreshRoleMutation.mutate()}
