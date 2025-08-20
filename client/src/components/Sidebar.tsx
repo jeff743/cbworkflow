@@ -494,9 +494,11 @@ export function Sidebar() {
             </p>
             {/* Debug info */}
             {process.env.NODE_ENV === 'development' && (
-              <p className="text-xs text-red-500">
-                User loaded: {user ? 'Yes' : 'No'} | Role: {(user as any)?.role}
-              </p>
+              <div className="text-xs text-red-500">
+                <p>User: {user ? 'Yes' : 'No'}</p>
+                <p>Role: {(user as any)?.role}</p>
+                <p>Display: {(user as any)?.roleDisplayName}</p>
+              </div>
             )}
           </div>
           <Button
