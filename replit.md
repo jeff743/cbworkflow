@@ -7,10 +7,17 @@ CB Workflow is a CRO (Conversion Rate Optimization) agency management platform d
 - **Implemented workflow dashboard with stage cards**: Added 4-card overview showing New Tests, Pending Review, Ready to Deploy, and Completed stages with clickable drill-down functionality  
 - **Added role-based UI controls**: New Test button visibility adapts to user permissions (visible for all roles with CREATE_TASK permission)
 - **Enhanced project navigation**: Fixed project selection from sidebar links with proper state management and navigation flow
+- **Resolved navigation and sidebar issues**: Fixed New Tests module card navigation to open statement editor directly via URL query parameters, added sidebar to statement editor, and restored missing delete test functionality
+- **Implemented feature preservation workflow**: Added comprehensive mutation handling and UI restoration to prevent accidental feature removal during fixes
 
 # User Preferences
 
 Preferred communication style: Simple, everyday language.
+
+## Development Workflow Preferences
+- **Feature Preservation Priority**: When fixing issues, always check for existing functionality that might be accidentally removed (e.g., delete buttons, mutations, UI components)
+- **Comprehensive Testing**: Before marking fixes complete, verify all previously working features remain intact
+- **Documentation First**: Always review existing code patterns and implementations before making changes to understand full scope of functionality
 
 # System Architecture
 
