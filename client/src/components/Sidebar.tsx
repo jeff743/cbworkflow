@@ -184,7 +184,16 @@ export function Sidebar() {
         <div className="pt-4 border-t border-gray-200">
           <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Workflow</h3>
           <div className="space-y-1">
-            <Link href={currentProjectId ? `/tests/new?project=${currentProjectId}` : "/tests/new"}>
+            <Link 
+              href={currentProjectId ? `/tests/new?project=${currentProjectId}` : "/tests/new"}
+              onClick={() => {
+                if (currentProjectId) {
+                  localStorage.setItem('lastVisitedProject', currentProjectId);
+                  localStorage.setItem('lastNavTimestamp', Date.now().toString());
+                  console.log('🚀 Sidebar: Navigating to New Tests for project:', currentProjectId);
+                }
+              }}
+            >
               <div className={`flex items-center justify-between p-3 text-sm rounded-lg cursor-pointer transition-colors ${
                 location === '/tests/new' 
                   ? 'bg-primary text-white' 
