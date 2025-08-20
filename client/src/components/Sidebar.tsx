@@ -503,26 +503,35 @@ export function Sidebar() {
           </div>
         </div>
         
-        {/* Separate row for buttons to ensure visibility */}
-        <div className="flex justify-end gap-2 mt-3 pt-2 border-t border-gray-100">
-          <button
-            onClick={() => refreshUserProfile.mutate()}
-            disabled={refreshUserProfile.isPending}
-            className="w-10 h-10 bg-blue-500 text-white rounded-lg hover:bg-blue-600 flex items-center justify-center text-lg font-bold border-2 border-blue-300"
-            title="Refresh profile"
-            data-testid="button-sidebar-refresh"
-          >
-            🔄
-          </button>
-          <button
-            onClick={() => logoutMutation.mutate()}
-            disabled={logoutMutation.isPending}
-            className="w-10 h-10 bg-red-500 text-white rounded-lg hover:bg-red-600 flex items-center justify-center text-lg font-bold border-2 border-red-300"
-            title={logoutMutation.isPending ? "Logging out..." : "Logout"}
-            data-testid="button-sidebar-logout"
-          >
-            {logoutMutation.isPending ? "⏳" : "🚪"}
-          </button>
+        {/* TEST: Force visible buttons row */}
+        <div className="w-full bg-yellow-200 p-4 mt-2 border-4 border-red-500">
+          <p className="text-black font-bold mb-2">BUTTONS TEST SECTION</p>
+          <div className="flex justify-center gap-4">
+            <button
+              onClick={() => {
+                console.log('Refresh clicked!');
+                refreshUserProfile.mutate();
+              }}
+              disabled={refreshUserProfile.isPending}
+              className="w-16 h-16 bg-blue-500 text-white rounded-lg hover:bg-blue-600 flex items-center justify-center text-2xl font-bold border-4 border-blue-300 shadow-lg"
+              title="Refresh profile"
+              data-testid="button-sidebar-refresh"
+            >
+              🔄
+            </button>
+            <button
+              onClick={() => {
+                console.log('Logout clicked!');
+                logoutMutation.mutate();
+              }}
+              disabled={logoutMutation.isPending}
+              className="w-16 h-16 bg-red-500 text-white rounded-lg hover:bg-red-600 flex items-center justify-center text-2xl font-bold border-4 border-red-300 shadow-lg"
+              title={logoutMutation.isPending ? "Logging out..." : "Logout"}
+              data-testid="button-sidebar-logout"
+            >
+              {logoutMutation.isPending ? "⏳" : "🚪"}
+            </button>
+          </div>
         </div>
       </div>
     </div>
