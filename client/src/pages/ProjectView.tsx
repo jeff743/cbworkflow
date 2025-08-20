@@ -457,6 +457,14 @@ export default function ProjectView() {
                         const pendingCount = test.statements.filter((s: any) => s.status === 'under_review').length;
                         const revisionCount = test.statements.filter((s: any) => s.status === 'needs_revision').length;
                         const draftCount = test.statements.filter((s: any) => s.status === 'draft').length;
+                        
+                        // Check if test is ready for deployment (all approved, not yet marked)
+                        const allApproved = test.testBatchId && test.statements.length > 0 && 
+                          test.statements.every((s: any) => s.status === 'approved');
+                        const notYetDeployed = test.statements.every((s: any) => 
+                          !s.deploymentStatus || s.deploymentStatus === 'pending'
+                        );
+                        const canMarkReadyToDeploy = allApproved && notYetDeployed;
                     
                         return (
                           <div
@@ -507,13 +515,32 @@ export default function ProjectView() {
                               )}
                             </div>
                           </div>
-                          {/* Delete button for test batches only - show for any test with testBatchId */}
-                          {test.testBatchId && (
-                            <div className="flex-shrink-0 ml-2">
+                          {/* Action buttons */}
+                          <div className="flex-shrink-0 ml-2 space-y-2">
+                            {/* Mark Ready to Deploy button - show for approved tests not yet deployed */}
+                            {canMarkReadyToDeploy && (
+                              <Button
+                                size="sm"
+                                className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 text-xs w-full"
+                                onClick={(e) => {
+                                  e.stopPropagation(); // Prevent card click
+                                  if (test.testBatchId) {
+                                    markReadyToDeployMutation.mutate(test.testBatchId);
+                                  }
+                                }}
+                                disabled={markReadyToDeployMutation.isPending}
+                                data-testid={`button-mark-deploy-${test.id}`}
+                              >
+                                {markReadyToDeployMutation.isPending ? "Processing..." : "🚀 Mark Ready"}
+                              </Button>
+                            )}
+                            
+                            {/* Delete button for test batches only - show for any test with testBatchId */}
+                            {test.testBatchId && (
                               <Button
                                 variant="outline"
                                 size="sm"
-                                className="text-red-600 hover:text-red-800 hover:bg-red-50 border-red-200 hover:border-red-400 px-3 py-1"
+                                className="text-red-600 hover:text-red-800 hover:bg-red-50 border-red-200 hover:border-red-400 px-3 py-1 text-xs w-full"
                                 onClick={(e) => {
                                   e.stopPropagation(); // Prevent card click
                                   handleDeleteTest(test);
@@ -522,8 +549,8 @@ export default function ProjectView() {
                               >
                                 🗑️ Delete
                               </Button>
-                            </div>
-                          )}
+                            )}
+                          </div>
                         </div>
                         <div className="text-xs text-gray-500">
                           Created {test.createdAt ? new Date(test.createdAt).toLocaleDateString() : 'Unknown date'}
