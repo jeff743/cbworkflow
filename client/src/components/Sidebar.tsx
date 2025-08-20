@@ -501,28 +501,26 @@ export function Sidebar() {
               </div>
             )}
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => refreshUserProfile.mutate()}
-            disabled={refreshUserProfile.isPending}
-            className="h-8 w-8 p-0 bg-blue-100 border border-blue-300"
-            title="Refresh profile"
-            data-testid="button-sidebar-refresh"
-          >
-            🔄
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => logoutMutation.mutate()}
-            disabled={logoutMutation.isPending}
-            className="h-8 w-8 p-0 bg-red-100 border border-red-300"
-            title={logoutMutation.isPending ? "Logging out..." : "Logout"}
-            data-testid="button-sidebar-logout"
-          >
-            {logoutMutation.isPending ? "⏳" : "🚪"}
-          </Button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => refreshUserProfile.mutate()}
+              disabled={refreshUserProfile.isPending}
+              className="w-8 h-8 bg-blue-500 text-white rounded hover:bg-blue-600 flex items-center justify-center"
+              title="Refresh profile"
+              data-testid="button-sidebar-refresh"
+            >
+              🔄
+            </button>
+            <button
+              onClick={() => logoutMutation.mutate()}
+              disabled={logoutMutation.isPending}
+              className="w-8 h-8 bg-red-500 text-white rounded hover:bg-red-600 flex items-center justify-center"
+              title={logoutMutation.isPending ? "Logging out..." : "Logout"}
+              data-testid="button-sidebar-logout"
+            >
+              {logoutMutation.isPending ? "⏳" : "🚪"}
+            </button>
+          </div>
         </div>
       </div>
     </div>
