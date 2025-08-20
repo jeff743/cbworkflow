@@ -28,6 +28,41 @@ export default function ProjectView() {
   const [navigationRequest, setNavigationRequest] = useState<{ targetStatementId: string; timestamp: number } | null>(null);
   const [showNewStatementModal, setShowNewStatementModal] = useState(false);
   const [testToDelete, setTestToDelete] = useState<any>(null);
+
+  // Delete test batch mutation
+  const deleteTestBatchMutation = useMutation({
+    mutationFn: async (testBatchId: string) => {
+      const response = await apiRequest('DELETE', `/api/test-batches/${testBatchId}`);
+      return response.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/statements`] });
+      setTestToDelete(null);
+      if (selectedTestId === testToDelete?.id) {
+        setSelectedTestId(null);
+        setSelectedStatementId(null);
+      }
+    },
+    onError: (error) => {
+      console.error('Failed to delete test batch:', error);
+    },
+  });
+
+  const handleDeleteTest = (test: any) => {
+    if (test.testBatchId) {
+      setTestToDelete({
+        id: test.id,
+        testBatchId: test.testBatchId,
+        statementsCount: test.statements.length
+      });
+    }
+  };
+
+  const confirmDeleteTest = () => {
+    if (testToDelete?.testBatchId) {
+      deleteTestBatchMutation.mutate(testToDelete.testBatchId);
+    }
+  };
   
   // Fetch project data
   const { data: project } = useQuery<any>({
@@ -108,25 +143,7 @@ export default function ProjectView() {
     return tests.find(test => test.id === selectedTestId);
   }, [tests, selectedTestId]);
 
-  // Delete test batch mutation
-  const deleteTestBatchMutation = useMutation({
-    mutationFn: (testBatchId: string) => 
-      apiRequest('DELETE', `/api/test-batches/${testBatchId}`),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/statements`] });
-      setTestToDelete(null);
-    }
-  });
 
-  const handleDeleteTest = (test: any) => {
-    setTestToDelete(test);
-  };
-
-  const confirmDeleteTest = () => {
-    if (testToDelete?.testBatchId) {
-      deleteTestBatchMutation.mutate(testToDelete.testBatchId);
-    }
-  };
 
   // Debug logging
   console.log('ProjectView Debug:', { projectId, project, statements, userRole: (user as any)?.role });
@@ -335,6 +352,24 @@ export default function ProjectView() {
                           ))}
                         </div>
                       </div>
+                      
+                      {/* Delete button for test batches */}
+                      {test.testBatchId && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteTest(test);
+                          }}
+                          className="text-red-600 hover:text-red-800 hover:bg-red-50"
+                          data-testid={`button-delete-test-${test.id}`}
+                        >
+                          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </Button>
+                      )}
                     </div>
                     <div className="text-xs text-gray-500">
                       Created {test.createdAt ? new Date(test.createdAt).toLocaleDateString() : 'Unknown date'}
@@ -372,12 +407,12 @@ export default function ProjectView() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogAction
               onClick={confirmDeleteTest}
               className="bg-red-600 hover:bg-red-700"
               disabled={deleteTestBatchMutation.isPending}
             >
-              {deleteTestBatchMutation.isPending ? "Deleting..." : "Delete"}
+              {deleteTestBatchMutation.isPending ? "Deleting..." : "Delete Test"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
