@@ -339,7 +339,6 @@ export function StatementEditor({ statement, onStatementUpdated, navigationReque
                     <div className="flex items-center space-x-2">
                       <SpellCheckIndicator 
                         text={formData.heading} 
-                        onTextChange={(newText) => setFormData(prev => ({ ...prev, heading: newText }))}
                         customWords={['facebook', 'ad', 'campaign', 'cro', 'conversion']}
                         className="mr-4"
                       />
@@ -383,7 +382,6 @@ export function StatementEditor({ statement, onStatementUpdated, navigationReque
                     </Label>
                     <SpellCheckIndicator 
                       text={formData.content} 
-                      onTextChange={(newText) => setFormData(prev => ({ ...prev, content: newText }))}
                       customWords={['facebook', 'ad', 'campaign', 'cro', 'conversion']}
                     />
                   </div>
@@ -408,7 +406,6 @@ export function StatementEditor({ statement, onStatementUpdated, navigationReque
                     </Label>
                     <SpellCheckIndicator 
                       text={formData.footer} 
-                      onTextChange={(newText) => setFormData(prev => ({ ...prev, footer: newText }))}
                       customWords={['facebook', 'ad', 'campaign', 'cro', 'conversion']}
                     />
                   </div>
