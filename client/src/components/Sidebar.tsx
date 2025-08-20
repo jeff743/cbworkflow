@@ -504,26 +504,22 @@ export function Sidebar() {
             size="sm"
             onClick={() => refreshUserProfile.mutate()}
             disabled={refreshUserProfile.isPending}
-            className="h-8 w-8 p-0"
+            className="h-8 w-8 p-0 bg-blue-100 border border-blue-300"
             title="Refresh profile"
             data-testid="button-sidebar-refresh"
           >
-            <i className={`fas fa-sync-alt ${refreshUserProfile.isPending ? 'animate-spin' : ''}`}></i>
+            🔄
           </Button>
           <Button
             variant="ghost"
             size="sm"
             onClick={() => logoutMutation.mutate()}
             disabled={logoutMutation.isPending}
-            className="h-8 w-8 p-0"
+            className="h-8 w-8 p-0 bg-red-100 border border-red-300"
             title={logoutMutation.isPending ? "Logging out..." : "Logout"}
             data-testid="button-sidebar-logout"
           >
-            {logoutMutation.isPending ? (
-              <i className="fas fa-spinner fa-spin text-sm"></i>
-            ) : (
-              <i className="fas fa-sign-out-alt text-sm"></i>
-            )}
+            {logoutMutation.isPending ? "⏳" : "🚪"}
           </Button>
         </div>
       </div>
