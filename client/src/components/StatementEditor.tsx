@@ -257,6 +257,15 @@ export function StatementEditor({ statement, onStatementUpdated, navigationReque
   const userRole = (user as any)?.role;
   const isReviewer = userRole === "growth_strategist" || userRole === "super_admin";
   
+  console.log('🔒 StatementEditor Permission Check:', {
+    userRole,
+    isReviewer,
+    statementStatus: statement.status,
+    statementCreatedBy: statement.createdBy,
+    currentUserId: (user as any)?.id,
+    canEditLogic: `(${statement.status} === "draft" || ${statement.status} === "needs_revision") && !${isReviewer}`
+  });
+  
   const canEdit = (statement.status === "draft" || statement.status === "needs_revision") && !isReviewer;
   const canReview = isReviewer && statement.status === "under_review";
   const hasBeenReviewed = statement.status === "approved" || statement.status === "needs_revision";
