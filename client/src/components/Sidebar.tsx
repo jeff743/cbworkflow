@@ -115,7 +115,29 @@ export function Sidebar() {
   const handleProjectClick = useCallback((projectId: string) => {
     // Signal to ProjectView to reset state
     queryClient.invalidateQueries({ queryKey: ['project-nav-reset', projectId] });
+    // Store project in localStorage for future reference
+    localStorage.setItem('lastVisitedProject', projectId);
   }, []);
+
+  // Determine current project context for workflow links
+  const getCurrentProjectId = () => {
+    // Extract from URL if we're in a project view
+    const projectMatch = location.match(/\/projects\/([^\/]+)/);
+    if (projectMatch) {
+      return projectMatch[1];
+    }
+    
+    // Fallback to last visited project
+    const lastProjectId = localStorage.getItem('lastVisitedProject');
+    if (lastProjectId && projects?.some(p => p.id === lastProjectId)) {
+      return lastProjectId;
+    }
+    
+    // Fallback to first available project
+    return projects?.[0]?.id || null;
+  };
+
+  const currentProjectId = getCurrentProjectId();
 
   return (
     <div className="w-64 bg-surface shadow-lg flex flex-col">
@@ -162,7 +184,7 @@ export function Sidebar() {
         <div className="pt-4 border-t border-gray-200">
           <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Workflow</h3>
           <div className="space-y-1">
-            <Link href="/tests/new">
+            <Link href={currentProjectId ? `/tests/new?project=${currentProjectId}` : "/tests/new"}>
               <div className={`flex items-center justify-between p-3 text-sm rounded-lg cursor-pointer transition-colors ${
                 location === '/tests/new' 
                   ? 'bg-primary text-white' 

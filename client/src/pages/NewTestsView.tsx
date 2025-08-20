@@ -1,6 +1,6 @@
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { NewStatementModal } from "@/components/NewStatementModal";
 import { Button } from "@/components/ui/button";
@@ -8,17 +8,64 @@ import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Link, useLocation } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
-import type { StatementWithRelations } from "@shared/schema";
+import type { StatementWithRelations, ProjectWithStats } from "@shared/schema";
 
 export default function NewTestsView() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   const [showNewStatementModal, setShowNewStatementModal] = useState(false);
   const [testToDelete, setTestToDelete] = useState<any>(null);
+  const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
 
+  // Extract project context from URL parameters or current location
+  useEffect(() => {
+    // First, try to get project from URL query parameter
+    const urlParams = new URLSearchParams(window.location.search);
+    const projectIdFromUrl = urlParams.get('project');
+    
+    if (projectIdFromUrl) {
+      setCurrentProjectId(projectIdFromUrl);
+      return;
+    }
+
+    // Second, try to extract from current location path (if navigating from project view)
+    const urlPath = window.location.pathname;
+    const projectMatch = urlPath.match(/\/projects\/([^\/]+)/);
+    if (projectMatch) {
+      setCurrentProjectId(projectMatch[1]);
+      return;
+    }
+
+    // Third, fallback to user's most recent project from localStorage
+    const lastProjectId = localStorage.getItem('lastVisitedProject');
+    if (lastProjectId) {
+      setCurrentProjectId(lastProjectId);
+      return;
+    }
+
+    // If no project context available, we'll need to get user's first available project
+    // This will be handled by the projects query below
+  }, [location]);
+
+  // Get user's projects to determine fallback project if needed
+  const { data: projects } = useQuery<ProjectWithStats[]>({
+    queryKey: ['/api/projects'],
+  });
+
+  // Set fallback project if none is selected and projects are available
+  useEffect(() => {
+    if (!currentProjectId && projects && projects.length > 0) {
+      const fallbackProjectId = projects[0].id;
+      setCurrentProjectId(fallbackProjectId);
+      console.log('NewTestsView: Using fallback project:', fallbackProjectId);
+    }
+  }, [currentProjectId, projects]);
+
+  // Use project-specific endpoint instead of global /api/statements
   const { data: statements, isLoading } = useQuery<StatementWithRelations[]>({
-    queryKey: ['/api/statements'],
+    queryKey: [`/api/projects/${currentProjectId}/statements`],
+    enabled: !!currentProjectId,
   });
 
   // Group statements into tests based on testBatchId, excluding completed/ready tests
@@ -56,7 +103,7 @@ export default function NewTestsView() {
       return response.json();
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['/api/statements'] });
+      queryClient.invalidateQueries({ queryKey: [`/api/projects/${currentProjectId}/statements`] });
       setTestToDelete(null);
     },
     onError: (error) => {
@@ -85,11 +132,17 @@ export default function NewTestsView() {
     setLocation(`/projects/${test.projectId}?statement=${test.statements[0]?.id}`);
   };
 
-  if (isLoading) {
+  // Show loading state while determining project context or loading statements
+  if (isLoading || !currentProjectId) {
     return (
       <div className="flex h-screen overflow-hidden">
         <div className="w-64 bg-surface animate-pulse"></div>
-        <div className="flex-1 animate-pulse bg-gray-50"></div>
+        <div className="flex-1 animate-pulse bg-gray-50">
+          <div className="p-6">
+            <div className="h-8 bg-gray-300 rounded mb-4"></div>
+            <div className="h-4 bg-gray-300 rounded mb-2"></div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -103,6 +156,11 @@ export default function NewTestsView() {
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-2xl font-bold text-secondary">New Tests</h2>
+              {currentProjectId && (
+                <p className="text-sm text-gray-600 mt-1">
+                  Project: {projects?.find(p => p.id === currentProjectId)?.name || 'Loading...'}
+                </p>
+              )}
               <p className="text-gray-600 mt-1">All tests currently in progress</p>
             </div>
             <Button
@@ -202,13 +260,13 @@ export default function NewTestsView() {
         </div>
       </div>
 
-      {showNewStatementModal && (
+      {showNewStatementModal && currentProjectId && (
         <NewStatementModal
-          projectId={"b0036be7-62d1-4a9c-9c91-526743e72f8f"} // Default to first project for now
+          projectId={currentProjectId}
           onClose={() => setShowNewStatementModal(false)}
           onStatementCreated={() => {
-            // Refresh data
-            queryClient.invalidateQueries({ queryKey: ['/api/statements'] });
+            // Refresh data with project-specific endpoint
+            queryClient.invalidateQueries({ queryKey: [`/api/projects/${currentProjectId}/statements`] });
             setShowNewStatementModal(false);
           }}
         />
