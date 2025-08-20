@@ -30,7 +30,21 @@ export function Sidebar() {
 
   const { data: user, refetch: refetchUser } = useQuery<User>({
     queryKey: ["/api/auth/user"],
-    queryFn: () => fetch("/api/auth/user").then((res) => res.json()),
+    queryFn: async () => {
+      const response = await fetch("/api/auth/user", {
+        credentials: 'include'
+      });
+      if (!response.ok) {
+        if (response.status === 401) {
+          // Redirect to login if not authenticated
+          window.location.href = '/api/login';
+          throw new Error('Authentication required');
+        }
+        throw new Error('Failed to fetch user');
+      }
+      return response.json();
+    },
+    retry: false, // Don't retry on auth failures
   });
 
   const logoutMutation = useMutation({
@@ -477,34 +491,39 @@ export function Sidebar() {
               {(user as any)?.email}
             </p>
             <p className="text-xs text-gray-400 capitalize" data-testid="text-user-role">
-              {(user as any)?.role?.replace('_', ' ') || 'User'}
+              {(user as any)?.roleDisplayName || (user as any)?.role?.replace('_', ' ') || 'User'}
             </p>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => refreshUserProfile.mutate()}
-            disabled={refreshUserProfile.isPending}
-            className="h-8 w-8 p-0"
-            title="Refresh profile"
-          >
-            <i className={`fas fa-sync-alt ${refreshUserProfile.isPending ? 'animate-spin' : ''}`}></i>
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => logoutMutation.mutate()}
-            disabled={logoutMutation.isPending}
-            className="h-8 w-8 p-0"
-            title={logoutMutation.isPending ? "Logging out..." : "Logout"}
-            data-testid="button-sidebar-logout"
-          >
-            {logoutMutation.isPending ? (
-              <i className="fas fa-spinner fa-spin text-sm"></i>
-            ) : (
-              <i className="fas fa-sign-out-alt text-sm"></i>
-            )}
-          </Button>
+          {user && (
+            <>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => refreshUserProfile.mutate()}
+                disabled={refreshUserProfile.isPending}
+                className="h-8 w-8 p-0"
+                title="Refresh profile"
+                data-testid="button-sidebar-refresh"
+              >
+                <i className={`fas fa-sync-alt ${refreshUserProfile.isPending ? 'animate-spin' : ''}`}></i>
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => logoutMutation.mutate()}
+                disabled={logoutMutation.isPending}
+                className="h-8 w-8 p-0"
+                title={logoutMutation.isPending ? "Logging out..." : "Logout"}
+                data-testid="button-sidebar-logout"
+              >
+                {logoutMutation.isPending ? (
+                  <i className="fas fa-spinner fa-spin text-sm"></i>
+                ) : (
+                  <i className="fas fa-sign-out-alt text-sm"></i>
+                )}
+              </Button>
+            </>
+          )}
         </div>
       </div>
     </div>
