@@ -46,10 +46,12 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   ],
   
   [UserRole.GROWTH_STRATEGIST]: [
-    // Growth strategist: projects + tasks
+    // Growth strategist: projects + tasks + user management
     Permission.CREATE_PROJECT,
     Permission.DELETE_PROJECT,
     Permission.VIEW_PROJECTS,
+    Permission.ADD_MEMBERS,
+    Permission.MANAGE_USER_ROLES,
     Permission.CREATE_TASK,
     Permission.DELETE_TASK,
     Permission.VIEW_TASKS,
