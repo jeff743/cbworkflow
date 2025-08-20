@@ -780,6 +780,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Backup API endpoints (Super Admin only)
+  app.post('/api/admin/backup/create', requirePermissionMiddleware(Permission.MANAGE_USER_ROLES), async (req: any, res) => {
+    try {
+      const { backupService } = await import('./backup');
+      const { type = 'full' } = req.body;
+      
+      let backupFile: string;
+      if (type === 'schema') {
+        backupFile = await backupService.createSchemaBackup();
+      } else if (type === 'json') {
+        backupFile = await backupService.createJsonBackup();
+      } else {
+        backupFile = await backupService.createFullBackup();
+      }
+      
+      logger.info(`Backup created: ${backupFile} by ${req.currentUser?.email}`, 'backup');
+      res.json({ success: true, backupFile, type });
+    } catch (error) {
+      logger.error('Backup creation failed', 'backup', error as Error);
+      res.status(500).json({ message: 'Backup creation failed' });
+    }
+  });
+
+  app.get('/api/admin/backup/list', requirePermissionMiddleware(Permission.MANAGE_USER_ROLES), async (req: any, res) => {
+    try {
+      const { backupService } = await import('./backup');
+      const backups = await backupService.listBackups();
+      res.json(backups);
+    } catch (error) {
+      logger.error('Failed to list backups', 'backup', error as Error);
+      res.status(500).json({ message: 'Failed to list backups' });
+    }
+  });
+
+  app.post('/api/admin/backup/cleanup', requirePermissionMiddleware(Permission.MANAGE_USER_ROLES), async (req: any, res) => {
+    try {
+      const { backupService } = await import('./backup');
+      const { keepCount = 10 } = req.body;
+      await backupService.cleanupOldBackups(keepCount);
+      logger.info(`Backup cleanup completed, keeping ${keepCount} backups`, 'backup');
+      res.json({ success: true });
+    } catch (error) {
+      logger.error('Backup cleanup failed', 'backup', error as Error);
+      res.status(500).json({ message: 'Backup cleanup failed' });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
