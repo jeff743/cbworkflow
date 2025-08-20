@@ -12,7 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../components/ui/alert-dialog';
 
 export default function ProjectView() {
-  const { projectId } = useParams();
+  const { id: projectId } = useParams<{ id: string }>();
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
