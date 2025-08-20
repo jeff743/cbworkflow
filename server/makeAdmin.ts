@@ -1,83 +1,56 @@
+import { db } from './db';
+import { users } from '../shared/schema';
+import { eq } from 'drizzle-orm';
 
-#!/usr/bin/env node
-
-import { DatabaseStorage } from "./storage";
-import { db } from "./db";
-
-async function makeUserSuperAdmin() {
-  const email = process.argv[2];
-  
-  if (!email) {
-    console.error("Usage: npm run make-super-admin <email>");
-    process.exit(1);
-  }
-  
-  // Initialize storage with direct database connection
-  const storage = new DatabaseStorage();
-  
+async function makeUserSuperAdmin(email: string) {
   try {
-    console.log(`🔍 Looking up user with email: ${email}`);
-    console.log(`📊 Database URL configured: ${process.env.DATABASE_URL ? 'Yes' : 'No'}`);
-    
-    // Test database connection first
-    try {
-      await db.$client.query('SELECT 1');
-      console.log(`✅ Database connection successful`);
-    } catch (dbError) {
-      console.error(`❌ Database connection failed:`, dbError);
-      process.exit(1);
-    }
-    
-    // Get user by email
-    const user = await storage.getUserByEmail(email);
-    
+    console.log(`🔍 Looking for user with email: ${email}`);
+
+    // Find the user by email
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+
     if (!user) {
-      console.error(`❌ User not found with email: ${email}`);
-      console.log("📝 Make sure the user has logged into the app at least once.");
-      console.log("🔍 This creates their user record in the database.");
+      console.error(`❌ User with email ${email} not found in database`);
+      console.log('💡 Make sure the user has logged into the app at least once');
       process.exit(1);
     }
-    
-    console.log(`✅ Found user: ${user.firstName} ${user.lastName} (${user.email})`);
+
+    console.log(`✅ Found user: ${user.name || user.email} (ID: ${user.id})`);
     console.log(`📋 Current role: ${user.role}`);
-    console.log(`🆔 User ID: ${user.id}`);
-    
+
     if (user.role === 'super_admin') {
-      console.log("✅ User is already a super admin!");
+      console.log('✅ User is already a super admin!');
       process.exit(0);
     }
-    
-    // Update role to super_admin
-    console.log(`🔄 Updating role to super_admin...`);
-    const updatedUser = await storage.updateUserRole(user.id, 'super_admin');
-    
-    if (updatedUser) {
-      console.log(`🎉 Successfully promoted ${email} to super admin!`);
-      console.log(`✅ New role: ${updatedUser.role}`);
-    } else {
-      console.error(`❌ Failed to update user role for ${email}`);
-      process.exit(1);
-    }
-    
+
+    // Update user role to super_admin
+    const [updatedUser] = await db
+      .update(users)
+      .set({
+        role: 'super_admin',
+        updatedAt: new Date()
+      })
+      .where(eq(users.id, user.id))
+      .returning();
+
+    console.log(`🎉 Successfully promoted ${updatedUser.email} to super admin!`);
+    console.log(`📋 New role: ${updatedUser.role}`);
+
+    process.exit(0);
   } catch (error) {
-    console.error(`❌ Error promoting user to super admin:`);
-    console.error(`📝 Error details:`, error);
-    if (error instanceof Error) {
-      console.error(`📄 Error message: ${error.message}`);
-      console.error(`📍 Error stack: ${error.stack}`);
-    }
+    console.error('❌ Error promoting user to super admin:', error);
     process.exit(1);
-  } finally {
-    // Ensure database connection is closed
-    try {
-      await db.$client.end();
-      console.log(`🔌 Database connection closed`);
-    } catch (closeError) {
-      console.warn(`⚠️ Warning: Failed to close database connection:`, closeError);
-    }
   }
-  
-  process.exit(0);
 }
 
-makeUserSuperAdmin();
+// Get email from command line arguments
+const email = process.argv[2];
+
+if (!email) {
+  console.error('❌ Please provide an email address');
+  console.log('Usage: npm run make-super-admin <email@example.com>');
+  process.exit(1);
+}
+
+// Run the function
+makeUserSuperAdmin(email);
