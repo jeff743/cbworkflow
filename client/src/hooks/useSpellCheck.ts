@@ -26,49 +26,65 @@ export function useSpellCheck(text: string, options: UseSpellCheckOptions = {}) 
     setIsChecking(true);
     
     try {
-      // Use browser's native spell checker if available
-      if (typeof window !== 'undefined' && 'webkitSpeechRecognition' in window) {
-        // For now, we'll use a simple word validation approach
-        // In a production environment, you might want to integrate with a spell check service
+      // Create a simple but more comprehensive spell checker
+      const words = extractWords(textToCheck);
+      const knownWords = new Set([
+        // Common English words
+        'a', 'an', 'and', 'are', 'as', 'at', 'be', 'by', 'for', 'from',
+        'has', 'he', 'in', 'is', 'it', 'its', 'of', 'on', 'that', 'the',
+        'to', 'was', 'will', 'with', 'you', 'your', 'have', 'had', 'this',
+        'they', 'we', 'been', 'their', 'said', 'each', 'which', 'do', 'does',
+        'how', 'if', 'up', 'out', 'many', 'then', 'them', 'these', 'so', 'but',
+        'some', 'her', 'would', 'make', 'like', 'into', 'time', 'very', 'his',
+        'when', 'can', 'could', 'get', 'first', 'way', 'may', 'new', 'our',
+        'now', 'old', 'see', 'two', 'who', 'come', 'did', 'go', 'know', 'more',
+        'look', 'over', 'take', 'think', 'use', 'want', 'work', 'year', 'about',
+        'all', 'also', 'after', 'back', 'because', 'before', 'being', 'between',
+        'both', 'came', 'come', 'could', 'during', 'each', 'even', 'every',
+        'find', 'give', 'good', 'great', 'here', 'home', 'just', 'last',
+        'life', 'long', 'made', 'most', 'much', 'need', 'never', 'only',
+        'other', 'own', 'part', 'place', 'right', 'same', 'school', 'should',
+        'small', 'state', 'still', 'such', 'than', 'them', 'there', 'through',
+        'too', 'under', 'used', 'using', 'water', 'well', 'were', 'what',
+        'where', 'while', 'world', 'would', 'write', 'years',
+        // Marketing and business terms
+        'facebook', 'ad', 'ads', 'marketing', 'campaign', 'campaigns', 'conversion',
+        'conversions', 'cro', 'test', 'testing', 'optimization', 'audience', 'targeting',
+        'colorblock', 'colorblocks', 'statement', 'statements', 'workflow', 'workflows',
+        'project', 'projects', 'client', 'clients', 'business', 'sale', 'sales',
+        'buy', 'purchase', 'product', 'products', 'service', 'services', 'brand',
+        'company', 'customer', 'customers', 'user', 'users', 'website', 'online',
+        'digital', 'content', 'social', 'media', 'email', 'newsletter', 'blog',
+        'seo', 'ppc', 'roi', 'analytics', 'metrics', 'data', 'insights', 'strategy',
+        'growth', 'revenue', 'profit', 'discount', 'offer', 'deal', 'free', 'save',
+        'today', 'now', 'click', 'learn', 'discover', 'explore', 'join', 'sign'
+      ]);
+      
+      // Add custom words to the known words set
+      customWords.forEach(word => knownWords.add(word.toLowerCase()));
+      
+      const potentialErrors: SpellCheckError[] = [];
+      
+      for (const { word, position } of words) {
+        const cleanWord = word.toLowerCase();
         
-        const words = textToCheck.toLowerCase().split(/\s+/);
-        const commonWords = new Set([
-          'a', 'an', 'and', 'are', 'as', 'at', 'be', 'by', 'for', 'from',
-          'has', 'he', 'in', 'is', 'it', 'its', 'of', 'on', 'that', 'the',
-          'to', 'was', 'will', 'with', 'you', 'your', 'have', 'had', 'this',
-          'they', 'we', 'been', 'their', 'said', 'each', 'which', 'do',
-          'how', 'if', 'up', 'out', 'many', 'then', 'them', 'these', 'so',
-          'some', 'her', 'would', 'make', 'like', 'into', 'time', 'very',
-          'when', 'can', 'could', 'get', 'first', 'way', 'may', 'new',
-          'now', 'old', 'see', 'two', 'who', 'come', 'did', 'go', 'know',
-          'look', 'over', 'take', 'think', 'use', 'want', 'work', 'year',
-          'facebook', 'ad', 'ads', 'marketing', 'campaign', 'conversion',
-          'cro', 'test', 'testing', 'optimization', 'audience', 'targeting',
-          'colorblock', 'statement', 'workflow', 'project', 'client'
-        ]);
+        // Skip very short words, numbers, or words with numbers
+        if (cleanWord.length <= 2 || /\d/.test(cleanWord) || cleanWord === cleanWord.toUpperCase()) {
+          continue;
+        }
         
-        // Add custom words to the common words set
-        customWords.forEach(word => commonWords.add(word.toLowerCase()));
-        
-        const potentialErrors: SpellCheckError[] = [];
-        let currentPosition = 0;
-        
-        words.forEach((word) => {
-          const cleanWord = word.replace(/[^\w]/g, '');
-          if (cleanWord.length > 2 && !commonWords.has(cleanWord)) {
-            // Find the position of this word in the original text
-            const wordPosition = textToCheck.toLowerCase().indexOf(word, currentPosition);
-            potentialErrors.push({
-              word: cleanWord,
-              position: wordPosition,
-              suggestions: getSuggestions(cleanWord)
-            });
-          }
-          currentPosition += word.length + 1;
-        });
-        
-        setErrors(potentialErrors);
+        // Check if word is known
+        if (!knownWords.has(cleanWord)) {
+          potentialErrors.push({
+            word: word,
+            position: position,
+            suggestions: getSuggestions(cleanWord)
+          });
+        }
       }
+      
+      setErrors(potentialErrors);
+      
     } catch (error) {
       console.error('Spell check error:', error);
       setErrors([]);
@@ -85,14 +101,26 @@ export function useSpellCheck(text: string, options: UseSpellCheckOptions = {}) 
     return () => clearTimeout(timeoutId);
   }, [text, checkSpelling]);
 
+  const extractWords = (text: string): { word: string; position: number }[] => {
+    const words: { word: string; position: number }[] = [];
+    const wordRegex = /\b[a-zA-Z]+(?:'[a-zA-Z]+)?\b/g;
+    let match;
+
+    while ((match = wordRegex.exec(text)) !== null) {
+      words.push({
+        word: match[0],
+        position: match.index
+      });
+    }
+
+    return words;
+  };
+
   const getSuggestions = (word: string): string[] => {
-    // Simple suggestion algorithm - in production, use a proper spell check service
-    const suggestions = [];
-    
-    // Common typo corrections for marketing terms
+    // Common typo corrections for marketing and general terms
     const corrections: Record<string, string[]> = {
       'campain': ['campaign'],
-      'campagne': ['campaign'],
+      'campagne': ['campaign'], 
       'advertisment': ['advertisement'],
       'advertisng': ['advertising'],
       'convertion': ['conversion'],
@@ -106,14 +134,48 @@ export function useSpellCheck(text: string, options: UseSpellCheckOptions = {}) 
       'succesfull': ['successful'],
       'profesional': ['professional'],
       'guarntee': ['guarantee'],
-      'guaranted': ['guaranteed']
+      'guaranted': ['guaranteed'],
+      'recieve': ['receive'],
+      'acheive': ['achieve'],
+      'seperate': ['separate'],
+      'definately': ['definitely'],
+      'occassionally': ['occasionally'],
+      'neccessary': ['necessary'],
+      'accomodate': ['accommodate'],
+      'begining': ['beginning'],
+      'beleive': ['believe'],
+      'calender': ['calendar'],
+      'changable': ['changeable'],
+      'colunm': ['column'],
+      'comittee': ['committee'],
+      'concious': ['conscious'],
+      'embarass': ['embarrass'],
+      'existance': ['existence'],
+      'febuary': ['february'],
+      'goverment': ['government'],
+      'grammer': ['grammar'],
+      'independant': ['independent'],
+      'maintainance': ['maintenance'],
+      'noticable': ['noticeable'],
+      'occured': ['occurred'],
+      'persistant': ['persistent'],
+      'privelege': ['privilege'],
+      'publically': ['publicly'],
+      'reccommend': ['recommend'],
+      'succesful': ['successful'],
+      'tommorrow': ['tomorrow'],
+      'truely': ['truly'],
+      'untill': ['until'],
+      'wierd': ['weird'],
+      // Common test words
+      'testng': ['testing'],
+      'spellng': ['spelling'],
+      'mispelled': ['misspelled'],
+      'missng': ['missing'],
+      'errror': ['error']
     };
     
-    if (corrections[word.toLowerCase()]) {
-      suggestions.push(...corrections[word.toLowerCase()]);
-    }
-    
-    return suggestions.slice(0, 3); // Limit to 3 suggestions
+    return corrections[word.toLowerCase()] || [];
   };
 
   const addToPersonalDictionary = useCallback((word: string) => {
