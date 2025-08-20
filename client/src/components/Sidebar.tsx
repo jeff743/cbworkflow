@@ -501,26 +501,28 @@ export function Sidebar() {
               </div>
             )}
           </div>
-          <div className="flex gap-2">
-            <button
-              onClick={() => refreshUserProfile.mutate()}
-              disabled={refreshUserProfile.isPending}
-              className="w-8 h-8 bg-blue-500 text-white rounded hover:bg-blue-600 flex items-center justify-center"
-              title="Refresh profile"
-              data-testid="button-sidebar-refresh"
-            >
-              🔄
-            </button>
-            <button
-              onClick={() => logoutMutation.mutate()}
-              disabled={logoutMutation.isPending}
-              className="w-8 h-8 bg-red-500 text-white rounded hover:bg-red-600 flex items-center justify-center"
-              title={logoutMutation.isPending ? "Logging out..." : "Logout"}
-              data-testid="button-sidebar-logout"
-            >
-              {logoutMutation.isPending ? "⏳" : "🚪"}
-            </button>
-          </div>
+        </div>
+        
+        {/* Separate row for buttons to ensure visibility */}
+        <div className="flex justify-end gap-2 mt-3 pt-2 border-t border-gray-100">
+          <button
+            onClick={() => refreshUserProfile.mutate()}
+            disabled={refreshUserProfile.isPending}
+            className="w-10 h-10 bg-blue-500 text-white rounded-lg hover:bg-blue-600 flex items-center justify-center text-lg font-bold border-2 border-blue-300"
+            title="Refresh profile"
+            data-testid="button-sidebar-refresh"
+          >
+            🔄
+          </button>
+          <button
+            onClick={() => logoutMutation.mutate()}
+            disabled={logoutMutation.isPending}
+            className="w-10 h-10 bg-red-500 text-white rounded-lg hover:bg-red-600 flex items-center justify-center text-lg font-bold border-2 border-red-300"
+            title={logoutMutation.isPending ? "Logging out..." : "Logout"}
+            data-testid="button-sidebar-logout"
+          >
+            {logoutMutation.isPending ? "⏳" : "🚪"}
+          </button>
         </div>
       </div>
     </div>
