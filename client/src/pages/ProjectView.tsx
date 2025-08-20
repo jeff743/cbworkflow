@@ -10,6 +10,8 @@ import { useAuth } from '../hooks/useAuth';
 import { StatementEditor } from '../components/StatementEditor';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../components/ui/alert-dialog';
+import { Sidebar } from '../components/Sidebar';
+import { NewStatementModal } from '../components/NewStatementModal';
 
 export default function ProjectView() {
   const { id: projectId } = useParams<{ id: string }>();
@@ -174,18 +176,38 @@ export default function ProjectView() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900" data-testid="text-project-title">
-            {project.name}
-          </h1>
-          <p className="mt-2 text-gray-600" data-testid="text-project-client">
-            {project.clientName}
-          </p>
-        </div>
+    <div className="flex min-h-screen bg-background">
+      {/* Sidebar */}
+      <Sidebar />
+      
+      {/* Main Content */}
+      <div className="flex-1">
+        {/* Header */}
+        <header className="bg-surface border-b border-gray-200 px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-secondary" data-testid="text-project-title">
+                {project.name}
+              </h1>
+              <p className="text-gray-600" data-testid="text-project-client">
+                Client: {project.clientName}
+              </p>
+            </div>
+            <div className="flex items-center space-x-3">
+              <Button
+                onClick={() => setShowNewStatementModal(true)}
+                className="bg-primary text-white hover:bg-primary-dark"
+                data-testid="button-new-test"
+              >
+                <i className="fas fa-plus mr-2"></i>
+                New Test
+              </Button>
+            </div>
+          </div>
+        </header>
 
-        {!selectedTestId ? (
+        <div className="max-w-7xl mx-auto p-6">
+          {!selectedTestId ? (
           // Workflow Dashboard View
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             {/* New Tests Card */}
@@ -314,16 +336,21 @@ export default function ProjectView() {
           </div>
         )}
 
-        {/* Create New Test Button */}
-        <div className="mt-8">
-          <Button
-            onClick={() => setShowNewStatementModal(true)}
-            className="bg-primary hover:bg-primary/90"
-          >
-            + Create New Test
-          </Button>
+          {/* Create New Test Button - moved to header */}
         </div>
       </div>
+
+      {/* New Statement Modal */}
+      {showNewStatementModal && (
+        <NewStatementModal
+          projectId={projectId}
+          onClose={() => setShowNewStatementModal(false)}
+          onStatementCreated={() => {
+            queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/statements`] });
+            setShowNewStatementModal(false);
+          }}
+        />
+      )}
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={!!testToDelete} onOpenChange={() => setTestToDelete(null)}>
