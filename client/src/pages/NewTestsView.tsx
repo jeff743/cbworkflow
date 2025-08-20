@@ -1,17 +1,21 @@
 import { useAuth } from "@/hooks/useAuth";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { NewStatementModal } from "@/components/NewStatementModal";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Link } from "wouter";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Link, useLocation } from "wouter";
+import { apiRequest } from "@/lib/queryClient";
 import type { StatementWithRelations } from "@shared/schema";
 
 export default function NewTestsView() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const [, setLocation] = useLocation();
   const [showNewStatementModal, setShowNewStatementModal] = useState(false);
+  const [testToDelete, setTestToDelete] = useState<any>(null);
 
   const { data: statements, isLoading } = useQuery<StatementWithRelations[]>({
     queryKey: ['/api/statements'],
@@ -44,6 +48,42 @@ export default function NewTestsView() {
   }, {} as Record<string, any>) || {};
 
   const tests = Object.values(groupedTests);
+
+  // Delete test batch mutation
+  const deleteTestBatchMutation = useMutation({
+    mutationFn: async (testBatchId: string) => {
+      const response = await apiRequest('DELETE', `/api/test-batches/${testBatchId}`);
+      return response.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/statements'] });
+      setTestToDelete(null);
+    },
+    onError: (error) => {
+      console.error('Failed to delete test batch:', error);
+    },
+  });
+
+  // Handler functions
+  const handleDeleteTest = (test: any) => {
+    if (test.testBatchId) {
+      setTestToDelete({
+        id: test.id,
+        testBatchId: test.testBatchId,
+        statementsCount: test.statements.length
+      });
+    }
+  };
+
+  const confirmDeleteTest = () => {
+    if (testToDelete?.testBatchId) {
+      deleteTestBatchMutation.mutate(testToDelete.testBatchId);
+    }
+  };
+
+  const handleCardClick = (test: any) => {
+    setLocation(`/projects/${test.projectId}?statement=${test.statements[0]?.id}`);
+  };
 
   if (isLoading) {
     return (
@@ -79,21 +119,39 @@ export default function NewTestsView() {
         <div className="flex-1 overflow-y-auto p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {tests.map(test => (
-              <Link key={test.id} href={`/projects/${test.projectId}?statement=${test.statements[0]?.id}`}>
-                <div className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow cursor-pointer">
-                  <div className="flex items-start justify-between mb-4">
-                    <div>
-                      <h3 className="font-semibold text-gray-900 mb-1">
-                        {test.statements[0]?.description || (test.testBatchId ? 'Test Batch' : 'Legacy Statement')}
-                      </h3>
-                      <p className="text-sm text-gray-600">
-                        {test.projectName} • {test.statements.length} ad statement{test.statements.length > 1 ? 's' : ''}
-                      </p>
-                    </div>
+              <div key={test.id} className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow cursor-pointer" onClick={() => handleCardClick(test)}>
+                <div className="flex items-start justify-between mb-4">
+                  <div>
+                    <h3 className="font-semibold text-gray-900 mb-1">
+                      {test.statements[0]?.description || (test.testBatchId ? 'Test Batch' : 'Legacy Statement')}
+                    </h3>
+                    <p className="text-sm text-gray-600">
+                      {test.projectName} • {test.statements.length} ad statement{test.statements.length > 1 ? 's' : ''}
+                    </p>
+                  </div>
+                  <div className="flex items-center space-x-2">
                     <Badge className="bg-warning text-white">
                       In Progress
                     </Badge>
+                    {/* Delete button for test batches */}
+                    {test.testBatchId && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteTest(test);
+                        }}
+                        className="text-red-600 hover:text-red-800 hover:bg-red-50 p-2"
+                        data-testid={`button-delete-test-${test.id}`}
+                      >
+                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </Button>
+                    )}
                   </div>
+                </div>
                   
                   <div className="space-y-2">
                     {test.statements.slice(0, 3).map((statement: any) => (
@@ -124,8 +182,7 @@ export default function NewTestsView() {
                     </p>
                   </div>
                 </div>
-              </Link>
-            ))}
+              ))}
           </div>
           
           {tests.length === 0 && (
@@ -156,6 +213,28 @@ export default function NewTestsView() {
           }}
         />
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!testToDelete} onOpenChange={() => setTestToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Test Batch</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this test batch? This will permanently delete {testToDelete?.statementsCount} statement{testToDelete?.statementsCount !== 1 ? 's' : ''} and this action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteTest}
+              className="bg-red-600 hover:bg-red-700"
+              disabled={deleteTestBatchMutation.isPending}
+            >
+              {deleteTestBatchMutation.isPending ? "Deleting..." : "Delete Test"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
