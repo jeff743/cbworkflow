@@ -241,7 +241,7 @@ export default function ProjectView() {
           // Workflow Dashboard View
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             {/* New Tests Card */}
-            <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setLocation('/tests/new')}>
+            <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setLocation(`/tests/new?project=${projectId}`)}>
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium text-gray-600 flex items-center justify-between">
                   New Tests
@@ -255,7 +255,7 @@ export default function ProjectView() {
             </Card>
 
             {/* Pending Review Card */}
-            <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setLocation('/tests/pending-review')}>
+            <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setLocation(`/tests/pending-review?project=${projectId}`)}>
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium text-gray-600 flex items-center justify-between">
                   Pending Review
@@ -269,7 +269,7 @@ export default function ProjectView() {
             </Card>
 
             {/* Ready to Deploy Card */}
-            <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setLocation('/tests/ready-to-deploy')}>
+            <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setLocation(`/tests/ready-to-deploy?project=${projectId}`)}>
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium text-gray-600 flex items-center justify-between">
                   Ready to Deploy
@@ -283,7 +283,7 @@ export default function ProjectView() {
             </Card>
 
             {/* Completed Card */}
-            <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setLocation('/tests/completed')}>
+            <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setLocation(`/tests/completed?project=${projectId}`)}>
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium text-gray-600 flex items-center justify-between">
                   Completed
