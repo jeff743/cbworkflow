@@ -19,15 +19,20 @@ export default function ProjectView() {
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
   
-  // Check for statement ID in URL query parameters
-  const urlSearchParams = new URLSearchParams(window.location.search);
-  const statementIdFromUrl = urlSearchParams.get('statement');
-  
   const [selectedTestId, setSelectedTestId] = useState<string | null>(null);
-  const [selectedStatementId, setSelectedStatementId] = useState<string | null>(statementIdFromUrl);
+  const [selectedStatementId, setSelectedStatementId] = useState<string | null>(null);
   const [navigationRequest, setNavigationRequest] = useState<{ targetStatementId: string; timestamp: number } | null>(null);
   const [showNewStatementModal, setShowNewStatementModal] = useState(false);
   const [testToDelete, setTestToDelete] = useState<any>(null);
+
+  // Monitor URL changes for statement navigation
+  useEffect(() => {
+    const urlSearchParams = new URLSearchParams(window.location.search);
+    const statementIdFromUrl = urlSearchParams.get('statement');
+    if (statementIdFromUrl && statementIdFromUrl !== selectedStatementId) {
+      setSelectedStatementId(statementIdFromUrl);
+    }
+  }, [window.location.search, selectedStatementId]);
 
   // Delete test batch mutation
   const deleteTestBatchMutation = useMutation({
