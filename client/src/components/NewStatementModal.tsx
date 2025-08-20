@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { apiRequest } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { nanoid } from "nanoid";
+import { SpellCheckIndicator } from "./SpellCheckIndicator";
 import type { User, InsertStatement } from "@shared/schema";
 
 interface NewStatementModalProps {
@@ -182,6 +183,11 @@ export function NewStatementModal({ projectId, onClose, onStatementCreated }: Ne
               <Label htmlFor="description" className="block text-sm font-medium text-gray-700">
                 Test Title
               </Label>
+              <SpellCheckIndicator 
+                text={formData.description} 
+                onTextChange={(newText) => setFormData(prev => ({ ...prev, description: newText }))}
+                customWords={['facebook', 'ad', 'campaign', 'test', 'batch', 'variant']}
+              />
             </div>
             <Textarea
               id="description"

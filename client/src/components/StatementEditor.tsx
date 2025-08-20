@@ -337,6 +337,12 @@ export function StatementEditor({ statement, onStatementUpdated, navigationReque
                       Heading (Optional)
                     </Label>
                     <div className="flex items-center space-x-2">
+                      <SpellCheckIndicator 
+                        text={formData.heading} 
+                        onTextChange={(newText) => setFormData(prev => ({ ...prev, heading: newText }))}
+                        customWords={['facebook', 'ad', 'campaign', 'cro', 'conversion']}
+                        className="mr-4"
+                      />
                       <input
                         type="checkbox"
                         id="trueFalseCheckbox"
