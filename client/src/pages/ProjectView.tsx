@@ -105,7 +105,7 @@ export default function ProjectView() {
   // Delete test batch mutation
   const deleteTestBatchMutation = useMutation({
     mutationFn: (testBatchId: string) => 
-      apiRequest(`/api/test-batches/${testBatchId}`, { method: 'DELETE' }),
+      apiRequest('DELETE', `/api/test-batches/${testBatchId}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/statements`] });
       setTestToDelete(null);
@@ -122,8 +122,37 @@ export default function ProjectView() {
     }
   };
 
+  // Debug logging
+  console.log('ProjectView Debug:', { projectId, project, statements });
+
+  if (!projectId) {
+    return (
+      <div className="p-6">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">No Project Selected</h2>
+          <p className="text-gray-600 mb-4">Click on a project card from the dashboard to view the workflow dashboard.</p>
+          <Button 
+            onClick={() => setLocation('/')}
+            className="bg-primary hover:bg-primary/90"
+          >
+            Go to Dashboard
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   if (!project) {
-    return <div className="p-6">Loading...</div>;
+    return (
+      <div className="p-6">
+        <div>Loading project {projectId}...</div>
+        {projectId && (
+          <div className="mt-2 text-sm text-gray-500">
+            Project ID: {projectId}
+          </div>
+        )}
+      </div>
+    );
   }
 
   if (selectedStatementId) {
@@ -132,11 +161,13 @@ export default function ProjectView() {
       return (
         <StatementEditor
           key={selectedStatementId}
-          statementId={selectedStatementId}
-          projectId={projectId!}
-          onBack={() => setSelectedStatementId(null)}
+          statement={statement}
+          onStatementUpdated={() => {
+            queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/statements`] });
+            setSelectedStatementId(null);
+          }}
           navigationRequest={navigationRequest}
-          onNavigationHandled={() => setNavigationRequest(null)}
+          onNavigationComplete={() => setNavigationRequest(null)}
         />
       );
     }
