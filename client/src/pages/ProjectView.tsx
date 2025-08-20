@@ -700,6 +700,16 @@ export default function ProjectView() {
               markReadyToDeployMutation.mutate(deploymentReadyTest.testBatchId);
             }
           }}
+          onNotYet={() => {
+            console.log('Not Yet clicked - dismissing dialog permanently');
+            const testBatchId = deploymentReadyTest?.testBatchId;
+            if (testBatchId) {
+              // Add to recently marked set to prevent re-detection
+              setRecentlyMarkedTestIds(prev => new Set([...Array.from(prev), testBatchId]));
+              console.log('Added to recently marked set to prevent reopening:', testBatchId);
+            }
+            setDeploymentReadyTest(null);
+          }}
           isProcessing={markReadyToDeployMutation.isPending}
         />
       )}

@@ -14,6 +14,7 @@ interface DeploymentReadyDialogProps {
     projectName: string;
   };
   onMarkReadyToDeploy: () => void;
+  onNotYet: () => void;
   isProcessing: boolean;
 }
 
@@ -22,6 +23,7 @@ export function DeploymentReadyDialog({
   onOpenChange, 
   testBatch, 
   onMarkReadyToDeploy,
+  onNotYet,
   isProcessing 
 }: DeploymentReadyDialogProps) {
   const approvedStatements = testBatch.statements.filter(s => s.status === 'approved');
@@ -154,8 +156,8 @@ export function DeploymentReadyDialog({
           <Button
             variant="outline"
             onClick={() => {
-              console.log('Not Yet button clicked - closing dialog');
-              onOpenChange(false);
+              console.log('Not Yet button clicked - dismissing permanently');
+              onNotYet();
             }}
             disabled={isProcessing}
           >
