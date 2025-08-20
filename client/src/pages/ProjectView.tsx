@@ -146,19 +146,14 @@ export default function ProjectView() {
 
 
   // Debug logging
-  console.log('ProjectView Debug:', { 
-    projectId, 
-    project, 
-    statements, 
-    tests: tests.map(t => ({ 
-      id: t.id, 
-      testBatchId: t.testBatchId, 
-      hasTestBatchId: !!t.testBatchId,
-      statementsCount: t.statements.length 
-    })),
-    selectedTestId,
-    userRole: (user as any)?.role 
-  });
+  console.log('ProjectView Debug - Tests:', tests.map(t => ({ 
+    id: t.id, 
+    testBatchId: t.testBatchId, 
+    hasTestBatchId: !!t.testBatchId,
+    statementsCount: t.statements.length,
+    fullTest: t
+  })));
+  console.log('ProjectView Debug - Selected Test ID:', selectedTestId);
 
   if (!projectId) {
     return (
