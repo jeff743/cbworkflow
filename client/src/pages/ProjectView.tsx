@@ -146,7 +146,19 @@ export default function ProjectView() {
 
 
   // Debug logging
-  console.log('ProjectView Debug:', { projectId, project, statements, userRole: (user as any)?.role });
+  console.log('ProjectView Debug:', { 
+    projectId, 
+    project, 
+    statements, 
+    tests: tests.map(t => ({ 
+      id: t.id, 
+      testBatchId: t.testBatchId, 
+      hasTestBatchId: !!t.testBatchId,
+      statementsCount: t.statements.length 
+    })),
+    selectedTestId,
+    userRole: (user as any)?.role 
+  });
 
   if (!projectId) {
     return (
@@ -353,8 +365,8 @@ export default function ProjectView() {
                         </div>
                       </div>
                       
-                      {/* Delete button for test batches */}
-                      {test.testBatchId && (
+                      {/* Delete button for test batches - Debug: testBatchId: {test.testBatchId} */}
+                      {test.testBatchId ? (
                         <Button
                           variant="ghost"
                           size="sm"
@@ -369,6 +381,8 @@ export default function ProjectView() {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                           </svg>
                         </Button>
+                      ) : (
+                        <div className="text-xs text-red-500">No testBatchId: {JSON.stringify({id: test.id, testBatchId: test.testBatchId})}</div>
                       )}
                     </div>
                     <div className="text-xs text-gray-500">
