@@ -128,15 +128,63 @@ export async function setupAuth(app: Express) {
     })(req, res, next);
   });
 
-  app.get("/api/logout", (req, res) => {
-    req.logout(() => {
-      res.redirect(
-        client.buildEndSessionUrl(config, {
+  app.get("/api/logout", async (req: any, res) => {
+    try {
+      // Log the logout attempt
+      console.log("User logout initiated", { 
+        user: req.user?.claims?.email || 'unknown' 
+      });
+
+      // Destroy server session first
+      if (req.session) {
+        await new Promise((resolve, reject) => {
+          req.session.destroy((err: any) => {
+            if (err) {
+              console.error('Session destruction error', err);
+              reject(err);
+            } else {
+              resolve(null);
+            }
+          });
+        });
+      }
+
+      // Clear authentication cookies
+      res.clearCookie('connect.sid', { 
+        path: '/', 
+        httpOnly: true, 
+        secure: process.env.NODE_ENV === 'production' 
+      });
+      res.clearCookie('session');
+      res.clearCookie('auth');
+      
+      // Set strict cache control headers
+      res.set({
+        'Cache-Control': 'no-cache, no-store, must-revalidate, private',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+        'Clear-Site-Data': '"cache", "cookies", "storage"'
+      });
+
+      // Perform OIDC logout with proper redirect
+      req.logout((err: any) => {
+        if (err) {
+          console.error('Passport logout error', err);
+          return res.redirect('/');
+        }
+        
+        // Redirect to OIDC end session endpoint
+        const logoutUrl = client.buildEndSessionUrl(config, {
           client_id: process.env.REPL_ID!,
-          post_logout_redirect_uri: `${req.protocol}://${req.hostname}`,
-        }).href
-      );
-    });
+          post_logout_redirect_uri: `${req.protocol}://${req.get('host')}/`,
+        }).href;
+        
+        res.redirect(logoutUrl);
+      });
+    } catch (error) {
+      console.error('Logout process failed', error);
+      res.redirect('/');
+    }
   });
 }
 
