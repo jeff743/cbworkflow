@@ -10,6 +10,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { ColorblockPreview } from "./ColorblockPreview";
 import { ObjectUploader } from "./ObjectUploader";
 import { SpellCheckIndicator } from "./SpellCheckIndicator";
+import { Sidebar } from "./Sidebar";
 import { apiRequest } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import type { StatementWithRelations, UpdateStatement } from "@shared/schema";
@@ -267,9 +268,12 @@ export function StatementEditor({ statement, onStatementUpdated, navigationReque
   ];
 
   return (
-    <div className="flex-1 flex flex-col">
-      {/* Editor Tabs */}
-      <div className="bg-surface border-b border-gray-200">
+    <div className="flex h-screen overflow-hidden">
+      <Sidebar />
+      
+      <div className="flex-1 flex flex-col">
+        {/* Editor Tabs */}
+        <div className="bg-surface border-b border-gray-200">
         <div className="flex">
           <button
             className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
@@ -822,6 +826,7 @@ export function StatementEditor({ statement, onStatementUpdated, navigationReque
           </div>
 
         ) : null}
+        </div>
       </div>
 
       {/* Phase 2 Fix: Unsaved Changes Confirmation Dialog */}
