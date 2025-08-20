@@ -23,6 +23,11 @@ const createProjectFormSchema = z.object({
 type CreateProjectFormData = z.infer<typeof createProjectFormSchema>;
 
 export function Sidebar() {
+  const [location] = useLocation();
+  const [showCreateProject, setShowCreateProject] = useState(false);
+  const [showManageUsers, setShowManageUsers] = useState(false);
+  const { toast } = useToast();
+
   const { data: user, refetch: refetchUser } = useQuery<User>({
     queryKey: ["/api/auth/user"],
     queryFn: () => fetch("/api/auth/user").then((res) => res.json()),
@@ -411,13 +416,34 @@ export function Sidebar() {
           >
             <i className={`fas fa-sync-alt ${refreshUserProfile.isPending ? 'animate-spin' : ''}`}></i>
           </Button>
-          <button 
-            onClick={() => window.location.href = '/api/logout'}
-            className="text-gray-400 hover:text-gray-600"
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={async () => {
+              try {
+                // Clear all React Query cache
+                queryClient.clear();
+                
+                // Clear localStorage cache
+                localStorage.clear();
+                
+                // Clear sessionStorage cache
+                sessionStorage.clear();
+                
+                // Navigate to logout endpoint
+                window.location.href = '/api/logout';
+              } catch (error) {
+                console.error('Logout error:', error);
+                // Fallback: force reload to clear cache
+                window.location.href = '/api/logout';
+              }
+            }}
+            className="h-8 w-8 p-0"
+            title="Logout"
             data-testid="button-sidebar-logout"
           >
             <i className="fas fa-sign-out-alt text-sm"></i>
-          </button>
+          </Button>
         </div>
       </div>
     </div>

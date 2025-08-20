@@ -49,6 +49,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Logout route with proper cleanup
+  app.get('/api/logout', async (req: any, res) => {
+    try {
+      // Clear the session
+      if (req.session) {
+        req.session.destroy((err: any) => {
+          if (err) {
+            logger.error('Session destruction error', 'logout', err);
+          }
+        });
+      }
+
+      // Clear authentication cookies
+      res.clearCookie('connect.sid');
+      res.clearCookie('session');
+      res.clearCookie('auth');
+      
+      // Set cache control headers to prevent caching
+      res.set({
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      });
+
+      // Redirect to login/home
+      res.redirect('/');
+    } catch (error) {
+      logger.error('Logout error', 'auth-route', error as Error);
+      res.redirect('/');
+    }
+  });
+
   // Force refresh user data from database
   app.post('/api/auth/refresh', async (req: any, res) => {
     try {
