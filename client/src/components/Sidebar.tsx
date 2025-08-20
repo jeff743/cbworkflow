@@ -143,7 +143,7 @@ export function Sidebar() {
               const isActive = location.startsWith(`/projects/${project.id}`);
               return (
                 <Link key={project.id} href={`/projects/${project.id}`} onClick={() => handleProjectClick(project.id)}>
-                  <div className={`flex items-center justify-between p-3 text-sm rounded-lg cursor-pointer transition-colors ${
+                  <div className={`flex items-center p-3 text-sm rounded-lg cursor-pointer transition-colors ${
                     isActive 
                       ? 'bg-primary text-white' 
                       : 'text-gray-600 hover:bg-gray-50'
@@ -152,13 +152,6 @@ export function Sidebar() {
                       <i className="fas fa-folder text-sm"></i>
                       <span>{project.name}</span>
                     </div>
-                    <Badge
-                      variant={isActive ? "secondary" : "outline"}
-                      className={isActive ? "bg-white bg-opacity-20 text-white border-white" : ""}
-                      data-testid={`text-project-tests-${project.id}`}
-                    >
-                      {project.activeTestsCount}
-                    </Badge>
                   </div>
                 </Link>
               );
