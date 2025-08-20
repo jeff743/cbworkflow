@@ -49,6 +49,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Role refresh endpoint for immediate cache invalidation
+  app.post('/api/auth/refresh-role', isAuthenticated, async (req: any, res) => {
+    try {
+      // Force fresh database lookup
+      const user = await storage.getUserByEmail(req.user?.claims?.email);
+      if (user) {
+        // Update current request
+        req.currentUser = user;
+        res.json({
+          ...user,
+          roleDisplayName: getUserRoleDisplayName(user.role)
+        });
+      } else {
+        res.status(404).json({ message: 'User not found' });
+      }
+    } catch (error) {
+      logger.error("Error refreshing user role", 'auth-route', error as Error);
+      res.status(500).json({ message: "Failed to refresh user role" });
+    }
+  });
+
   // Project routes  
   app.get('/api/projects', requirePermissionMiddleware(Permission.VIEW_PROJECTS), async (req: any, res) => {
     try {

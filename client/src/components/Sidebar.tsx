@@ -23,7 +23,7 @@ const createProjectFormSchema = z.object({
 type CreateProjectFormData = z.infer<typeof createProjectFormSchema>;
 
 export function Sidebar() {
-  const { user } = useAuth();
+  const { user, refreshAuth } = useAuth();
   const { toast } = useToast();
   const [location] = useLocation();
   const [showCreateProject, setShowCreateProject] = useState(false);
@@ -106,6 +106,21 @@ export function Sidebar() {
         variant: "destructive",
       });
     },
+  });
+
+  // Role refresh mutation for immediate cache invalidation
+  const refreshRoleMutation = useMutation({
+    mutationFn: () => apiRequest('POST', '/api/auth/refresh-role'),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      if (refreshAuth) {
+        refreshAuth();
+      }
+      toast({ title: "Role refreshed successfully" });
+    },
+    onError: () => {
+      toast({ title: "Failed to refresh role", variant: "destructive" });
+    }
   });
 
   const newStatementsCount = myStatements?.filter(s => s.status === 'draft').length || 0;
@@ -383,9 +398,20 @@ export function Sidebar() {
             <p className="text-xs text-gray-500 truncate" data-testid="text-user-email">
               {(user as any)?.email}
             </p>
-            <p className="text-xs text-gray-400 capitalize" data-testid="text-user-role">
-              {(user as any)?.role?.replace('_', ' ') || 'User'}
-            </p>
+            <div className="flex items-center gap-2">
+              <p className="text-xs text-gray-400 capitalize" data-testid="text-user-role">
+                {(user as any)?.role?.replace('_', ' ') || 'User'}
+              </p>
+              <button 
+                onClick={() => refreshRoleMutation.mutate()}
+                disabled={refreshRoleMutation.isPending}
+                className="text-gray-400 hover:text-gray-600 text-xs"
+                data-testid="button-refresh-role"
+                title="Refresh role permissions"
+              >
+                <i className={`fas fa-sync-alt ${refreshRoleMutation.isPending ? 'fa-spin' : ''}`}></i>
+              </button>
+            </div>
           </div>
           <button 
             onClick={() => window.location.href = '/api/logout'}
