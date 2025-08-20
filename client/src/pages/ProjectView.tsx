@@ -19,8 +19,12 @@ export default function ProjectView() {
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
   
+  // Check for statement ID in URL query parameters
+  const urlSearchParams = new URLSearchParams(window.location.search);
+  const statementIdFromUrl = urlSearchParams.get('statement');
+  
   const [selectedTestId, setSelectedTestId] = useState<string | null>(null);
-  const [selectedStatementId, setSelectedStatementId] = useState<string | null>(null);
+  const [selectedStatementId, setSelectedStatementId] = useState<string | null>(statementIdFromUrl);
   const [navigationRequest, setNavigationRequest] = useState<{ targetStatementId: string; timestamp: number } | null>(null);
   const [showNewStatementModal, setShowNewStatementModal] = useState(false);
   const [testToDelete, setTestToDelete] = useState<any>(null);
@@ -167,6 +171,8 @@ export default function ProjectView() {
           onStatementUpdated={() => {
             queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/statements`] });
             setSelectedStatementId(null);
+            // Clear the statement parameter from URL
+            window.history.pushState({}, '', `/projects/${projectId}`);
           }}
           navigationRequest={navigationRequest}
           onNavigationComplete={() => setNavigationRequest(null)}
