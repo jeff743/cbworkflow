@@ -14,6 +14,7 @@ CB Workflow is a CRO (Conversion Rate Optimization) agency management platform d
 - **RESOLVED: Statement editor input field blocking**: Updated permission logic to allow Growth Strategists to edit their own draft statements while maintaining workflow integrity where they review others' submissions
 - **Simplified project detection logic**: Replaced complex fallback strategies in NewTestsView.tsx with reliable useMemo approach using URL parameters and path matching
 - **Implemented role refresh system**: Added comprehensive role caching fix with enhanced useAuth hook, /api/auth/refresh-role endpoint, and refresh button in sidebar to resolve multi-layer authentication caching issues
+- **Enhanced Growth Strategist permissions**: Added MANAGE_USER_ROLES and ADD_MEMBERS permissions to growth_strategist role, enabling user management capabilities and role changes directly through the UI
 
 # User Preferences
 

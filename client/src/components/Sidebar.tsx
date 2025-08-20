@@ -43,7 +43,7 @@ export function Sidebar() {
 
   const { data: allUsers } = useQuery<User[]>({
     queryKey: ['/api/users'],
-    enabled: (user as any)?.role === 'super_admin',
+    enabled: (user as any)?.role === 'super_admin' || (user as any)?.role === 'growth_strategist',
   });
 
   const projectForm = useForm<CreateProjectFormData>({
@@ -328,7 +328,7 @@ export function Sidebar() {
               </DialogContent>
             </Dialog>
             
-            {(user as any)?.role === 'super_admin' && (
+            {((user as any)?.role === 'super_admin' || (user as any)?.role === 'growth_strategist') && (
               <Dialog open={showManageUsers} onOpenChange={setShowManageUsers}>
                 <DialogTrigger asChild>
                   <Button 
