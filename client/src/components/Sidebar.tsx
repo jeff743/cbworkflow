@@ -33,17 +33,91 @@ export function Sidebar() {
     queryFn: () => fetch("/api/auth/user").then((res) => res.json()),
   });
 
-  const refreshUserProfile = useMutation({
-    mutationFn: () => 
-      fetch("/api/auth/refresh", { 
-        method: "POST",
-        headers: { "Content-Type": "application/json" }
-      }).then((res) => res.json()),
-    onSuccess: (freshUser) => {
-      // Update the query cache with fresh data
-      queryClient.setQueryData(["/api/auth/user"], freshUser);
-      refetchUser();
+  const logoutMutation = useMutation({
+    mutationFn: async () => {
+      // Pre-logout: Clear sensitive data immediately
+      queryClient.clear();
+      localStorage.clear(); 
+      sessionStorage.clear();
+      
+      // Call logout endpoint
+      const response = await fetch('/api/logout', {
+        method: 'GET',
+        credentials: 'include'
+      });
+      
+      return response;
     },
+    onSuccess: () => {
+      // Force page reload to ensure complete state reset
+      window.location.href = '/';
+    },
+    onError: (error) => {
+      console.error('Logout error:', error);
+      // Even if logout API fails, clear local state and redirect
+      queryClient.clear();
+      localStorage.clear();
+      sessionStorage.clear();
+      window.location.href = '/api/logout';
+    }
+  });
+
+  const refreshUserProfile = useMutation({
+    mutationFn: async () => {
+      const response = await fetch("/api/auth/refresh", { 
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: 'include' // Ensure cookies are sent
+      });
+      
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error('Session expired');
+        }
+        throw new Error(`Refresh failed: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      if (!data.id || !data.email) {
+        throw new Error('Invalid user data received');
+      }
+      
+      return data;
+    },
+    onSuccess: (freshUser) => {
+      // Update user data in cache
+      queryClient.setQueryData(["/api/auth/user"], freshUser);
+      
+      // Invalidate all related queries to ensure fresh data
+      queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
+      
+      toast({
+        title: "Profile Refreshed",
+        description: "Your profile data has been updated successfully.",
+      });
+    },
+    onError: (error: Error) => {
+      console.error('Profile refresh failed:', error);
+      
+      if (error.message === 'Session expired') {
+        toast({
+          title: "Session Expired", 
+          description: "Please log in again to continue.",
+          variant: "destructive",
+        });
+        // Redirect to login after short delay
+        setTimeout(() => {
+          window.location.href = '/api/login';
+        }, 2000);
+      } else {
+        toast({
+          title: "Refresh Failed",
+          description: "Could not refresh profile data. Please try again.",
+          variant: "destructive",
+        });
+      }
+    }
   });
 
   const { data: projects } = useQuery<ProjectWithStats[]>({
@@ -419,30 +493,17 @@ export function Sidebar() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={async () => {
-              try {
-                // Clear all React Query cache
-                queryClient.clear();
-                
-                // Clear localStorage cache
-                localStorage.clear();
-                
-                // Clear sessionStorage cache
-                sessionStorage.clear();
-                
-                // Navigate to logout endpoint
-                window.location.href = '/api/logout';
-              } catch (error) {
-                console.error('Logout error:', error);
-                // Fallback: force reload to clear cache
-                window.location.href = '/api/logout';
-              }
-            }}
+            onClick={() => logoutMutation.mutate()}
+            disabled={logoutMutation.isPending}
             className="h-8 w-8 p-0"
-            title="Logout"
+            title={logoutMutation.isPending ? "Logging out..." : "Logout"}
             data-testid="button-sidebar-logout"
           >
-            <i className="fas fa-sign-out-alt text-sm"></i>
+            {logoutMutation.isPending ? (
+              <i className="fas fa-spinner fa-spin text-sm"></i>
+            ) : (
+              <i className="fas fa-sign-out-alt text-sm"></i>
+            )}
           </Button>
         </div>
       </div>
