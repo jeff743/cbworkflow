@@ -10,7 +10,9 @@ CB Workflow is a CRO (Conversion Rate Optimization) agency management platform d
 - **Resolved navigation and sidebar issues**: Fixed New Tests module card navigation to open statement editor directly via URL query parameters, added sidebar to statement editor, and restored missing delete test functionality
 - **Implemented feature preservation workflow**: Added comprehensive mutation handling and UI restoration to prevent accidental feature removal during fixes
 - **Added delete functionality to NewTestsView**: Implemented delete buttons directly on test cards in the New Tests page where users expect them, with confirmation dialogs and proper API integration
-- **Identified spell check integration gap**: Discovered frontend uses basic client-side spell checking while sophisticated server-side system with advanced features exists unused - comprehensive fix plan documented in Instructions.md
+- **RESOLVED: Cross-project data contamination**: Fixed dashboard card navigation in ProjectView.tsx to include proper project context parameters, eliminating data leakage between different client projects
+- **RESOLVED: Statement editor input field blocking**: Updated permission logic to allow Growth Strategists to edit their own draft statements while maintaining workflow integrity where they review others' submissions
+- **Simplified project detection logic**: Replaced complex fallback strategies in NewTestsView.tsx with reliable useMemo approach using URL parameters and path matching
 
 # User Preferences
 
