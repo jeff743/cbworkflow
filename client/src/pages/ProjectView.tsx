@@ -125,7 +125,7 @@ export default function ProjectView() {
   };
 
   // Debug logging
-  console.log('ProjectView Debug:', { projectId, project, statements });
+  console.log('ProjectView Debug:', { projectId, project, statements, userRole: (user as any)?.role });
 
   if (!projectId) {
     return (
@@ -194,14 +194,17 @@ export default function ProjectView() {
               </p>
             </div>
             <div className="flex items-center space-x-3">
-              <Button
-                onClick={() => setShowNewStatementModal(true)}
-                className="bg-primary text-white hover:bg-primary-dark"
-                data-testid="button-new-test"
-              >
-                <i className="fas fa-plus mr-2"></i>
-                New Test
-              </Button>
+              {/* Show New Test button for roles that can create tasks */}
+              {(user as any)?.role && ['super_admin', 'growth_strategist', 'creative_strategist'].includes((user as any).role) && (
+                <Button
+                  onClick={() => setShowNewStatementModal(true)}
+                  className="bg-primary text-white hover:bg-primary-dark"
+                  data-testid="button-new-test"
+                >
+                  <i className="fas fa-plus mr-2"></i>
+                  New Test
+                </Button>
+              )}
             </div>
           </div>
         </header>

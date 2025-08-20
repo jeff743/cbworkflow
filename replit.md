@@ -2,6 +2,12 @@
 
 CB Workflow is a CRO (Conversion Rate Optimization) agency management platform designed to streamline the colorblock creation process for Facebook ads testing. The application allows teams to manage projects, create and review marketing statements, and generate visual colorblocks for social media advertising campaigns. It supports role-based workflows with copywriters creating content, growth strategists reviewing submissions, and designers handling visual production.
 
+## Recent Changes (January 2025)
+- **Fixed ProjectView routing and layout issues**: Resolved parameter extraction from `/projects/:id` routes and restored missing sidebar navigation
+- **Implemented workflow dashboard with stage cards**: Added 4-card overview showing New Tests, Pending Review, Ready to Deploy, and Completed stages with clickable drill-down functionality  
+- **Added role-based UI controls**: New Test button visibility adapts to user permissions (visible for all roles with CREATE_TASK permission)
+- **Enhanced project navigation**: Fixed project selection from sidebar links with proper state management and navigation flow
+
 # User Preferences
 
 Preferred communication style: Simple, everyday language.
