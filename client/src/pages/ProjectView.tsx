@@ -328,7 +328,7 @@ export default function ProjectView() {
           </div>
         )}
 
-        {selectedTestId && !['new', 'pending', 'ready', 'completed'].includes(selectedTestId) && selectedTest ? (
+        {selectedTestId && !['new', 'pending', 'ready', 'completed'].includes(selectedTestId) && selectedTest && (
           /* Show statements within selected test */
           <div className="space-y-4">
             <div className="mb-4">
@@ -339,14 +339,6 @@ export default function ProjectView() {
               >
                 ← Back to Workflow Overview
               </Button>
-            </div>
-            <div className="mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">
-                Test Statements ({selectedTest.statements.length})
-              </h3>
-              <p className="text-sm text-gray-600">
-                Click on a statement to edit it
-              </p>
             </div>
             {selectedTest.statements.map((statement: any) => (
               <Card
@@ -405,7 +397,9 @@ export default function ProjectView() {
               </Card>
             ))}
           </div>
-        ) : selectedTestId && ['new', 'pending', 'ready', 'completed'].includes(selectedTestId) ? (
+        )}
+
+        {selectedTestId && ['new', 'pending', 'ready', 'completed'].includes(selectedTestId) && (
           /* Show workflow stage test cards */
           <div className="space-y-4">
             {tests
@@ -478,7 +472,7 @@ export default function ProjectView() {
                 </Card>
               ))}
           </div>
-        ) : null}
+        )}
 
           {/* Create New Test Button - moved to header */}
         </div>
