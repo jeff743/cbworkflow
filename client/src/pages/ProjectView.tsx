@@ -194,11 +194,17 @@ export default function ProjectView() {
           onStatementUpdated={() => {
             queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/statements`] });
             setSelectedStatementId(null);
+            setSelectedTestId(null);
             // Clear the statement parameter from URL
             window.history.pushState({}, '', `/projects/${projectId}`);
           }}
           navigationRequest={navigationRequest}
-          onNavigationComplete={() => setNavigationRequest(null)}
+          onNavigationComplete={(statementId) => {
+            setSelectedStatementId(statementId);
+            setNavigationRequest(null);
+            // Update URL with new statement parameter
+            window.history.pushState({}, '', `/projects/${projectId}?statement=${statementId}`);
+          }}
         />
       );
     }
@@ -254,7 +260,7 @@ export default function ProjectView() {
           // Workflow Dashboard View
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             {/* New Tests Card */}
-            <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setLocation(`/tests/new?project=${projectId}`)}>
+            <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setSelectedTestId('new')}>
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium text-gray-600 flex items-center justify-between">
                   New Tests
@@ -268,7 +274,7 @@ export default function ProjectView() {
             </Card>
 
             {/* Pending Review Card */}
-            <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setLocation(`/tests/pending-review?project=${projectId}`)}>
+            <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setSelectedTestId('pending')}>
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium text-gray-600 flex items-center justify-between">
                   Pending Review
@@ -282,7 +288,7 @@ export default function ProjectView() {
             </Card>
 
             {/* Ready to Deploy Card */}
-            <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setLocation(`/tests/ready-to-deploy?project=${projectId}`)}>
+            <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setSelectedTestId('ready')}>
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium text-gray-600 flex items-center justify-between">
                   Ready to Deploy
@@ -296,7 +302,7 @@ export default function ProjectView() {
             </Card>
 
             {/* Completed Card */}
-            <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setLocation(`/tests/completed?project=${projectId}`)}>
+            <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setSelectedTestId('completed')}>
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium text-gray-600 flex items-center justify-between">
                   Completed
@@ -322,7 +328,79 @@ export default function ProjectView() {
           </div>
         )}
 
-        {selectedTestId && (
+        {selectedTestId && !['new', 'pending', 'ready', 'completed'].includes(selectedTestId) && selectedTest && (
+          /* Show statements within selected test */
+          <div className="space-y-4">
+            <div className="mb-4">
+              <Button
+                onClick={() => {setSelectedTestId(null); setSelectedStatementId(null);}}
+                variant="outline"
+                size="sm"
+              >
+                ← Back to Workflow Overview
+              </Button>
+            </div>
+            {selectedTest.statements.map((statement: any) => (
+              <Card
+                key={statement.id}
+                className={`hover:shadow-md transition-shadow cursor-pointer ${
+                  selectedStatementId === statement.id ? 'border-primary shadow-md' : ''
+                }`}
+                onClick={() => {
+                  const targetStatementId = statement.id;
+                  
+                  // If no statement is currently selected, select directly
+                  if (!selectedStatementId) {
+                    setSelectedStatementId(targetStatementId);
+                    // Update URL with statement parameter
+                    window.history.pushState({}, '', `/projects/${projectId}?statement=${targetStatementId}`);
+                  } else if (selectedStatementId !== targetStatementId) {
+                    // If different statement selected, send navigation request to check for unsaved changes
+                    setNavigationRequest({ targetStatementId, timestamp: Date.now() });
+                  }
+                  // If same statement clicked, do nothing
+                }}
+                data-testid={`card-statement-${statement.id}`}
+              >
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex-1">
+                      <h4 className="font-medium text-gray-900 mb-1" data-testid={`text-statement-heading-${statement.id}`}>
+                        {statement.heading || 'No heading'}
+                      </h4>
+                      <p className="text-sm text-gray-600 line-clamp-2" data-testid={`text-statement-content-${statement.id}`}>
+                        {statement.content}
+                      </p>
+                    </div>
+                    <Badge 
+                      className={cn(
+                        "text-xs",
+                        statement.status === 'draft' && 'bg-gray-100 text-gray-700',
+                        statement.status === 'under_review' && 'bg-yellow-100 text-yellow-800',
+                        statement.status === 'needs_revision' && 'bg-orange-100 text-orange-800',
+                        statement.status === 'approved' && 'bg-green-100 text-green-800'
+                      )}
+                      data-testid={`status-statement-${statement.id}`}
+                    >
+                      {statement.status.replace('_', ' ')}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center justify-between text-xs text-gray-500">
+                    <span data-testid={`text-statement-creator-${statement.id}`}>
+                      Created by {statement.creator.firstName} {statement.creator.lastName}
+                    </span>
+                    <span data-testid={`text-statement-date-${statement.id}`}>
+                      {statement.createdAt ? new Date(statement.createdAt).toLocaleDateString() : 'No date'}
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+
+        {selectedTestId && ['new', 'pending', 'ready', 'completed'].includes(selectedTestId) && (
+          /* Show workflow stage test cards */
           <div className="space-y-4">
             {tests
               .filter(test => {
@@ -341,7 +419,7 @@ export default function ProjectView() {
                 return false;
               })
               .map(test => (
-                <Card key={test.id} className="hover:shadow-md transition-shadow">
+                <Card key={test.id} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => setSelectedTestId(test.id)}>
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex-1">
@@ -356,13 +434,12 @@ export default function ProjectView() {
                             <Badge
                               key={statement.id}
                               className={cn(
-                                "text-xs cursor-pointer",
+                                "text-xs",
                                 statement.status === 'draft' && 'bg-gray-100 text-gray-700',
                                 statement.status === 'under_review' && 'bg-yellow-100 text-yellow-800',
                                 statement.status === 'needs_revision' && 'bg-orange-100 text-orange-800',
                                 statement.status === 'approved' && 'bg-green-100 text-green-800'
                               )}
-                              onClick={() => setSelectedStatementId(statement.id)}
                             >
                               #{index + 1} {statement.status.replace('_', ' ')}
                             </Badge>
