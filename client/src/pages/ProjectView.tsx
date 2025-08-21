@@ -340,6 +340,14 @@ export default function ProjectView() {
                 ← Back to Workflow Overview
               </Button>
             </div>
+            <div className="mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">
+                Test Statements ({selectedTest.statements.length})
+              </h3>
+              <p className="text-sm text-gray-600">
+                Click on a statement to edit it
+              </p>
+            </div>
             {selectedTest.statements.map((statement: any) => (
               <Card
                 key={statement.id}
