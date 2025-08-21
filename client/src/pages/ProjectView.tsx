@@ -328,8 +328,8 @@ export default function ProjectView() {
           </div>
         )}
 
-        {selectedTestId && !['new', 'pending', 'ready', 'completed'].includes(selectedTestId) && selectedTest ? (
-          /* Show statements within selected test */
+        {/* Individual Test View - Show statements within selected test */}
+        {selectedTestId && !['new', 'pending', 'ready', 'completed'].includes(selectedTestId) && selectedTest && (
           <div className="space-y-4">
             <div className="mb-4">
               <Button
@@ -405,8 +405,10 @@ export default function ProjectView() {
               </Card>
             ))}
           </div>
-        ) : selectedTestId && ['new', 'pending', 'ready', 'completed'].includes(selectedTestId) ? (
-          /* Show workflow stage test cards */
+        )}
+
+        {/* Workflow Stage View - Show test cards for selected workflow stage */}
+        {selectedTestId && ['new', 'pending', 'ready', 'completed'].includes(selectedTestId) && (
           <div className="space-y-4">
             {tests
               .filter(test => {
@@ -478,7 +480,7 @@ export default function ProjectView() {
                 </Card>
               ))}
           </div>
-        ) : null}
+        )}
 
           {/* Create New Test Button - moved to header */}
         </div>
