@@ -12,6 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../components/ui/alert-dialog';
 import { Sidebar } from '../components/Sidebar';
 import { NewStatementModal } from '../components/NewStatementModal';
+import { ProjectSettings } from '../components/ProjectSettings';
 
 export default function ProjectView() {
   const { id: projectId } = useParams<{ id: string }>();
@@ -23,6 +24,7 @@ export default function ProjectView() {
   const [selectedStatementId, setSelectedStatementId] = useState<string | null>(null);
   const [navigationRequest, setNavigationRequest] = useState<{ targetStatementId: string; timestamp: number } | null>(null);
   const [showNewStatementModal, setShowNewStatementModal] = useState(false);
+  const [showProjectSettings, setShowProjectSettings] = useState(false);
   const [testToDelete, setTestToDelete] = useState<any>(null);
 
   // Monitor URL changes for statement navigation
@@ -221,6 +223,17 @@ export default function ProjectView() {
               </p>
             </div>
             <div className="flex items-center space-x-3">
+              {/* Project Settings button */}
+              <Button
+                onClick={() => setShowProjectSettings(true)}
+                variant="outline"
+                className="text-gray-600 hover:text-gray-800"
+                data-testid="button-project-settings"
+              >
+                <i className="fas fa-cog mr-2"></i>
+                Project Settings
+              </Button>
+              
               {/* Show New Test button for roles that can create tasks */}
               {(user as any)?.role && ['super_admin', 'growth_strategist', 'creative_strategist'].includes((user as any).role) && (
                 <Button
@@ -387,6 +400,14 @@ export default function ProjectView() {
           {/* Create New Test Button - moved to header */}
         </div>
       </div>
+
+      {/* Project Settings Modal */}
+      {showProjectSettings && project && (
+        <ProjectSettings
+          project={project}
+          onClose={() => setShowProjectSettings(false)}
+        />
+      )}
 
       {/* New Statement Modal */}
       {showNewStatementModal && (
