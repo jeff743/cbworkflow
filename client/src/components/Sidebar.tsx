@@ -123,10 +123,6 @@ export function Sidebar() {
     }
   });
 
-  const newStatementsCount = myStatements?.filter(s => s.status === 'draft').length || 0;
-  const pendingReviewCount = reviewStatements?.length || 0;
-  const readyToDeployCount = myStatements?.filter(s => s.status === 'completed').length || 0;
-
   const handleProjectClick = useCallback((projectId: string) => {
     // Signal to ProjectView to reset state
     queryClient.invalidateQueries({ queryKey: ['project-nav-reset', projectId] });
@@ -153,6 +149,25 @@ export function Sidebar() {
   };
 
   const currentProjectId = getCurrentProjectId();
+
+  // Calculate project-specific counts
+  const getProjectSpecificCounts = () => {
+    if (!currentProjectId || !myStatements || !reviewStatements) {
+      return { newTests: 0, pendingReview: 0, readyToDeploy: 0, completed: 0 };
+    }
+
+    const projectStatements = myStatements.filter(s => s.projectId === currentProjectId);
+    const projectReviewStatements = reviewStatements.filter(s => s.projectId === currentProjectId);
+
+    return {
+      newTests: projectStatements.filter(s => s.status === 'draft').length,
+      pendingReview: projectReviewStatements.length,
+      readyToDeploy: projectStatements.filter(s => s.status === 'approved' && s.deploymentStatus === 'ready').length,
+      completed: projectStatements.filter(s => s.deploymentStatus === 'completed').length
+    };
+  };
+
+  const projectCounts = getProjectSpecificCounts();
 
   return (
     <div className="w-64 bg-surface shadow-lg flex flex-col">
@@ -244,11 +259,11 @@ export function Sidebar() {
                   <i className="fas fa-edit"></i>
                   <span>New Tests</span>
                 </div>
-                {newStatementsCount > 0 && (
-                  <Badge className={location === '/tests/new' ? "bg-white bg-opacity-20 text-white border-white" : "bg-warning text-white"} data-testid="text-new-statements-count">
-                    {newStatementsCount}
-                  </Badge>
-                )}
+                                 {projectCounts.newTests > 0 && (
+                   <Badge className={location === '/tests/new' ? "bg-white bg-opacity-20 text-white border-white" : "bg-warning text-white"} data-testid="text-new-statements-count">
+                     {projectCounts.newTests}
+                   </Badge>
+                 )}
               </div>
             </Link>
             <Link href={currentProjectId ? `/tests/pending-review?project=${currentProjectId}` : "/tests/pending-review"}>
@@ -261,11 +276,11 @@ export function Sidebar() {
                   <i className="fas fa-eye"></i>
                   <span>Pending Review</span>
                 </div>
-                {pendingReviewCount > 0 && (
-                  <Badge className={location === '/tests/pending-review' ? "bg-white bg-opacity-20 text-white border-white" : "bg-error text-white"} data-testid="text-pending-review-count">
-                    {pendingReviewCount}
-                  </Badge>
-                )}
+                                 {projectCounts.pendingReview > 0 && (
+                   <Badge className={location === '/tests/pending-review' ? "bg-white bg-opacity-20 text-white border-white" : "bg-error text-white"} data-testid="text-pending-review-count">
+                     {projectCounts.pendingReview}
+                   </Badge>
+                 )}
               </div>
             </Link>
             <Link href={currentProjectId ? `/tests/ready-to-deploy?project=${currentProjectId}` : "/tests/ready-to-deploy"}>
@@ -278,24 +293,29 @@ export function Sidebar() {
                   <i className="fas fa-rocket"></i>
                   <span>Ready to Deploy</span>
                 </div>
-                {readyToDeployCount > 0 && (
-                  <Badge className={location === '/tests/ready-to-deploy' ? "bg-white bg-opacity-20 text-white border-white" : "bg-success text-white"} data-testid="text-ready-deploy-count">
-                    {readyToDeployCount}
-                  </Badge>
-                )}
+                                 {projectCounts.readyToDeploy > 0 && (
+                   <Badge className={location === '/tests/ready-to-deploy' ? "bg-white bg-opacity-20 text-white border-white" : "bg-success text-white"} data-testid="text-ready-deploy-count">
+                     {projectCounts.readyToDeploy}
+                   </Badge>
+                 )}
               </div>
             </Link>
             <Link href={currentProjectId ? `/tests/completed?project=${currentProjectId}` : "/tests/completed"}>
-              <div className={`flex items-center justify-between p-3 text-sm rounded-lg cursor-pointer transition-colors ${
-                location === '/tests/completed' 
-                  ? 'bg-primary text-white' 
-                  : 'text-gray-600 hover:bg-gray-50'
-              }`}>
-                <div className="flex items-center space-x-3">
-                  <i className="fas fa-check-circle"></i>
-                  <span>Completed</span>
-                </div>
-              </div>
+                             <div className={`flex items-center justify-between p-3 text-sm rounded-lg cursor-pointer transition-colors ${
+                 location === '/tests/completed' 
+                   ? 'bg-primary text-white' 
+                   : 'text-gray-600 hover:bg-gray-50'
+               }`}>
+                 <div className="flex items-center space-x-3">
+                   <i className="fas fa-check-circle"></i>
+                   <span>Completed</span>
+                 </div>
+                 {projectCounts.completed > 0 && (
+                   <Badge className={location === '/tests/completed' ? "bg-white bg-opacity-20 text-white border-white" : "bg-gray-600 text-white"} data-testid="text-completed-count">
+                     {projectCounts.completed}
+                   </Badge>
+                 )}
+               </div>
             </Link>
           </div>
         </div>
