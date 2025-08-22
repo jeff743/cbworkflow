@@ -150,7 +150,7 @@ export function Sidebar() {
 
   const currentProjectId = getCurrentProjectId();
 
-  // Calculate project-specific counts
+  // Calculate project-specific test batch counts
   const getProjectSpecificCounts = () => {
     if (!currentProjectId || !myStatements || !reviewStatements) {
       return { newTests: 0, pendingReview: 0, readyToDeploy: 0, completed: 0 };
@@ -159,12 +159,56 @@ export function Sidebar() {
     const projectStatements = myStatements.filter(s => s.projectId === currentProjectId);
     const projectReviewStatements = reviewStatements.filter(s => s.projectId === currentProjectId);
 
-    return {
-      newTests: projectStatements.filter(s => s.status === 'draft').length,
-      pendingReview: projectReviewStatements.length,
-      readyToDeploy: projectStatements.filter(s => s.status === 'approved' && s.deploymentStatus === 'ready').length,
-      completed: projectStatements.filter(s => s.deploymentStatus === 'completed').length
-    };
+    // Group statements by test batch
+    const testBatches = new Map<string, any[]>();
+    projectStatements.forEach(statement => {
+      const key = statement.testBatchId || statement.id; // Use statement.id for legacy statements
+      if (!testBatches.has(key)) {
+        testBatches.set(key, []);
+      }
+      testBatches.get(key)!.push(statement);
+    });
+
+    // Count test batches by their status
+    let newTests = 0;
+    let pendingReview = 0;
+    let readyToDeploy = 0;
+    let completed = 0;
+
+    testBatches.forEach((statements, testBatchId) => {
+      if (testBatchId !== statements[0]?.id) { // This is a test batch (not legacy)
+        // Test batch logic
+        const hasAnyApproved = statements.some(s => s.status === 'approved');
+        const allApproved = statements.every(s => s.status === 'approved');
+        const hasAnyCompleted = statements.some(s => s.deploymentStatus === 'completed');
+        const hasAnyReady = statements.some(s => s.deploymentStatus === 'ready');
+        const hasReview = statements.some(s => ['under_review', 'needs_revision'].includes(s.status));
+
+        if (hasAnyCompleted) {
+          completed++;
+        } else if (hasAnyReady || allApproved) {
+          readyToDeploy++;
+        } else if (hasReview) {
+          pendingReview++;
+        } else {
+          newTests++;
+        }
+      } else {
+        // Legacy statement logic
+        const statement = statements[0];
+        if (statement.deploymentStatus === 'completed') {
+          completed++;
+        } else if (statement.deploymentStatus === 'ready' || statement.status === 'approved') {
+          readyToDeploy++;
+        } else if (['under_review', 'needs_revision'].includes(statement.status)) {
+          pendingReview++;
+        } else {
+          newTests++;
+        }
+      }
+    });
+
+    return { newTests, pendingReview, readyToDeploy, completed };
   };
 
   const projectCounts = getProjectSpecificCounts();
@@ -210,18 +254,13 @@ export function Sidebar() {
               return (
                 <Link key={project.id} href={`/projects/${project.id}`} onClick={() => handleProjectClick(project.id)}>
                   <div className={`flex items-center p-3 text-sm rounded-lg cursor-pointer transition-colors ${
-                    isActive 
+                    isActive || isWorkflowActive
                       ? 'bg-primary text-white' 
-                      : isWorkflowActive
-                      ? 'bg-blue-50 text-blue-700 border border-blue-200'
                       : 'text-gray-600 hover:bg-gray-50'
                   }`} data-testid={`link-project-${project.id}`}>
                     <div className="flex items-center space-x-3">
                       <i className="fas fa-folder text-sm"></i>
                       <span>{project.name}</span>
-                      {isWorkflowActive && (
-                        <div className="w-2 h-2 bg-yellow-400 rounded-full ml-1"></div>
-                      )}
                     </div>
                   </div>
                 </Link>
