@@ -123,10 +123,6 @@ export function Sidebar() {
     }
   });
 
-  const newStatementsCount = myStatements?.filter(s => s.status === 'draft').length || 0;
-  const pendingReviewCount = reviewStatements?.length || 0;
-  const readyToDeployCount = myStatements?.filter(s => s.status === 'completed').length || 0;
-
   const handleProjectClick = useCallback((projectId: string) => {
     // Signal to ProjectView to reset state
     queryClient.invalidateQueries({ queryKey: ['project-nav-reset', projectId] });
@@ -141,18 +137,81 @@ export function Sidebar() {
     if (projectMatch) {
       return projectMatch[1];
     }
-    
+
     // Fallback to last visited project
     const lastProjectId = localStorage.getItem('lastVisitedProject');
     if (lastProjectId && projects?.some(p => p.id === lastProjectId)) {
       return lastProjectId;
     }
-    
+
     // Fallback to first available project
     return projects?.[0]?.id || null;
   };
 
   const currentProjectId = getCurrentProjectId();
+
+  // Calculate project-specific test batch counts
+  const getProjectSpecificCounts = () => {
+    if (!currentProjectId || !myStatements || !reviewStatements) {
+      return { newTests: 0, pendingReview: 0, readyToDeploy: 0, completed: 0 };
+    }
+
+    const projectStatements = myStatements.filter(s => s.projectId === currentProjectId);
+    const projectReviewStatements = reviewStatements.filter(s => s.projectId === currentProjectId);
+
+    // Group statements by test batch
+    const testBatches = new Map<string, any[]>();
+    projectStatements.forEach(statement => {
+      const key = statement.testBatchId || statement.id; // Use statement.id for legacy statements
+      if (!testBatches.has(key)) {
+        testBatches.set(key, []);
+      }
+      testBatches.get(key)!.push(statement);
+    });
+
+    // Count test batches by their status
+    let newTests = 0;
+    let pendingReview = 0;
+    let readyToDeploy = 0;
+    let completed = 0;
+
+    testBatches.forEach((statements, testBatchId) => {
+      if (testBatchId !== statements[0]?.id) { // This is a test batch (not legacy)
+        // Test batch logic
+        const hasAnyApproved = statements.some(s => s.status === 'approved');
+        const allApproved = statements.every(s => s.status === 'approved');
+        const hasAnyCompleted = statements.some(s => s.deploymentStatus === 'completed');
+        const hasAnyReady = statements.some(s => s.deploymentStatus === 'ready');
+        const hasReview = statements.some(s => ['under_review', 'needs_revision'].includes(s.status));
+
+        if (hasAnyCompleted) {
+          completed++;
+        } else if (hasAnyReady || allApproved) {
+          readyToDeploy++;
+        } else if (hasReview) {
+          pendingReview++;
+        } else {
+          newTests++;
+        }
+      } else {
+        // Legacy statement logic
+        const statement = statements[0];
+        if (statement.deploymentStatus === 'completed') {
+          completed++;
+        } else if (statement.deploymentStatus === 'ready' || statement.status === 'approved') {
+          readyToDeploy++;
+        } else if (['under_review', 'needs_revision'].includes(statement.status)) {
+          pendingReview++;
+        } else {
+          newTests++;
+        }
+      }
+    });
+
+    return { newTests, pendingReview, readyToDeploy, completed };
+  };
+
+  const projectCounts = getProjectSpecificCounts();
 
   return (
     <div className="w-64 bg-surface shadow-lg flex flex-col">
@@ -177,11 +236,25 @@ export function Sidebar() {
           <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Projects</h3>
           <div className="space-y-1">
             {projects?.map(project => {
+              // Check if we're on a project page
               const isActive = location.startsWith(`/projects/${project.id}`);
+
+              // Check if we're on a workflow page with this project context
+              const urlParams = new URLSearchParams(window.location.search);
+              const projectFromUrl = urlParams.get('project');
+              const isWorkflowActive = projectFromUrl === project.id && (
+                location.startsWith('/tests/new') ||
+                location.startsWith('/tests/pending-review') ||
+                location.startsWith('/tests/ready-to-deploy') ||
+                location.startsWith('/tests/completed')
+              );
+
+              const isSelected = isActive || isWorkflowActive;
+
               return (
                 <Link key={project.id} href={`/projects/${project.id}`} onClick={() => handleProjectClick(project.id)}>
                   <div className={`flex items-center p-3 text-sm rounded-lg cursor-pointer transition-colors ${
-                    isActive 
+                    isActive || isWorkflowActive
                       ? 'bg-primary text-white' 
                       : 'text-gray-600 hover:bg-gray-50'
                   }`} data-testid={`link-project-${project.id}`}>
@@ -197,7 +270,14 @@ export function Sidebar() {
         </div>
 
         <div className="pt-4 border-t border-gray-200">
-          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Workflow</h3>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Workflow</h3>
+            {currentProjectId && projects && (
+              <div className="text-xs text-gray-500 truncate max-w-24">
+                {projects.find(p => p.id === currentProjectId)?.name}
+              </div>
+            )}
+          </div>
           <div className="space-y-1">
             <Link 
               href={currentProjectId ? `/tests/new?project=${currentProjectId}` : "/tests/new"}
@@ -218,14 +298,14 @@ export function Sidebar() {
                   <i className="fas fa-edit"></i>
                   <span>New Tests</span>
                 </div>
-                {newStatementsCount > 0 && (
-                  <Badge className={location === '/tests/new' ? "bg-white bg-opacity-20 text-white border-white" : "bg-warning text-white"} data-testid="text-new-statements-count">
-                    {newStatementsCount}
-                  </Badge>
-                )}
+                                 {projectCounts.newTests > 0 && (
+                   <Badge className={location === '/tests/new' ? "bg-white bg-opacity-20 text-white border-white" : "bg-warning text-white"} data-testid="text-new-statements-count">
+                     {projectCounts.newTests}
+                   </Badge>
+                 )}
               </div>
             </Link>
-            <Link href="/tests/pending-review">
+            <Link href={currentProjectId ? `/tests/pending-review?project=${currentProjectId}` : "/tests/pending-review"}>
               <div className={`flex items-center justify-between p-3 text-sm rounded-lg cursor-pointer transition-colors ${
                 location === '/tests/pending-review' 
                   ? 'bg-primary text-white' 
@@ -235,14 +315,14 @@ export function Sidebar() {
                   <i className="fas fa-eye"></i>
                   <span>Pending Review</span>
                 </div>
-                {pendingReviewCount > 0 && (
-                  <Badge className={location === '/tests/pending-review' ? "bg-white bg-opacity-20 text-white border-white" : "bg-error text-white"} data-testid="text-pending-review-count">
-                    {pendingReviewCount}
-                  </Badge>
-                )}
+                                 {projectCounts.pendingReview > 0 && (
+                   <Badge className={location === '/tests/pending-review' ? "bg-white bg-opacity-20 text-white border-white" : "bg-error text-white"} data-testid="text-pending-review-count">
+                     {projectCounts.pendingReview}
+                   </Badge>
+                 )}
               </div>
             </Link>
-            <Link href="/tests/ready-to-deploy">
+            <Link href={currentProjectId ? `/tests/ready-to-deploy?project=${currentProjectId}` : "/tests/ready-to-deploy"}>
               <div className={`flex items-center justify-between p-3 text-sm rounded-lg cursor-pointer transition-colors ${
                 location === '/tests/ready-to-deploy' 
                   ? 'bg-primary text-white' 
@@ -252,28 +332,33 @@ export function Sidebar() {
                   <i className="fas fa-rocket"></i>
                   <span>Ready to Deploy</span>
                 </div>
-                {readyToDeployCount > 0 && (
-                  <Badge className={location === '/tests/ready-to-deploy' ? "bg-white bg-opacity-20 text-white border-white" : "bg-success text-white"} data-testid="text-ready-deploy-count">
-                    {readyToDeployCount}
-                  </Badge>
-                )}
+                                 {projectCounts.readyToDeploy > 0 && (
+                   <Badge className={location === '/tests/ready-to-deploy' ? "bg-white bg-opacity-20 text-white border-white" : "bg-success text-white"} data-testid="text-ready-deploy-count">
+                     {projectCounts.readyToDeploy}
+                   </Badge>
+                 )}
               </div>
             </Link>
-            <Link href="/tests/completed">
-              <div className={`flex items-center justify-between p-3 text-sm rounded-lg cursor-pointer transition-colors ${
-                location === '/tests/completed' 
-                  ? 'bg-primary text-white' 
-                  : 'text-gray-600 hover:bg-gray-50'
-              }`}>
-                <div className="flex items-center space-x-3">
-                  <i className="fas fa-check-circle"></i>
-                  <span>Completed</span>
-                </div>
-              </div>
+            <Link href={currentProjectId ? `/tests/completed?project=${currentProjectId}` : "/tests/completed"}>
+                             <div className={`flex items-center justify-between p-3 text-sm rounded-lg cursor-pointer transition-colors ${
+                 location === '/tests/completed' 
+                   ? 'bg-primary text-white' 
+                   : 'text-gray-600 hover:bg-gray-50'
+               }`}>
+                 <div className="flex items-center space-x-3">
+                   <i className="fas fa-check-circle"></i>
+                   <span>Completed</span>
+                 </div>
+                 {projectCounts.completed > 0 && (
+                   <Badge className={location === '/tests/completed' ? "bg-white bg-opacity-20 text-white border-white" : "bg-gray-600 text-white"} data-testid="text-completed-count">
+                     {projectCounts.completed}
+                   </Badge>
+                 )}
+               </div>
             </Link>
           </div>
         </div>
-        
+
         {/* Admin Actions */}
         <div className="pt-4 border-t border-gray-200">
           <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Actions</h3>
@@ -327,7 +412,7 @@ export function Sidebar() {
                 </Form>
               </DialogContent>
             </Dialog>
-            
+
             {((user as any)?.role === 'super_admin' || (user as any)?.role === 'growth_strategist') && (
               <Dialog open={showManageUsers} onOpenChange={setShowManageUsers}>
                 <DialogTrigger asChild>

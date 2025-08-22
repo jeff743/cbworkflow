@@ -1,14 +1,14 @@
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { useState, useMemo } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
 import { ExportCompletionDialog } from "@/components/ExportCompletionDialog";
-import type { StatementWithRelations } from "@shared/schema";
-import { useState } from "react";
+import type { StatementWithRelations, ProjectWithStats } from "@shared/schema";
 
 interface DeploymentTest {
   id: string;
@@ -24,10 +24,46 @@ export default function ReadyToDeployView() {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [location, setLocation] = useLocation();
   const [showCompletionDialog, setShowCompletionDialog] = useState(false);
   const [exportedTestIds, setExportedTestIds] = useState<string[]>([]);
 
-  const { data: readyTests = [], isLoading } = useQuery<DeploymentTest[]>({
+  // Project context detection
+  const projectId = useMemo(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const projectFromUrl = urlParams.get('project');
+    if (projectFromUrl) {
+      return projectFromUrl;
+    }
+
+    const pathMatch = location.match(/\/projects\/([^\/]+)/);
+    if (pathMatch) {
+      return pathMatch[1];
+    }
+
+    return null;
+  }, [location]);
+
+  // Get user's projects for validation
+  const { data: projects } = useQuery<ProjectWithStats[]>({
+    queryKey: ['/api/projects'],
+  });
+
+  // Show error when no project context
+  if (!projectId) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold mb-2">Project Context Required</h2>
+          <p className="text-gray-600 mb-4">Please navigate from a specific project dashboard</p>
+          <Button onClick={() => setLocation('/')}>Return to Dashboard</Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Use global deployment endpoint but filter by project
+  const { data: allReadyTests = [], isLoading } = useQuery<DeploymentTest[]>({
     queryKey: ['/api/deployment/tests', 'ready'],
     queryFn: async () => {
       const response = await apiRequest('GET', '/api/deployment/tests?status=ready');
@@ -35,11 +71,14 @@ export default function ReadyToDeployView() {
     },
   });
 
+  // Filter tests by current project
+  const readyTests = allReadyTests.filter(test => test.projectId === projectId);
+
   const exportMutation = useMutation({
     mutationFn: async (testBatchIds: string[]) => {
       // Get statement IDs for the selected test batches
       const statementIds: string[] = [];
-      
+
       readyTests.forEach((test) => {
         if (testBatchIds.includes(test.testBatchId)) {
           test.statements.forEach((statement) => {
@@ -47,13 +86,13 @@ export default function ReadyToDeployView() {
           });
         }
       });
-      
+
       const queryParams = statementIds.length > 0 
         ? `?${statementIds.map(id => `ids=${id}`).join('&')}`
         : '';
-      
+
       const response = await apiRequest('GET', `/api/deployment/export${queryParams}`);
-      
+
       // Handle blob response for ZIP file
       if (response.headers.get('content-type')?.includes('application/zip')) {
         const blob = await response.blob();
@@ -67,7 +106,7 @@ export default function ReadyToDeployView() {
         document.body.removeChild(a);
         return { count: statementIds.length };
       }
-      
+
       return response.json();
     },
     onSuccess: (data, testBatchIds) => {
@@ -125,13 +164,24 @@ export default function ReadyToDeployView() {
   return (
     <div className="flex h-screen overflow-hidden">
       <Sidebar />
-      
+
       <div className="flex-1 flex flex-col overflow-hidden">
         <header className="bg-surface border-b border-gray-200 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-2xl font-bold text-secondary">Ready to Deploy</h2>
-              <p className="text-gray-600 mt-1">Approved tests ready for Facebook advertising campaigns</p>
+              <div className="flex items-center space-x-4">
+                <Button
+                  onClick={() => setLocation(`/projects/${projectId}`)}
+                  variant="outline"
+                  size="sm"
+                >
+                  ← Back to Project
+                </Button>
+                <div>
+                  <h2 className="text-2xl font-bold text-secondary">Ready to Deploy</h2>
+                  <p className="text-gray-600 mt-1">Approved tests ready for Facebook advertising campaigns</p>
+                </div>
+              </div>
             </div>
             <Badge className="bg-success text-white text-lg px-4 py-2">
               {readyTests.length} test{readyTests.length !== 1 ? 's' : ''} ready
@@ -156,7 +206,7 @@ export default function ReadyToDeployView() {
                     Ready
                   </Badge>
                 </div>
-                
+
                 <div className="space-y-2 mb-4">
                   {test.statements.slice(0, 3).map((statement) => (
                     <div key={statement.id} className="text-sm">
@@ -187,7 +237,7 @@ export default function ReadyToDeployView() {
                     {exportMutation.isPending ? "Exporting..." : "Export"}
                   </Button>
                 </div>
-                
+
                 <div className="pt-4 border-t border-gray-100">
                   <p className="text-xs text-gray-500">
                     Ready {test.readyDate ? new Date(test.readyDate).toLocaleDateString() : 'Unknown date'}
@@ -196,7 +246,7 @@ export default function ReadyToDeployView() {
               </div>
             ))}
           </div>
-          
+
           {readyTests.length === 0 && (
             <div className="text-center py-12">
               <i className="fas fa-hourglass-half text-6xl text-gray-300 mb-4"></i>

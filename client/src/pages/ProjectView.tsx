@@ -19,7 +19,7 @@ export default function ProjectView() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
-  
+
   const [selectedTestId, setSelectedTestId] = useState<string | null>(null);
   const [selectedStatementId, setSelectedStatementId] = useState<string | null>(null);
   const [navigationRequest, setNavigationRequest] = useState<{ targetStatementId: string; timestamp: number } | null>(null);
@@ -27,14 +27,22 @@ export default function ProjectView() {
   const [showProjectSettings, setShowProjectSettings] = useState(false);
   const [testToDelete, setTestToDelete] = useState<any>(null);
 
-  // Monitor URL changes for statement navigation
+  // Monitor URL changes for statement or test navigation
   useEffect(() => {
     const urlSearchParams = new URLSearchParams(window.location.search);
     const statementIdFromUrl = urlSearchParams.get('statement');
+    const testIdFromUrl = urlSearchParams.get('test');
+
+    if (testIdFromUrl && testIdFromUrl !== selectedTestId) {
+      setSelectedTestId(testIdFromUrl);
+      setSelectedStatementId(null);
+      return;
+    }
+
     if (statementIdFromUrl && statementIdFromUrl !== selectedStatementId) {
       setSelectedStatementId(statementIdFromUrl);
     }
-  }, [window.location.search, selectedStatementId]);
+  }, [window.location.search, selectedStatementId, selectedTestId]);
 
   // Delete test batch mutation
   const deleteTestBatchMutation = useMutation({
@@ -70,7 +78,7 @@ export default function ProjectView() {
       deleteTestBatchMutation.mutate(testToDelete.testBatchId);
     }
   };
-  
+
   // Fetch project data
   const { data: project } = useQuery<any>({
     queryKey: [`/api/projects/${projectId}`],
@@ -86,7 +94,7 @@ export default function ProjectView() {
   // Group statements by test batch
   const tests = useMemo(() => {
     const testGroups = new Map<string | null, any[]>();
-    
+
     statements.forEach((statement: any) => {
       const key = statement.testBatchId || statement.id; // Use statement.id for legacy statements
       if (!testGroups.has(key)) {
@@ -205,6 +213,11 @@ export default function ProjectView() {
             // Update URL with new statement parameter
             window.history.pushState({}, '', `/projects/${projectId}?statement=${statementId}`);
           }}
+          onBack={() => {
+            setSelectedStatementId(null);
+            // Clear the statement parameter from URL
+            window.history.pushState({}, '', `/projects/${projectId}`);
+          }}
         />
       );
     }
@@ -214,7 +227,7 @@ export default function ProjectView() {
     <div className="flex min-h-screen bg-background">
       {/* Sidebar */}
       <Sidebar />
-      
+
       {/* Main Content */}
       <div className="flex-1">
         {/* Header */}
@@ -239,7 +252,7 @@ export default function ProjectView() {
                 <i className="fas fa-cog mr-2"></i>
                 Project Settings
               </Button>
-              
+
               {/* Show New Test button for roles that can create tasks */}
               {(user as any)?.role && ['super_admin', 'growth_strategist', 'creative_strategist'].includes((user as any).role) && (
                 <Button
@@ -256,11 +269,11 @@ export default function ProjectView() {
         </header>
 
         <div className="max-w-7xl mx-auto p-6">
-          {!selectedTestId ? (
+          {!selectedTestId && (
           // Workflow Dashboard View
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             {/* New Tests Card */}
-            <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setSelectedTestId('new')}>
+            <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setLocation(`/tests/new?project=${projectId}`)}>
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium text-gray-600 flex items-center justify-between">
                   New Tests
@@ -274,7 +287,7 @@ export default function ProjectView() {
             </Card>
 
             {/* Pending Review Card */}
-            <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setSelectedTestId('pending')}>
+            <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setLocation(`/tests/pending-review?project=${projectId}`)}>
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium text-gray-600 flex items-center justify-between">
                   Pending Review
@@ -288,7 +301,7 @@ export default function ProjectView() {
             </Card>
 
             {/* Ready to Deploy Card */}
-            <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setSelectedTestId('ready')}>
+            <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setLocation(`/tests/ready-to-deploy?project=${projectId}`)}>
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium text-gray-600 flex items-center justify-between">
                   Ready to Deploy
@@ -302,7 +315,7 @@ export default function ProjectView() {
             </Card>
 
             {/* Completed Card */}
-            <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setSelectedTestId('completed')}>
+            <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setLocation(`/tests/completed?project=${projectId}`)}>
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium text-gray-600 flex items-center justify-between">
                   Completed
@@ -315,17 +328,6 @@ export default function ProjectView() {
               </CardContent>
             </Card>
           </div>
-        ) : (
-          // Individual Test Cards View
-          <div className="mb-4">
-            <Button
-              onClick={() => setSelectedTestId(null)}
-              variant="outline"
-              size="sm"
-            >
-              ← Back to Workflow Overview
-            </Button>
-          </div>
         )}
 
         {selectedTestId && !['new', 'pending', 'ready', 'completed'].includes(selectedTestId) && selectedTest && (
@@ -333,11 +335,11 @@ export default function ProjectView() {
           <div className="space-y-4">
             <div className="mb-4">
               <Button
-                onClick={() => {setSelectedTestId(null); setSelectedStatementId(null);}}
+                onClick={() => setLocation(`/tests/new?project=${projectId}`)}
                 variant="outline"
                 size="sm"
               >
-                ← Back to Workflow Overview
+                ← Back to New Tests
               </Button>
             </div>
             {selectedTest.statements.map((statement: any) => (
@@ -348,7 +350,7 @@ export default function ProjectView() {
                 }`}
                 onClick={() => {
                   const targetStatementId = statement.id;
-                  
+
                   // If no statement is currently selected, select directly
                   if (!selectedStatementId) {
                     setSelectedStatementId(targetStatementId);
@@ -402,6 +404,15 @@ export default function ProjectView() {
         {selectedTestId && ['new', 'pending', 'ready', 'completed'].includes(selectedTestId) && (
           /* Show workflow stage test cards */
           <div className="space-y-4">
+            <div className="mb-4">
+              <Button
+                onClick={() => setLocation(`/tests/new?project=${projectId}`)}
+                variant="outline"
+                size="sm"
+              >
+                ← Back to New Tests
+              </Button>
+            </div>
             {tests
               .filter(test => {
                 if (selectedTestId === 'new') {
@@ -446,7 +457,7 @@ export default function ProjectView() {
                           ))}
                         </div>
                       </div>
-                      
+
                       {/* Delete button for test batches */}
                       {test.testBatchId && (
                         <Button
