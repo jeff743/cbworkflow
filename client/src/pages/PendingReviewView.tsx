@@ -1,15 +1,54 @@
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect, useMemo } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { Badge } from "@/components/ui/badge";
-import { Link } from "wouter";
-import type { StatementWithRelations } from "@shared/schema";
+import { Button } from "@/components/ui/button";
+import { Link, useLocation } from "wouter";
+import type { StatementWithRelations, ProjectWithStats } from "@shared/schema";
 
 export default function PendingReviewView() {
   const { user } = useAuth();
+  const [location, setLocation] = useLocation();
 
+  // Project context detection
+  const projectId = useMemo(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const projectFromUrl = urlParams.get('project');
+    if (projectFromUrl) {
+      return projectFromUrl;
+    }
+
+    const pathMatch = location.match(/\/projects\/([^\/]+)/);
+    if (pathMatch) {
+      return pathMatch[1];
+    }
+
+    return null;
+  }, [location]);
+
+  // Get user's projects for validation
+  const { data: projects } = useQuery<ProjectWithStats[]>({
+    queryKey: ['/api/projects'],
+  });
+
+  // Show error when no project context
+  if (!projectId) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold mb-2">Project Context Required</h2>
+          <p className="text-gray-600 mb-4">Please navigate from a specific project dashboard</p>
+          <Button onClick={() => setLocation('/')}>Return to Dashboard</Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Use project-specific endpoint
   const { data: statements, isLoading } = useQuery<StatementWithRelations[]>({
-    queryKey: ['/api/dashboard/review-statements'],
+    queryKey: [`/api/projects/${projectId}/statements`],
+    enabled: !!projectId,
   });
 
   // Group statements into tests that have at least one pending statement, excluding deployed tests
@@ -18,7 +57,12 @@ export default function PendingReviewView() {
     if (statement.deploymentStatus === 'ready' || statement.deploymentStatus === 'completed') {
       return acc;
     }
-    
+
+    // Only include statements from the current project
+    if (statement.projectId !== projectId) {
+      return acc;
+    }
+
     const testKey = statement.testBatchId || `${statement.projectId}-${statement.createdAt ? new Date(statement.createdAt).toISOString().split('T')[0] : 'no-date'}`;
     if (!acc[testKey]) {
       acc[testKey] = {
@@ -51,13 +95,24 @@ export default function PendingReviewView() {
   return (
     <div className="flex h-screen overflow-hidden">
       <Sidebar />
-      
+
       <div className="flex-1 flex flex-col overflow-hidden">
         <header className="bg-surface border-b border-gray-200 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-2xl font-bold text-secondary">Pending Review</h2>
-              <p className="text-gray-600 mt-1">Tests with statements awaiting approval</p>
+              <div className="flex items-center space-x-4">
+                <Button
+                  onClick={() => setLocation(`/projects/${projectId}`)}
+                  variant="outline"
+                  size="sm"
+                >
+                  ← Back to Project
+                </Button>
+                <div>
+                  <h2 className="text-2xl font-bold text-secondary">Pending Review</h2>
+                  <p className="text-gray-600 mt-1">Tests with statements awaiting approval</p>
+                </div>
+              </div>
             </div>
             <Badge className="bg-error text-white text-lg px-4 py-2">
               {testsWithPendingReview.length} test{testsWithPendingReview.length !== 1 ? 's' : ''} pending
@@ -83,7 +138,7 @@ export default function PendingReviewView() {
                       {test.pendingCount} pending
                     </Badge>
                   </div>
-                  
+
                   <div className="space-y-2">
                     {test.statements.filter((s: any) => s.status === 'under_review').slice(0, 3).map((statement: any) => (
                       <div key={statement.id} className="text-sm">
@@ -101,7 +156,7 @@ export default function PendingReviewView() {
                       </p>
                     )}
                   </div>
-                  
+
                   <div className="mt-4 pt-4 border-t border-gray-100">
                     <p className="text-xs text-gray-500">
                       Created {test.createdAt ? new Date(test.createdAt).toLocaleDateString() : 'Unknown date'}
@@ -111,7 +166,7 @@ export default function PendingReviewView() {
               </Link>
             ))}
           </div>
-          
+
           {testsWithPendingReview.length === 0 && (
             <div className="text-center py-12">
               <i className="fas fa-check-circle text-6xl text-green-300 mb-4"></i>

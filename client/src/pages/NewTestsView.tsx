@@ -33,14 +33,14 @@ export default function NewTestsView() {
       console.log('✅ NewTestsView: Using project from URL parameter:', projectFromUrl);
       return projectFromUrl;
     }
-    
+
     // 2. Extract from pathname (secondary)
     const pathMatch = location.match(/\/projects\/([^\/]+)/);
     if (pathMatch) {
       console.log('✅ NewTestsView: Using project from URL path:', pathMatch[1]);
       return pathMatch[1];
     }
-    
+
     // 3. No fallback - require explicit project context
     console.log('❌ NewTestsView: No project context found');
     return null;
@@ -74,12 +74,12 @@ export default function NewTestsView() {
   const groupedTests = statements?.reduce((acc, statement) => {
     // Skip statements without testBatchId (legacy statements)
     if (!statement.testBatchId) return acc;
-    
+
     // Skip tests that have been moved to Ready to Deploy or Completed
     if (statement.deploymentStatus === 'ready' || statement.deploymentStatus === 'completed') {
       return acc;
     }
-    
+
     const testKey = statement.testBatchId;
     if (!acc[testKey]) {
       acc[testKey] = {
@@ -152,18 +152,29 @@ export default function NewTestsView() {
   return (
     <div className="flex h-screen overflow-hidden">
       <Sidebar />
-      
+
       <div className="flex-1 flex flex-col overflow-hidden">
         <header className="bg-surface border-b border-gray-200 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-2xl font-bold text-secondary">New Tests</h2>
-              {projectId && (
-                <p className="text-sm text-gray-600 mt-1">
-                  Project: {projects?.find(p => p.id === projectId)?.name || 'Loading...'}
-                </p>
-              )}
-              <p className="text-gray-600 mt-1">All tests currently in progress</p>
+              <div className="flex items-center space-x-4">
+                <Button
+                  onClick={() => setLocation(`/projects/${projectId}`)}
+                  variant="outline"
+                  size="sm"
+                >
+                  ← Back to Project
+                </Button>
+                <div>
+                  <h2 className="text-2xl font-bold text-secondary">New Tests</h2>
+                  {projectId && (
+                    <p className="text-sm text-gray-600 mt-1">
+                      Project: {projects?.find(p => p.id === projectId)?.name || 'Loading...'}
+                    </p>
+                  )}
+                  <p className="text-gray-600 mt-1">All tests currently in progress</p>
+                </div>
+              </div>
             </div>
             <Button
               onClick={() => setShowNewStatementModal(true)}
@@ -212,7 +223,7 @@ export default function NewTestsView() {
                     )}
                   </div>
                 </div>
-                  
+
                   <div className="space-y-2">
                     {test.statements.slice(0, 3).map((statement: any) => (
                       <div key={statement.id} className="text-sm">
@@ -235,7 +246,7 @@ export default function NewTestsView() {
                       </p>
                     )}
                   </div>
-                  
+
                   <div className="mt-4 pt-4 border-t border-gray-100">
                     <p className="text-xs text-gray-500">
                       Created {test.createdAt ? new Date(test.createdAt).toLocaleDateString() : 'Unknown date'}
@@ -244,7 +255,7 @@ export default function NewTestsView() {
                 </div>
               ))}
           </div>
-          
+
           {tests.length === 0 && (
             <div className="text-center py-12">
               <i className="fas fa-clipboard-list text-6xl text-gray-300 mb-4"></i>

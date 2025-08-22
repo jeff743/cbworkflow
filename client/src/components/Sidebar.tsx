@@ -141,13 +141,13 @@ export function Sidebar() {
     if (projectMatch) {
       return projectMatch[1];
     }
-    
+
     // Fallback to last visited project
     const lastProjectId = localStorage.getItem('lastVisitedProject');
     if (lastProjectId && projects?.some(p => p.id === lastProjectId)) {
       return lastProjectId;
     }
-    
+
     // Fallback to first available project
     return projects?.[0]?.id || null;
   };
@@ -177,17 +177,36 @@ export function Sidebar() {
           <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Projects</h3>
           <div className="space-y-1">
             {projects?.map(project => {
+              // Check if we're on a project page
               const isActive = location.startsWith(`/projects/${project.id}`);
+
+              // Check if we're on a workflow page with this project context
+              const urlParams = new URLSearchParams(window.location.search);
+              const projectFromUrl = urlParams.get('project');
+              const isWorkflowActive = projectFromUrl === project.id && (
+                location.startsWith('/tests/new') ||
+                location.startsWith('/tests/pending-review') ||
+                location.startsWith('/tests/ready-to-deploy') ||
+                location.startsWith('/tests/completed')
+              );
+
+              const isSelected = isActive || isWorkflowActive;
+
               return (
                 <Link key={project.id} href={`/projects/${project.id}`} onClick={() => handleProjectClick(project.id)}>
                   <div className={`flex items-center p-3 text-sm rounded-lg cursor-pointer transition-colors ${
                     isActive 
                       ? 'bg-primary text-white' 
+                      : isWorkflowActive
+                      ? 'bg-blue-50 text-blue-700 border border-blue-200'
                       : 'text-gray-600 hover:bg-gray-50'
                   }`} data-testid={`link-project-${project.id}`}>
                     <div className="flex items-center space-x-3">
                       <i className="fas fa-folder text-sm"></i>
                       <span>{project.name}</span>
+                      {isWorkflowActive && (
+                        <div className="w-2 h-2 bg-yellow-400 rounded-full ml-1"></div>
+                      )}
                     </div>
                   </div>
                 </Link>
@@ -197,7 +216,14 @@ export function Sidebar() {
         </div>
 
         <div className="pt-4 border-t border-gray-200">
-          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Workflow</h3>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Workflow</h3>
+            {currentProjectId && projects && (
+              <div className="text-xs text-gray-500 truncate max-w-24">
+                {projects.find(p => p.id === currentProjectId)?.name}
+              </div>
+            )}
+          </div>
           <div className="space-y-1">
             <Link 
               href={currentProjectId ? `/tests/new?project=${currentProjectId}` : "/tests/new"}
@@ -225,7 +251,7 @@ export function Sidebar() {
                 )}
               </div>
             </Link>
-            <Link href="/tests/pending-review">
+            <Link href={currentProjectId ? `/tests/pending-review?project=${currentProjectId}` : "/tests/pending-review"}>
               <div className={`flex items-center justify-between p-3 text-sm rounded-lg cursor-pointer transition-colors ${
                 location === '/tests/pending-review' 
                   ? 'bg-primary text-white' 
@@ -242,7 +268,7 @@ export function Sidebar() {
                 )}
               </div>
             </Link>
-            <Link href="/tests/ready-to-deploy">
+            <Link href={currentProjectId ? `/tests/ready-to-deploy?project=${currentProjectId}` : "/tests/ready-to-deploy"}>
               <div className={`flex items-center justify-between p-3 text-sm rounded-lg cursor-pointer transition-colors ${
                 location === '/tests/ready-to-deploy' 
                   ? 'bg-primary text-white' 
@@ -259,7 +285,7 @@ export function Sidebar() {
                 )}
               </div>
             </Link>
-            <Link href="/tests/completed">
+            <Link href={currentProjectId ? `/tests/completed?project=${currentProjectId}` : "/tests/completed"}>
               <div className={`flex items-center justify-between p-3 text-sm rounded-lg cursor-pointer transition-colors ${
                 location === '/tests/completed' 
                   ? 'bg-primary text-white' 
@@ -273,7 +299,7 @@ export function Sidebar() {
             </Link>
           </div>
         </div>
-        
+
         {/* Admin Actions */}
         <div className="pt-4 border-t border-gray-200">
           <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Actions</h3>
@@ -327,7 +353,7 @@ export function Sidebar() {
                 </Form>
               </DialogContent>
             </Dialog>
-            
+
             {((user as any)?.role === 'super_admin' || (user as any)?.role === 'growth_strategist') && (
               <Dialog open={showManageUsers} onOpenChange={setShowManageUsers}>
                 <DialogTrigger asChild>

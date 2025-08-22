@@ -1,11 +1,12 @@
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
+import { useState, useMemo } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
-import type { StatementWithRelations } from "@shared/schema";
+import type { StatementWithRelations, ProjectWithStats } from "@shared/schema";
 
 interface CompletedTest {
   id: string;
@@ -19,14 +20,53 @@ interface CompletedTest {
 
 export default function CompletedView() {
   const { user } = useAuth();
+  const [location, setLocation] = useLocation();
 
-  const { data: completedTests = [], isLoading } = useQuery<CompletedTest[]>({
+  // Project context detection
+  const projectId = useMemo(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const projectFromUrl = urlParams.get('project');
+    if (projectFromUrl) {
+      return projectFromUrl;
+    }
+
+    const pathMatch = location.match(/\/projects\/([^\/]+)/);
+    if (pathMatch) {
+      return pathMatch[1];
+    }
+
+    return null;
+  }, [location]);
+
+  // Get user's projects for validation
+  const { data: projects } = useQuery<ProjectWithStats[]>({
+    queryKey: ['/api/projects'],
+  });
+
+  // Show error when no project context
+  if (!projectId) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold mb-2">Project Context Required</h2>
+          <p className="text-gray-600 mb-4">Please navigate from a specific project dashboard</p>
+          <Button onClick={() => setLocation('/')}>Return to Dashboard</Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Use global deployment endpoint but filter by project
+  const { data: allCompletedTests = [], isLoading } = useQuery<CompletedTest[]>({
     queryKey: ['/api/deployment/tests', 'completed'],
     queryFn: async () => {
       const response = await apiRequest('GET', '/api/deployment/tests?status=completed');
       return response.json();
     },
   });
+
+  // Filter tests by current project
+  const completedTests = allCompletedTests.filter(test => test.projectId === projectId);
 
   if (isLoading) {
     return (
@@ -40,13 +80,24 @@ export default function CompletedView() {
   return (
     <div className="flex h-screen overflow-hidden">
       <Sidebar />
-      
+
       <div className="flex-1 flex flex-col overflow-hidden">
         <header className="bg-surface border-b border-gray-200 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-2xl font-bold text-secondary">Completed Tests</h2>
-              <p className="text-gray-600 mt-1">Successfully deployed and completed advertising campaigns</p>
+              <div className="flex items-center space-x-4">
+                <Button
+                  onClick={() => setLocation(`/projects/${projectId}`)}
+                  variant="outline"
+                  size="sm"
+                >
+                  ← Back to Project
+                </Button>
+                <div>
+                  <h2 className="text-2xl font-bold text-secondary">Completed Tests</h2>
+                  <p className="text-gray-600 mt-1">Successfully deployed and completed advertising campaigns</p>
+                </div>
+              </div>
             </div>
             <Badge className="bg-gray-600 text-white text-lg px-4 py-2">
               {completedTests.length} test{completedTests.length !== 1 ? 's' : ''} completed
@@ -85,7 +136,7 @@ export default function CompletedView() {
                       Completed
                     </Badge>
                   </div>
-                  
+
                   <div className="space-y-2 mb-4">
                     {test.statements.slice(0, 3).map((statement) => (
                       <div key={statement.id} className="text-sm">
@@ -105,7 +156,7 @@ export default function CompletedView() {
                       <span>{new Date(test.completedDate).toLocaleDateString()}</span>
                     </div>
                   </div>
-                  
+
                   <div className="mt-4">
                     <Link href={`/projects/${test.projectId}`}>
                       <Button 
