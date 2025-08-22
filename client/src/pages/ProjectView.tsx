@@ -27,14 +27,22 @@ export default function ProjectView() {
   const [showProjectSettings, setShowProjectSettings] = useState(false);
   const [testToDelete, setTestToDelete] = useState<any>(null);
 
-  // Monitor URL changes for statement navigation
+  // Monitor URL changes for statement or test navigation
   useEffect(() => {
     const urlSearchParams = new URLSearchParams(window.location.search);
     const statementIdFromUrl = urlSearchParams.get('statement');
+    const testIdFromUrl = urlSearchParams.get('test');
+
+    if (testIdFromUrl && testIdFromUrl !== selectedTestId) {
+      setSelectedTestId(testIdFromUrl);
+      setSelectedStatementId(null);
+      return;
+    }
+
     if (statementIdFromUrl && statementIdFromUrl !== selectedStatementId) {
       setSelectedStatementId(statementIdFromUrl);
     }
-  }, [window.location.search, selectedStatementId]);
+  }, [window.location.search, selectedStatementId, selectedTestId]);
 
   // Delete test batch mutation
   const deleteTestBatchMutation = useMutation({
@@ -205,6 +213,11 @@ export default function ProjectView() {
             // Update URL with new statement parameter
             window.history.pushState({}, '', `/projects/${projectId}?statement=${statementId}`);
           }}
+          onBack={() => {
+            setSelectedStatementId(null);
+            // Clear the statement parameter from URL
+            window.history.pushState({}, '', `/projects/${projectId}`);
+          }}
         />
       );
     }
@@ -256,7 +269,7 @@ export default function ProjectView() {
         </header>
 
         <div className="max-w-7xl mx-auto p-6">
-          {!selectedTestId ? (
+          {!selectedTestId && (
           // Workflow Dashboard View
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             {/* New Tests Card */}
@@ -315,17 +328,6 @@ export default function ProjectView() {
               </CardContent>
             </Card>
           </div>
-        ) : (
-          // Individual Test Cards View
-          <div className="mb-4">
-            <Button
-              onClick={() => setSelectedTestId(null)}
-              variant="outline"
-              size="sm"
-            >
-              ← Back to Workflow Overview
-            </Button>
-          </div>
         )}
 
         {selectedTestId && !['new', 'pending', 'ready', 'completed'].includes(selectedTestId) && selectedTest && (
@@ -333,11 +335,11 @@ export default function ProjectView() {
           <div className="space-y-4">
             <div className="mb-4">
               <Button
-                onClick={() => {setSelectedTestId(null); setSelectedStatementId(null);}}
+                onClick={() => setLocation(`/tests/new?project=${projectId}`)}
                 variant="outline"
                 size="sm"
               >
-                ← Back to Workflow Overview
+                ← Back to New Tests
               </Button>
             </div>
             {selectedTest.statements.map((statement: any) => (
@@ -402,6 +404,15 @@ export default function ProjectView() {
         {selectedTestId && ['new', 'pending', 'ready', 'completed'].includes(selectedTestId) && (
           /* Show workflow stage test cards */
           <div className="space-y-4">
+            <div className="mb-4">
+              <Button
+                onClick={() => setLocation(`/tests/new?project=${projectId}`)}
+                variant="outline"
+                size="sm"
+              >
+                ← Back to New Tests
+              </Button>
+            </div>
             {tests
               .filter(test => {
                 if (selectedTestId === 'new') {

@@ -21,9 +21,10 @@ interface StatementEditorProps {
   onStatementUpdated: () => void;
   navigationRequest?: { targetStatementId: string; timestamp: number } | null;
   onNavigationComplete?: (statementId: string) => void;
+  onBack?: () => void;
 }
 
-export function StatementEditor({ statement, onStatementUpdated, navigationRequest, onNavigationComplete }: StatementEditorProps) {
+export function StatementEditor({ statement, onStatementUpdated, navigationRequest, onNavigationComplete, onBack }: StatementEditorProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -86,7 +87,7 @@ export function StatementEditor({ statement, onStatementUpdated, navigationReque
       formData.textAlignment !== (statement.textAlignment || "center") ||
       formData.backgroundColor !== (statement.backgroundColor || "#4CAF50") ||
       formData.backgroundImageUrl !== (statement.backgroundImageUrl || "");
-    
+
     setHasUnsavedChanges(hasChanges);
     hasUnsavedChangesRef.current = hasChanges; // Step 3: Immediate access
   }, [formData, statement]);
@@ -169,7 +170,7 @@ export function StatementEditor({ statement, onStatementUpdated, navigationReque
 
   const handleSaveAndContinue = () => {
     handleSaveDraft(); // Save current changes
-    
+
     // Wait for save to complete, then navigate
     setTimeout(() => {
       if (pendingNavigationRequest) {
@@ -258,9 +259,9 @@ export function StatementEditor({ statement, onStatementUpdated, navigationReque
   const currentUserId = (user as any)?.id;
   const isReviewer = userRole === "growth_strategist" || userRole === "super_admin";
   const isOwnStatement = statement.createdBy === currentUserId;
-  
 
-  
+
+
   // Allow editing if:
   // 1. Statement is draft/needs_revision AND
   // 2. Either it's the user's own statement OR user is not a reviewer (i.e., copywriter)
@@ -278,11 +279,26 @@ export function StatementEditor({ statement, onStatementUpdated, navigationReque
   return (
     <div className="flex h-screen overflow-hidden">
       <Sidebar />
-      
+
       <div className="flex-1 flex flex-col">
-        {/* Editor Tabs */}
+        {/* Header with Back Button and Editor Tabs */}
         <div className="bg-surface border-b border-gray-200">
-        <div className="flex">
+          {/* Back Button */}
+          {onBack && (
+            <div className="px-6 py-3 border-b border-gray-200">
+              <Button
+                onClick={onBack}
+                variant="outline"
+                size="sm"
+                className="text-gray-600 hover:text-gray-800"
+              >
+                ← Back
+              </Button>
+            </div>
+          )}
+
+          {/* Editor Tabs */}
+          <div className="flex">
           <button
             className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
               activeTab === "edit"
@@ -433,7 +449,7 @@ export function StatementEditor({ statement, onStatementUpdated, navigationReque
                 {/* Typography Controls */}
                 <div className="space-y-4">
                   <h4 className="text-sm font-medium text-gray-700">Typography Settings</h4>
-                  
+
                   {/* Heading Font Size */}
                   <div>
                     <Label className="block text-xs text-gray-600 mb-2">
@@ -510,7 +526,7 @@ export function StatementEditor({ statement, onStatementUpdated, navigationReque
                 {/* Background Settings */}
                 <div className="space-y-4">
                   <h4 className="text-sm font-medium text-gray-700">Background</h4>
-                  
+
                   {/* Background Selection */}
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
@@ -529,7 +545,7 @@ export function StatementEditor({ statement, onStatementUpdated, navigationReque
                         Solid Color
                       </button>
                     </div>
-                    
+
                     {/* Project Background Images */}
                     {statement.project.backgroundImages && statement.project.backgroundImages.length > 0 && (
                       <div>
@@ -565,7 +581,7 @@ export function StatementEditor({ statement, onStatementUpdated, navigationReque
                         </div>
                       </div>
                     )}
-                    
+
                     {(!statement.project.backgroundImages || statement.project.backgroundImages.length === 0) && (
                       <div className="text-center py-4 text-gray-500 text-xs border-2 border-dashed border-gray-300 rounded">
                         <p>No project background images available.</p>
@@ -807,7 +823,7 @@ export function StatementEditor({ statement, onStatementUpdated, navigationReque
                       </p>
                     </div>
                   </div>
-                  
+
                   {statement.reviewNotes && (
                     <div className="mt-4 bg-white rounded-lg p-4 border border-green-200">
                       <Label className="text-sm font-medium text-gray-700 mb-2 block">Final Review Notes</Label>
@@ -816,7 +832,7 @@ export function StatementEditor({ statement, onStatementUpdated, navigationReque
                       </p>
                     </div>
                   )}
-                  
+
                   <div className="mt-4 text-center">
                     <p className="text-sm text-green-700">
                       {statement.status === "approved" 

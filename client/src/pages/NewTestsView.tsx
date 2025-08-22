@@ -131,7 +131,8 @@ export default function NewTestsView() {
   };
 
   const handleCardClick = (test: any) => {
-    setLocation(`/projects/${test.projectId}?statement=${test.statements[0]?.id}`);
+    // Navigate to project view showing the entire test batch (all statements)
+    setLocation(`/projects/${test.projectId}?test=${test.id}`);
   };
 
   // Show loading state while loading statements
