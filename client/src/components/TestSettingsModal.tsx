@@ -189,161 +189,163 @@ export function TestSettingsModal({ test, projectId, onClose, onTestUpdated }: T
   if (!test) return null;
 
   return (
-    <Dialog open={true} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl" data-testid="modal-test-settings">
-        <DialogHeader>
-          <DialogTitle>Test Settings</DialogTitle>
-          <DialogDescription>
-            Update test properties including title, assignment, number of ads, priority, and due date
-          </DialogDescription>
-        </DialogHeader>
+    <>
+      <Dialog open={true} onOpenChange={onClose}>
+        <DialogContent className="max-w-2xl" data-testid="modal-test-settings">
+          <DialogHeader>
+            <DialogTitle>Test Settings</DialogTitle>
+            <DialogDescription>
+              Update test properties including title, assignment, number of ads, priority, and due date
+            </DialogDescription>
+          </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <Label htmlFor="assignedTo" className="block text-sm font-medium text-gray-700 mb-2">
-              Assign to Copywriter
-            </Label>
-            <Select 
-              value={formData.assignedTo} 
-              onValueChange={(value) => setFormData(prev => ({ ...prev, assignedTo: value }))}
-            >
-              <SelectTrigger data-testid="select-assign-to">
-                <SelectValue placeholder="Select a copywriter" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="unassigned">Unassigned</SelectItem>
-                {availableAssignees.map(assignee => (
-                  <SelectItem key={assignee.id} value={assignee.id}>
-                    {assignee.firstName && assignee.lastName 
-                      ? `${assignee.firstName} ${assignee.lastName}` 
-                      : assignee.email}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div>
-            <div className="flex justify-between items-center mb-2">
-              <Label htmlFor="description" className="block text-sm font-medium text-gray-700">
-                Test Title
-              </Label>
-              <SpellCheckIndicator 
-                text={formData.description} 
-                onTextChange={(newText) => setFormData(prev => ({ ...prev, description: newText }))}
-                customWords={['facebook', 'ad', 'campaign', 'test', 'batch', 'variant']}
-              />
-            </div>
-            <Textarea
-              id="description"
-              placeholder="Enter a descriptive title for this test (e.g., 'Holiday Sale - Value Prop Test', 'Q1 Brand Awareness Campaign')..."
-              className="resize-none"
-              rows={3}
-              value={formData.description}
-              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-              spellCheck={true}
-              data-testid="input-test-title"
-            />
-          </div>
-
-          <div className="grid grid-cols-3 gap-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <Label htmlFor="quantity" className="block text-sm font-medium text-gray-700 mb-2">
-                Ads in Test
+              <Label htmlFor="assignedTo" className="block text-sm font-medium text-gray-700 mb-2">
+                Assign to Copywriter
               </Label>
-              <Input
-                id="quantity"
-                type="number"
-                min="1"
-                max="10"
-                value={formData.quantity}
-                onChange={(e) => setFormData(prev => ({ ...prev, quantity: parseInt(e.target.value) || 1 }))}
-                data-testid="input-quantity"
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                {formData.quantity > test.statements.length ? 
-                  `Will add ${formData.quantity - test.statements.length} new ad${formData.quantity - test.statements.length > 1 ? 's' : ''}` :
-                  formData.quantity < test.statements.length ?
-                  `Will remove ${test.statements.length - formData.quantity} highest numbered ad${test.statements.length - formData.quantity > 1 ? 's' : ''}` :
-                  'No change in ad count'
-                }
-              </p>
-            </div>
-            <div>
-              <Label htmlFor="priority" className="block text-sm font-medium text-gray-700 mb-2">
-                Priority
-              </Label>
-              <Select value={formData.priority} onValueChange={(value: any) => setFormData(prev => ({ ...prev, priority: value }))}>
-                <SelectTrigger data-testid="select-priority">
-                  <SelectValue />
+              <Select 
+                value={formData.assignedTo} 
+                onValueChange={(value) => setFormData(prev => ({ ...prev, assignedTo: value }))}
+              >
+                <SelectTrigger data-testid="select-assign-to">
+                  <SelectValue placeholder="Select a copywriter" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="normal">Normal</SelectItem>
-                  <SelectItem value="high">High</SelectItem>
-                  <SelectItem value="urgent">Urgent</SelectItem>
+                  <SelectItem value="unassigned">Unassigned</SelectItem>
+                  {availableAssignees.map(assignee => (
+                    <SelectItem key={assignee.id} value={assignee.id}>
+                      {assignee.firstName && assignee.lastName 
+                        ? `${assignee.firstName} ${assignee.lastName}` 
+                        : assignee.email}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
+
             <div>
-              <Label htmlFor="dueDate" className="block text-sm font-medium text-gray-700 mb-2">
-                Due Date
-              </Label>
-              <Input
-                id="dueDate"
-                type="date"
-                value={formData.dueDate}
-                onChange={(e) => setFormData(prev => ({ ...prev, dueDate: e.target.value }))}
-                data-testid="input-due-date"
+              <div className="flex justify-between items-center mb-2">
+                <Label htmlFor="description" className="block text-sm font-medium text-gray-700">
+                  Test Title
+                </Label>
+                <SpellCheckIndicator 
+                  text={formData.description} 
+                  onTextChange={(newText) => setFormData(prev => ({ ...prev, description: newText }))}
+                  customWords={['facebook', 'ad', 'campaign', 'test', 'batch', 'variant']}
+                />
+              </div>
+              <Textarea
+                id="description"
+                placeholder="Enter a descriptive title for this test (e.g., 'Holiday Sale - Value Prop Test', 'Q1 Brand Awareness Campaign')..."
+                className="resize-none"
+                rows={3}
+                value={formData.description}
+                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                spellCheck={true}
+                data-testid="input-test-title"
               />
             </div>
-          </div>
 
-          <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={onClose}
-              data-testid="button-cancel"
-            >
-              Cancel
-            </Button>
-            <Button 
-              type="submit" 
-              className="bg-primary hover:bg-primary-dark"
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <Label htmlFor="quantity" className="block text-sm font-medium text-gray-700 mb-2">
+                  Ads in Test
+                </Label>
+                <Input
+                  id="quantity"
+                  type="number"
+                  min="1"
+                  max="10"
+                  value={formData.quantity}
+                  onChange={(e) => setFormData(prev => ({ ...prev, quantity: parseInt(e.target.value) || 1 }))}
+                  data-testid="input-quantity"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  {formData.quantity > test.statements.length ? 
+                    `Will add ${formData.quantity - test.statements.length} new ad${formData.quantity - test.statements.length > 1 ? 's' : ''}` :
+                    formData.quantity < test.statements.length ?
+                    `Will remove ${test.statements.length - formData.quantity} highest numbered ad${test.statements.length - formData.quantity > 1 ? 's' : ''}` :
+                    'No change in ad count'
+                  }
+                </p>
+              </div>
+              <div>
+                <Label htmlFor="priority" className="block text-sm font-medium text-gray-700 mb-2">
+                  Priority
+                </Label>
+                <Select value={formData.priority} onValueChange={(value: any) => setFormData(prev => ({ ...prev, priority: value }))}>
+                  <SelectTrigger data-testid="select-priority">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="normal">Normal</SelectItem>
+                    <SelectItem value="high">High</SelectItem>
+                    <SelectItem value="urgent">Urgent</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="dueDate" className="block text-sm font-medium text-gray-700 mb-2">
+                  Due Date
+                </Label>
+                <Input
+                  id="dueDate"
+                  type="date"
+                  value={formData.dueDate}
+                  onChange={(e) => setFormData(prev => ({ ...prev, dueDate: e.target.value }))}
+                  data-testid="input-due-date"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={onClose}
+                data-testid="button-cancel"
+              >
+                Cancel
+              </Button>
+              <Button 
+                type="submit" 
+                className="bg-primary hover:bg-primary-dark"
+                disabled={updateMutation.isPending}
+                data-testid="button-save-settings"
+              >
+                {updateMutation.isPending ? "Saving..." : "Save Settings"}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteConfirmation} onOpenChange={setShowDeleteConfirmation}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Ad Deletion</AlertDialogTitle>
+            <AlertDialogDescription>
+              You are about to remove {test.statements.length - formData.quantity} ad{test.statements.length - formData.quantity > 1 ? 's' : ''} from this test. 
+              The highest numbered ad{test.statements.length - formData.quantity > 1 ? 's' : ''} will be deleted. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setShowDeleteConfirmation(false);
+                updateMutation.mutate();
+              }}
+              className="bg-red-600 hover:bg-red-700"
               disabled={updateMutation.isPending}
-              data-testid="button-save-settings"
             >
-              {updateMutation.isPending ? "Saving..." : "Save Settings"}
-            </Button>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
-
-    {/* Delete Confirmation Dialog */}
-    <AlertDialog open={showDeleteConfirmation} onOpenChange={setShowDeleteConfirmation}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Confirm Ad Deletion</AlertDialogTitle>
-          <AlertDialogDescription>
-            You are about to remove {test.statements.length - formData.quantity} ad{test.statements.length - formData.quantity > 1 ? 's' : ''} from this test. 
-            The highest numbered ad{test.statements.length - formData.quantity > 1 ? 's' : ''} will be deleted. This action cannot be undone.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction
-            onClick={() => {
-              setShowDeleteConfirmation(false);
-              updateMutation.mutate();
-            }}
-            className="bg-red-600 hover:bg-red-700"
-            disabled={updateMutation.isPending}
-          >
-            {updateMutation.isPending ? "Deleting..." : "Delete Ads"}
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+              {updateMutation.isPending ? "Deleting..." : "Delete Ads"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
