@@ -3,6 +3,7 @@ import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { useState, useEffect, useMemo } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { NewStatementModal } from "@/components/NewStatementModal";
+import { TestSettingsModal } from "@/components/TestSettingsModal";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -15,6 +16,8 @@ export default function NewTestsView() {
   const queryClient = useQueryClient();
   const [location, setLocation] = useLocation();
   const [showNewStatementModal, setShowNewStatementModal] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [selectedTest, setSelectedTest] = useState<any>(null);
   const [testToDelete, setTestToDelete] = useState<any>(null);
 
 
@@ -135,6 +138,17 @@ export default function NewTestsView() {
     setLocation(`/projects/${test.projectId}?test=${test.id}`);
   };
 
+  const handleSettingsClick = (test: any, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSelectedTest(test);
+    setShowSettingsModal(true);
+  };
+
+  const handleTestUpdated = () => {
+    // Refresh data with project-specific endpoint
+    queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/statements`] });
+  };
+
   // Show loading state while loading statements
   if (isLoading) {
     return (
@@ -205,6 +219,22 @@ export default function NewTestsView() {
                     <Badge className="bg-warning text-white">
                       In Progress
                     </Badge>
+                    {/* Settings button for test batches */}
+                    {test.testBatchId && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => handleSettingsClick(test, e)}
+                        className="text-blue-600 hover:text-blue-800 hover:bg-blue-50 p-2"
+                        data-testid={`button-settings-test-${test.id}`}
+                        title="Test Settings"
+                      >
+                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                      </Button>
+                    )}
                     {/* Delete button for test batches */}
                     {test.testBatchId && (
                       <Button
@@ -283,6 +313,18 @@ export default function NewTestsView() {
             queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/statements`] });
             setShowNewStatementModal(false);
           }}
+        />
+      )}
+
+      {showSettingsModal && selectedTest && projectId && (
+        <TestSettingsModal
+          test={selectedTest}
+          projectId={projectId}
+          onClose={() => {
+            setShowSettingsModal(false);
+            setSelectedTest(null);
+          }}
+          onTestUpdated={handleTestUpdated}
         />
       )}
 
