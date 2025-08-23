@@ -298,11 +298,6 @@ export function Sidebar() {
                   <i className="fas fa-edit"></i>
                   <span>New Tests</span>
                 </div>
-                                 {projectCounts.newTests > 0 && (
-                   <Badge className={location === '/tests/new' ? "bg-white bg-opacity-20 text-white border-white" : "bg-warning text-white"} data-testid="text-new-statements-count">
-                     {projectCounts.newTests}
-                   </Badge>
-                 )}
               </div>
             </Link>
             <Link href={currentProjectId ? `/tests/pending-review?project=${currentProjectId}` : "/tests/pending-review"}>
@@ -315,11 +310,6 @@ export function Sidebar() {
                   <i className="fas fa-eye"></i>
                   <span>Pending Review</span>
                 </div>
-                                 {projectCounts.pendingReview > 0 && (
-                   <Badge className={location === '/tests/pending-review' ? "bg-white bg-opacity-20 text-white border-white" : "bg-error text-white"} data-testid="text-pending-review-count">
-                     {projectCounts.pendingReview}
-                   </Badge>
-                 )}
               </div>
             </Link>
             <Link href={currentProjectId ? `/tests/ready-to-deploy?project=${currentProjectId}` : "/tests/ready-to-deploy"}>
@@ -332,11 +322,6 @@ export function Sidebar() {
                   <i className="fas fa-rocket"></i>
                   <span>Ready to Deploy</span>
                 </div>
-                                 {projectCounts.readyToDeploy > 0 && (
-                   <Badge className={location === '/tests/ready-to-deploy' ? "bg-white bg-opacity-20 text-white border-white" : "bg-success text-white"} data-testid="text-ready-deploy-count">
-                     {projectCounts.readyToDeploy}
-                   </Badge>
-                 )}
               </div>
             </Link>
             <Link href={currentProjectId ? `/tests/completed?project=${currentProjectId}` : "/tests/completed"}>
@@ -349,11 +334,6 @@ export function Sidebar() {
                    <i className="fas fa-check-circle"></i>
                    <span>Completed</span>
                  </div>
-                 {projectCounts.completed > 0 && (
-                   <Badge className={location === '/tests/completed' ? "bg-white bg-opacity-20 text-white border-white" : "bg-gray-600 text-white"} data-testid="text-completed-count">
-                     {projectCounts.completed}
-                   </Badge>
-                 )}
                </div>
             </Link>
           </div>
