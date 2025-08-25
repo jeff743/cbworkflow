@@ -45,7 +45,7 @@ export function Sidebar() {
 
   const { data: allUsers } = useQuery<User[]>({
     queryKey: ['/api/users'],
-    enabled: (user as any)?.role === 'super_admin' || (user as any)?.role === 'growth_strategist',
+    enabled: (user as any)?.role === 'super_admin' || (user as any)?.role === 'growth_strategist' || (user as any)?.role === 'creative_strategist',
   });
 
   const projectForm = useForm<CreateProjectFormData>({
