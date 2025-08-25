@@ -61,6 +61,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
 
   [UserRole.CREATIVE_STRATEGIST]: [
     // Creative strategist: only tasks
+    Permission.CREATE_PROJECT,
     Permission.ADD_MEMBERS,
     Permission.CREATE_TASK,
     Permission.DELETE_TASK,

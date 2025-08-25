@@ -29,7 +29,6 @@ export function TestSettingsModal({ test, projectId, onClose, onTestUpdated }: T
   const [formData, setFormData] = useState({
     description: "",
     assignedTo: "unassigned",
-    growthStrategistId: "unassigned", // New field for growth strategist assignment
     priority: "normal" as const,
     dueDate: "",
     quantity: 1,
@@ -43,7 +42,6 @@ export function TestSettingsModal({ test, projectId, onClose, onTestUpdated }: T
       setFormData({
         description: firstStatement.description || "",
         assignedTo: firstStatement.assignedTo || "unassigned",
-        growthStrategistId: firstStatement.growthStrategistId || "unassigned",
         priority: firstStatement.priority || "normal",
         dueDate: firstStatement.dueDate ? new Date(firstStatement.dueDate).toISOString().split('T')[0] : "",
         quantity: test.statements.length,
@@ -74,22 +72,6 @@ export function TestSettingsModal({ test, projectId, onClose, onTestUpdated }: T
     return [];
   })();
 
-  // Build available growth strategists list
-  const availableGrowthStrategists = (() => {
-    // If we have full user list (Super Admin), filter for growth strategists
-    if (users && users.length > 0) {
-      return users.filter(u => u.role === 'growth_strategist');
-    }
-
-    // Otherwise, if current user is a growth strategist, include them
-    if ((user as any)?.role === 'growth_strategist') {
-      return [user as User];
-    }
-
-    // Fallback to empty array
-    return [];
-  })();
-
   const updateMutation = useMutation({
     mutationFn: async () => {
       const currentCount = test.statements.length;
@@ -103,7 +85,6 @@ export function TestSettingsModal({ test, projectId, onClose, onTestUpdated }: T
             priority: formData.priority,
             dueDate: formData.dueDate ? new Date(formData.dueDate) : undefined,
             assignedTo: formData.assignedTo === "unassigned" || !formData.assignedTo ? undefined : formData.assignedTo,
-            growthStrategistId: formData.growthStrategistId === "unassigned" || !formData.growthStrategistId ? undefined : formData.growthStrategistId,
           };
 
           return apiRequest('PUT', `/api/statements/${statement.id}`, updates);
@@ -125,7 +106,6 @@ export function TestSettingsModal({ test, projectId, onClose, onTestUpdated }: T
             priority: formData.priority,
             dueDate: formData.dueDate ? new Date(formData.dueDate) : undefined,
             assignedTo: formData.assignedTo === "unassigned" || !formData.assignedTo ? undefined : formData.assignedTo,
-            growthStrategistId: formData.growthStrategistId === "unassigned" || !formData.growthStrategistId ? undefined : formData.growthStrategistId,
           }));
 
           await apiRequest('POST', '/api/statements/batch', {
@@ -238,30 +218,6 @@ export function TestSettingsModal({ test, projectId, onClose, onTestUpdated }: T
                       {assignee.firstName && assignee.lastName 
                         ? `${assignee.firstName} ${assignee.lastName}` 
                         : assignee.email}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label htmlFor="growthStrategistId" className="block text-sm font-medium text-gray-700 mb-2">
-                Assign to Growth Strategist
-              </Label>
-              <Select 
-                value={formData.growthStrategistId} 
-                onValueChange={(value) => setFormData(prev => ({ ...prev, growthStrategistId: value }))}
-              >
-                <SelectTrigger data-testid="select-growth-strategist">
-                  <SelectValue placeholder="Select a growth strategist" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="unassigned">Unassigned</SelectItem>
-                  {availableGrowthStrategists.map(strategist => (
-                    <SelectItem key={strategist.id} value={strategist.id}>
-                      {strategist.firstName && strategist.lastName 
-                        ? `${strategist.firstName} ${strategist.lastName}` 
-                        : strategist.email}
                     </SelectItem>
                   ))}
                 </SelectContent>
