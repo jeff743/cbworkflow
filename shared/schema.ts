@@ -63,7 +63,6 @@ export const statements = pgTable("statements", {
   priority: varchar("priority").notNull().default("normal"), // normal, high, urgent
   dueDate: timestamp("due_date"),
   assignedTo: varchar("assigned_to").references(() => users.id),
-  growthStrategistId: varchar("growth_strategist_id").references(() => users.id),
   createdBy: varchar("created_by").notNull().references(() => users.id),
   reviewedBy: varchar("reviewed_by").references(() => users.id),
   reviewNotes: text("review_notes"),
@@ -85,7 +84,6 @@ export const statements = pgTable("statements", {
 export const usersRelations = relations(users, ({ many }) => ({
   createdProjects: many(projects, { relationName: "creator" }),
   assignedStatements: many(statements, { relationName: "assignee" }),
-  growthStrategistStatements: many(statements, { relationName: "growthStrategist" }),
   createdStatements: many(statements, { relationName: "creator" }),
   reviewedStatements: many(statements, { relationName: "reviewer" }),
 }));
@@ -108,11 +106,6 @@ export const statementsRelations = relations(statements, ({ one }) => ({
     fields: [statements.assignedTo],
     references: [users.id],
     relationName: "assignee",
-  }),
-  growthStrategist: one(users, {
-    fields: [statements.growthStrategistId],
-    references: [users.id],
-    relationName: "growthStrategist",
   }),
   creator: one(users, {
     fields: [statements.createdBy],
@@ -170,7 +163,6 @@ export type ProjectWithStats = Project & {
 export type StatementWithRelations = Statement & {
   project: Project;
   assignee?: User;
-  growthStrategist?: User;
   creator: User;
   reviewer?: User;
 };
