@@ -12,18 +12,18 @@ export enum Permission {
   CREATE_PROJECT = 'create_project',
   DELETE_PROJECT = 'delete_project',
   VIEW_PROJECTS = 'view_projects',
-  
+
   // Member/User permissions  
   ADD_MEMBERS = 'add_members',
   DELETE_MEMBERS = 'delete_members',
   MANAGE_USER_ROLES = 'manage_user_roles',
-  
+
   // Task/Statement permissions
   CREATE_TASK = 'create_task',
   DELETE_TASK = 'delete_task',
   VIEW_TASKS = 'view_tasks',
   REVIEW_TASKS = 'review_tasks',
-  
+
   // Dashboard permissions
   VIEW_DASHBOARD = 'view_dashboard'
 }
@@ -44,7 +44,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     Permission.REVIEW_TASKS,
     Permission.VIEW_DASHBOARD
   ],
-  
+
   [UserRole.GROWTH_STRATEGIST]: [
     // Growth strategist: projects + tasks + user management
     Permission.CREATE_PROJECT,
@@ -58,9 +58,10 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     Permission.REVIEW_TASKS,
     Permission.VIEW_DASHBOARD
   ],
-  
+
   [UserRole.CREATIVE_STRATEGIST]: [
     // Creative strategist: only tasks
+    Permission.ADD_MEMBERS,
     Permission.CREATE_TASK,
     Permission.DELETE_TASK,
     Permission.VIEW_TASKS,
@@ -77,7 +78,7 @@ export function hasPermission(user: User | null | undefined, permission: Permiss
 
   const userRole = user.role as UserRole;
   const rolePermissions = ROLE_PERMISSIONS[userRole];
-  
+
   if (!rolePermissions) {
     logAuth(`Permission check failed - invalid role: ${userRole}`, user.id);
     return false;
@@ -85,7 +86,7 @@ export function hasPermission(user: User | null | undefined, permission: Permiss
 
   const hasAccess = rolePermissions.includes(permission);
   logAuth(`Permission check: ${permission} for role ${userRole} = ${hasAccess}`, user.id);
-  
+
   return hasAccess;
 }
 

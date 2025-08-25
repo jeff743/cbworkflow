@@ -12,47 +12,96 @@ import { apiRequest } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { nanoid } from "nanoid";
 import { SpellCheckIndicator } from "./SpellCheckIndicator";
-import type { User, InsertStatement } from "@shared/schema";
+import type { User, InsertStatement, ProjectWithStats } from "@shared/schema";
 
 interface NewStatementModalProps {
-  projectId: string;
+  projectId?: string; // Make optional to allow project selection
   onClose: () => void;
   onStatementCreated: () => void;
 }
 
-export function NewStatementModal({ projectId, onClose, onStatementCreated }: NewStatementModalProps) {
+export function NewStatementModal({ projectId: initialProjectId, onClose, onStatementCreated }: NewStatementModalProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
   const [formData, setFormData] = useState({
+    projectId: initialProjectId || "", // Add project selection to form data
     assignedTo: (user as any)?.id || "unassigned", // Default to current user if they're a creative strategist
+    growthStrategistId: "unassigned", // New field for growth strategist assignment
     description: "",
     priority: "normal" as const,
     dueDate: "",
     quantity: 1,
   });
 
-  // Try to fetch all users for Super Admin, but fallback to current user for others
-  const { data: users } = useQuery<User[]>({
+  // Try to fetch all users - allow creative strategists to see other users for assignment
+  const { data: users, isLoading: usersLoading, error: usersError } = useQuery<User[]>({
     queryKey: ['/api/users'],
     retry: false, // Don't retry on permission failure
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });
 
+  // Debug logging for users
+  console.log('🔍 USERS DEBUG:', {
+    usersCount: users?.length || 0,
+    usersLoading,
+    usersError,
+    currentUserRole: (user as any)?.role,
+    availableUsers: users?.map(u => ({ id: u.id, name: `${u.firstName} ${u.lastName}`, role: u.role }))
+  });
+
+  // Fetch projects for the project dropdown
+  const { data: projects } = useQuery<ProjectWithStats[]>({
+    queryKey: ['/api/projects'],
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+  });
+
   // Build available assignees list
   const availableAssignees = (() => {
-    // If we have full user list (Super Admin), filter for creative strategists
+    // If we have full user list, filter for creative strategists
     if (users && users.length > 0) {
-      return users.filter(u => u.role === 'creative_strategist');
+      const creativeStrategists = users.filter(u => u.role === 'creative_strategist');
+      console.log('🔍 CREATIVE STRATEGISTS:', {
+        totalUsers: users.length,
+        creativeStrategistsCount: creativeStrategists.length,
+        creativeStrategists: creativeStrategists.map(u => ({ id: u.id, name: `${u.firstName} ${u.lastName}`, role: u.role }))
+      });
+      return creativeStrategists;
     }
-    
+
     // Otherwise, if current user is a creative strategist, include them
     if ((user as any)?.role === 'creative_strategist') {
+      console.log('🔍 CURRENT USER IS CREATIVE STRATEGIST:', { user: user });
       return [user as User];
     }
-    
+
     // Fallback to empty array
+    console.log('🔍 NO CREATIVE STRATEGISTS FOUND');
+    return [];
+  })();
+
+  // Build available growth strategists list
+  const availableGrowthStrategists = (() => {
+    // If we have full user list, filter for growth strategists
+    if (users && users.length > 0) {
+      const growthStrategists = users.filter(u => u.role === 'growth_strategist');
+      console.log('🔍 GROWTH STRATEGISTS:', {
+        totalUsers: users.length,
+        growthStrategistsCount: growthStrategists.length,
+        growthStrategists: growthStrategists.map(u => ({ id: u.id, name: `${u.firstName} ${u.lastName}`, role: u.role }))
+      });
+      return growthStrategists;
+    }
+
+    // Otherwise, if current user is a growth strategist, include them
+    if ((user as any)?.role === 'growth_strategist') {
+      console.log('🔍 CURRENT USER IS GROWTH STRATEGIST:', { user: user });
+      return [user as User];
+    }
+
+    // Fallback to empty array
+    console.log('🔍 NO GROWTH STRATEGISTS FOUND');
     return [];
   })();
 
@@ -60,12 +109,12 @@ export function NewStatementModal({ projectId, onClose, onStatementCreated }: Ne
     mutationFn: async () => {
       // Generate a unique batch ID for this test
       const testBatchId = nanoid();
-      console.log('⚡ NEW BATCH LOGIC - Generated testBatchId:', testBatchId);
-      console.log('⚡ NEW BATCH INFO - Quantity:', formData.quantity, 'Project:', projectId);
-      
-      // Create statements array with guaranteed shared testBatchId (bulletproof approach)
-      const statements = Array.from({ length: formData.quantity }, (_, i) => ({
-        projectId,
+             console.log('⚡ NEW BATCH LOGIC - Generated testBatchId:', testBatchId);
+       console.log('⚡ NEW BATCH INFO - Quantity:', formData.quantity, 'Project:', formData.projectId);
+
+       // Create statements array with guaranteed shared testBatchId (bulletproof approach)
+       const statements = Array.from({ length: formData.quantity }, (_, i) => ({
+         projectId: formData.projectId,
         testBatchId, // Same reference for all statements
         description: formData.description || undefined, // Task description for the test
         content: `Facebook ad statement ${i + 1} - write your compelling ad text here`,
@@ -74,8 +123,9 @@ export function NewStatementModal({ projectId, onClose, onStatementCreated }: Ne
         priority: formData.priority,
         dueDate: formData.dueDate || undefined,
         assignedTo: formData.assignedTo === "unassigned" || !formData.assignedTo ? undefined : formData.assignedTo,
+        growthStrategistId: formData.growthStrategistId === "unassigned" || !formData.growthStrategistId ? undefined : formData.growthStrategistId,
       }));
-      
+
       console.log('⚡ STATEMENTS ARRAY CREATED - Batch consistency check:', {
         count: statements.length,
         allHaveSameBatchId: statements.every(stmt => stmt.testBatchId === testBatchId) ? '✅ SUCCESS' : '❌ FAILURE',
@@ -84,22 +134,22 @@ export function NewStatementModal({ projectId, onClose, onStatementCreated }: Ne
 
       // Send as single batch request instead of individual calls
       console.log('⚡ SENDING BATCH REQUEST - testBatchId:', testBatchId);
-      
+
       try {
         const response = await apiRequest('POST', '/api/statements/batch', {
           statements,
           testBatchId // Explicit batch ID in request body for server verification
         });
-        
+
         const results = await response.json();
-        
+
         console.log('⚡ BATCH REQUEST COMPLETE - Results:', {
           originalBatchId: testBatchId,
           createdCount: results.length,
           resultBatchIds: results.map((r: any) => r.testBatchId),
           allMatch: results.every((r: any) => r.testBatchId === testBatchId) ? '✅ SUCCESS' : '❌ FAILURE'
         });
-        
+
         return results;
       } catch (error) {
         console.error('⚡ BATCH REQUEST FAILED:', error);
@@ -135,6 +185,17 @@ export function NewStatementModal({ projectId, onClose, onStatementCreated }: Ne
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validate that a project is selected
+    if (!formData.projectId) {
+      toast({
+        title: "Project Required",
+        description: "Please select a project for this test.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     createMutation.mutate();
   };
 
@@ -152,8 +213,29 @@ export function NewStatementModal({ projectId, onClose, onStatementCreated }: Ne
             Create a new Facebook test with up to 10 ad statements for A/B testing
           </DialogDescription>
         </DialogHeader>
-        
+
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <Label htmlFor="projectId" className="block text-sm font-medium text-gray-700 mb-2">
+              Project
+            </Label>
+            <Select 
+              value={formData.projectId} 
+              onValueChange={(value) => setFormData(prev => ({ ...prev, projectId: value }))}
+            >
+              <SelectTrigger data-testid="select-project">
+                <SelectValue placeholder="Select a project" />
+              </SelectTrigger>
+              <SelectContent>
+                {projects?.map(project => (
+                  <SelectItem key={project.id} value={project.id}>
+                    {project.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           <div>
             <Label htmlFor="assignedTo" className="block text-sm font-medium text-gray-700 mb-2">
               Assign to Copywriter
@@ -177,7 +259,63 @@ export function NewStatementModal({ projectId, onClose, onStatementCreated }: Ne
               </SelectContent>
             </Select>
           </div>
-          
+
+                     <div>
+             <Label htmlFor="growthStrategistId" className="block text-sm font-medium text-gray-700 mb-2">
+               Assign to Growth Strategist
+             </Label>
+             <Select 
+               value={formData.growthStrategistId} 
+               onValueChange={(value) => setFormData(prev => ({ ...prev, growthStrategistId: value }))}
+             >
+               <SelectTrigger data-testid="select-growth-strategist">
+                 <SelectValue placeholder="Select a growth strategist" />
+               </SelectTrigger>
+               <SelectContent>
+                 <SelectItem value="unassigned">Unassigned</SelectItem>
+                 {availableGrowthStrategists.map(strategist => (
+                   <SelectItem key={strategist.id} value={strategist.id}>
+                     {strategist.firstName && strategist.lastName 
+                       ? `${strategist.firstName} ${strategist.lastName}` 
+                       : strategist.email}
+                   </SelectItem>
+                 ))}
+                 {availableGrowthStrategists.length === 0 && users && users.length > 0 && (
+                   <div className="px-2 py-1 text-xs text-gray-500">
+                     No growth strategists found. Showing all users:
+                   </div>
+                 )}
+                 {availableGrowthStrategists.length === 0 && users && users.length > 0 && users.map(user => (
+                   <SelectItem key={user.id} value={user.id}>
+                     {user.firstName && user.lastName 
+                       ? `${user.firstName} ${user.lastName} (${user.role})` 
+                       : `${user.email} (${user.role})`}
+                   </SelectItem>
+                 ))}
+               </SelectContent>
+             </Select>
+             {usersLoading && (
+               <p className="text-xs text-gray-500 mt-1">
+                 Loading users...
+               </p>
+             )}
+             {usersError && (
+               <p className="text-xs text-red-500 mt-1">
+                 Error loading users. Please try again.
+               </p>
+             )}
+             {!usersLoading && !usersError && availableGrowthStrategists.length === 0 && users && users.length > 0 && (
+               <p className="text-xs text-gray-500 mt-1">
+                 No growth strategists found. You can assign to any available user above.
+               </p>
+             )}
+             {!usersLoading && !usersError && (!users || users.length === 0) && (
+               <p className="text-xs text-red-500 mt-1">
+                 No users available. Please contact an administrator.
+               </p>
+             )}
+           </div>
+
           <div>
             <div className="flex justify-between items-center mb-2">
               <Label htmlFor="description" className="block text-sm font-medium text-gray-700">
