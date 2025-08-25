@@ -1,7 +1,7 @@
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
@@ -23,11 +23,13 @@ const createProjectFormSchema = z.object({
 type CreateProjectFormData = z.infer<typeof createProjectFormSchema>;
 
 export function Sidebar() {
-  const { user, refreshAuth } = useAuth();
+  const { user, refreshAuth, logout } = useAuth();
   const { toast } = useToast();
   const [location] = useLocation();
   const [showCreateProject, setShowCreateProject] = useState(false);
   const [showManageUsers, setShowManageUsers] = useState(false);
+  const [showLogoutDialog, setShowLogoutDialog] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const { data: projects } = useQuery<ProjectWithStats[]>({
     queryKey: ['/api/projects'],
@@ -149,6 +151,34 @@ export function Sidebar() {
   };
 
   const currentProjectId = getCurrentProjectId();
+
+  // Handle logout process
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    try {
+      await logout();
+    } catch (error) {
+      setIsLoggingOut(false);
+      toast({
+        title: "Logout Error",
+        description: "Failed to log out. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Keyboard shortcut for logout (Ctrl+L or Cmd+L)
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key === 'l') {
+        event.preventDefault();
+        setShowLogoutDialog(true);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // Calculate project-specific test batch counts
   const getProjectSpecificCounts = () => {
@@ -450,7 +480,7 @@ export function Sidebar() {
 
       {/* User Profile */}
       <div className="p-4 border-t border-gray-200">
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center space-x-3 mb-3">
           <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
             <span className="text-white text-sm font-medium">
               {(user as any)?.firstName?.[0]}{(user as any)?.lastName?.[0]}
@@ -465,9 +495,9 @@ export function Sidebar() {
             </p>
             <div className="flex items-center gap-2">
               <p className="text-xs text-gray-400 capitalize" data-testid="text-user-role">
-{(user as any)?.role?.replace('_', ' ') || 'User'}
+                {(user as any)?.role?.replace('_', ' ') || 'User'}
               </p>
-<button 
+              <button 
                 onClick={() => refreshRoleMutation.mutate()}
                 disabled={refreshRoleMutation.isPending}
                 className="text-gray-400 hover:text-gray-600 text-xs"
@@ -478,15 +508,64 @@ export function Sidebar() {
               </button>
             </div>
           </div>
-          <button 
-            onClick={() => window.location.href = '/api/logout'}
-            className="text-gray-400 hover:text-gray-600"
-            data-testid="button-sidebar-logout"
-          >
-            <i className="fas fa-sign-out-alt text-sm"></i>
-          </button>
         </div>
-      </div>
-    </div>
-  );
-}
+
+        {/* Logout Button */}
+        <Button 
+          onClick={() => setShowLogoutDialog(true)}
+          variant="outline"
+          disabled={isLoggingOut}
+          className="w-full justify-start text-left text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+          data-testid="button-sidebar-logout"
+          title="Logout (Ctrl+L)"
+        >
+          <i className={`fas ${isLoggingOut ? 'fa-spinner fa-spin' : 'fa-sign-out-alt'} mr-2`}></i>
+          {isLoggingOut ? 'Logging out...' : 'Logout'}
+                 </Button>
+       </div>
+
+       {/* Logout Confirmation Dialog */}
+       <Dialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
+         <DialogContent className="sm:max-w-md">
+           <DialogHeader>
+             <DialogTitle className="flex items-center space-x-2">
+               <i className="fas fa-sign-out-alt text-red-600"></i>
+               <span>Confirm Logout</span>
+             </DialogTitle>
+             <DialogDescription>
+               Are you sure you want to log out of your account? You will need to sign in again to access the application.
+             </DialogDescription>
+           </DialogHeader>
+           <div className="flex justify-end space-x-3 pt-4">
+             <Button 
+               type="button" 
+               variant="outline" 
+               onClick={() => setShowLogoutDialog(false)}
+               disabled={isLoggingOut}
+             >
+               Cancel
+             </Button>
+             <Button 
+               onClick={handleLogout}
+               disabled={isLoggingOut}
+               className="bg-red-600 hover:bg-red-700 text-white"
+               data-testid="button-confirm-logout"
+             >
+               {isLoggingOut ? (
+                 <>
+                   <i className="fas fa-spinner fa-spin mr-2"></i>
+                   Logging out...
+                 </>
+               ) : (
+                 <>
+                   <i className="fas fa-sign-out-alt mr-2"></i>
+                   Logout
+                 </>
+               )}
+             </Button>
+           </div>
+         </DialogContent>
+       </Dialog>
+     </div>
+   );
+ }

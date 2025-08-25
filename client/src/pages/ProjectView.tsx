@@ -107,7 +107,8 @@ export default function ProjectView() {
       id: testBatchId,
       testBatchId: testBatchId !== stmts[0]?.id ? testBatchId : null, // null for legacy statements
       statements: stmts,
-      createdAt: stmts[0]?.createdAt
+      createdAt: stmts[0]?.createdAt,
+      dueDate: stmts[0]?.dueDate // Include due date from the first statement
     }));
   }, [statements]);
 
@@ -476,8 +477,16 @@ export default function ProjectView() {
                         </Button>
                       )}
                     </div>
-                    <div className="text-xs text-gray-500">
-                      Created {test.createdAt ? new Date(test.createdAt).toLocaleDateString() : 'Unknown date'}
+                    <div className="flex justify-between items-center text-xs text-gray-500">
+                      <span>
+                        Created {test.createdAt ? new Date(test.createdAt).toLocaleDateString() : 'Unknown date'}
+                      </span>
+                      {test.dueDate && (
+                        <span className="flex items-center">
+                          <i className="fas fa-calendar-alt mr-1"></i>
+                          Due {new Date(test.dueDate).toLocaleDateString()}
+                        </span>
+                      )}
                     </div>
                   </CardContent>
                 </Card>

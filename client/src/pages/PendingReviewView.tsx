@@ -71,6 +71,7 @@ export default function PendingReviewView() {
         projectName: statement.project?.name || 'Unknown Project',
         statements: [],
         createdAt: statement.createdAt,
+        dueDate: statement.dueDate, // Include due date from the first statement
         pendingCount: 0
       };
     }
@@ -158,9 +159,17 @@ export default function PendingReviewView() {
                   </div>
 
                   <div className="mt-4 pt-4 border-t border-gray-100">
-                    <p className="text-xs text-gray-500">
-                      Created {test.createdAt ? new Date(test.createdAt).toLocaleDateString() : 'Unknown date'}
-                    </p>
+                    <div className="flex justify-between items-center text-xs text-gray-500">
+                      <span>
+                        Created {test.createdAt ? new Date(test.createdAt).toLocaleDateString() : 'Unknown date'}
+                      </span>
+                      {test.dueDate && (
+                        <span className="flex items-center">
+                          <i className="fas fa-calendar-alt mr-1"></i>
+                          Due {new Date(test.dueDate).toLocaleDateString()}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
               </Link>
