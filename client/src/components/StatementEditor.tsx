@@ -22,9 +22,12 @@ interface StatementEditorProps {
   navigationRequest?: { targetStatementId: string; timestamp: number } | null;
   onNavigationComplete?: (statementId: string) => void;
   onBack?: () => void;
+  initialTab?: "edit" | "review" | "design";
+  siblings?: StatementWithRelations[];
+  currentSiblingIndex?: number;
 }
 
-export function StatementEditor({ statement, onStatementUpdated, navigationRequest, onNavigationComplete, onBack }: StatementEditorProps) {
+export function StatementEditor({ statement, onStatementUpdated, navigationRequest, onNavigationComplete, onBack, initialTab, siblings, currentSiblingIndex }: StatementEditorProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -34,7 +37,7 @@ export function StatementEditor({ statement, onStatementUpdated, navigationReque
     return content.match(/^Facebook ad statement \d+ - write your compelling ad text here$/);
   };
 
-  const [activeTab, setActiveTab] = useState<"edit" | "review" | "design">("edit");
+  const [activeTab, setActiveTab] = useState<"edit" | "review" | "design">(initialTab || "edit");
   const [formData, setFormData] = useState({
     heading: statement.heading || "",
     content: isTemplateContent(statement.content) ? "" : (statement.content || ""),
@@ -298,31 +301,78 @@ export function StatementEditor({ statement, onStatementUpdated, navigationReque
           )}
 
           {/* Editor Tabs */}
-          <div className="flex">
-          <button
-            className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
-              activeTab === "edit"
-                ? "text-primary border-primary bg-blue-50"
-                : "text-gray-500 border-transparent hover:text-gray-700"
-            }`}
-            onClick={() => setActiveTab("edit")}
-            data-testid="tab-edit-statement"
-          >
-            Edit Statement
-          </button>
-          <button
-            className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
-              activeTab === "review"
-                ? "text-primary border-primary bg-blue-50"
-                : "text-gray-500 border-transparent hover:text-gray-700"
-            }`}
-            onClick={() => setActiveTab("review")}
-            data-testid="tab-review-approve"
-          >
-            Review & Approve
-          </button>
+          <div className="flex items-center justify-between">
+            <div className="flex">
+            <button
+              className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === "edit"
+                  ? "text-primary border-primary bg-blue-50"
+                  : "text-gray-500 border-transparent hover:text-gray-700"
+              }`}
+              onClick={() => setActiveTab("edit")}
+              data-testid="tab-edit-statement"
+            >
+              Edit Statement
+            </button>
+            <button
+              className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === "review"
+                  ? "text-primary border-primary bg-blue-50"
+                  : "text-gray-500 border-transparent hover:text-gray-700"
+              }`}
+              onClick={() => setActiveTab("review")}
+              data-testid="tab-review-approve"
+            >
+              Review & Approve
+            </button>
+            </div>
 
-        </div>
+            {activeTab === "review" && siblings && siblings.length > 1 && (
+              <div className="pr-6 flex items-center space-x-2">
+                <span className="text-xs text-gray-500">
+                  {typeof currentSiblingIndex === 'number' ? `Ad ${currentSiblingIndex + 1} of ${siblings.length}` : ''}
+                </span>
+                <select
+                  className="text-xs border rounded px-2 py-1 text-gray-700"
+                  value={typeof currentSiblingIndex === 'number' ? String(currentSiblingIndex) : ''}
+                  onChange={(e) => {
+                    if (!siblings) return;
+                    const idx = parseInt(e.target.value, 10);
+                    const target = siblings[idx];
+                    if (target) onNavigationComplete?.(target.id);
+                  }}
+                >
+                  {siblings.map((s, idx) => (
+                    <option key={s.id} value={idx}>{`Ad ${idx + 1}`}</option>
+                  ))}
+                </select>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={!siblings || typeof currentSiblingIndex !== 'number' || currentSiblingIndex <= 0}
+                  onClick={() => {
+                    if (!siblings || typeof currentSiblingIndex !== 'number') return;
+                    const prev = siblings[currentSiblingIndex - 1];
+                    if (prev) onNavigationComplete?.(prev.id);
+                  }}
+                >
+                  ← Prev
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={!siblings || typeof currentSiblingIndex !== 'number' || currentSiblingIndex >= siblings.length - 1}
+                  onClick={() => {
+                    if (!siblings || typeof currentSiblingIndex !== 'number') return;
+                    const next = siblings[currentSiblingIndex + 1];
+                    if (next) onNavigationComplete?.(next.id);
+                  }}
+                >
+                  Next →
+                </Button>
+              </div>
+            )}
+          </div>
       </div>
 
       {/* Editor Content */}

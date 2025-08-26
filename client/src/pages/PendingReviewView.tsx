@@ -1,15 +1,19 @@
 import { useAuth } from "@/hooks/useAuth";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect, useMemo } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Link, useLocation } from "wouter";
+import { useLocation } from "wouter";
+import { TestSettingsModal } from "@/components/TestSettingsModal";
 import type { StatementWithRelations, ProjectWithStats } from "@shared/schema";
 
 export default function PendingReviewView() {
   const { user } = useAuth();
   const [location, setLocation] = useLocation();
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [selectedTest, setSelectedTest] = useState<any>(null);
+  const queryClient = useQueryClient();
 
   // Project context detection
   const projectId = useMemo(() => {
@@ -67,6 +71,7 @@ export default function PendingReviewView() {
     if (!acc[testKey]) {
       acc[testKey] = {
         id: testKey,
+        testBatchId: statement.testBatchId,
         projectId: statement.projectId,
         projectName: statement.project?.name || 'Unknown Project',
         statements: [],
@@ -92,6 +97,17 @@ export default function PendingReviewView() {
       </div>
     );
   }
+
+  const handleSettingsClick = (test: any, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSelectedTest(test);
+    setShowSettingsModal(true);
+  };
+
+  const handleTestUpdated = () => {
+    // Refresh data with project-specific endpoint
+    queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/statements`] });
+  };
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -124,8 +140,23 @@ export default function PendingReviewView() {
         <div className="flex-1 overflow-y-auto p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {testsWithPendingReview.map(test => (
-              <Link key={test.id} href={`/projects/${test.projectId}`}>
-                <div className="bg-white border border-red-200 rounded-lg p-6 hover:shadow-md transition-shadow cursor-pointer">
+              <div 
+                key={test.id} 
+                className="bg-white border border-red-200 rounded-lg p-6 hover:shadow-md transition-shadow cursor-pointer"
+                onClick={() => {
+                  // If there's only one pending statement, navigate directly
+                  const pendingStatements = test.statements.filter((s: any) => s.status === 'under_review');
+                  if (pendingStatements.length === 1) {
+                    setLocation(`/projects/${test.projectId}?statement=${pendingStatements[0].id}&tab=review`);
+                  } else if (pendingStatements.length > 1) {
+                    // If multiple pending statements, navigate to the first one
+                    setLocation(`/projects/${test.projectId}?statement=${pendingStatements[0].id}&tab=review`);
+                  } else {
+                    // Fallback to project view if no pending statement found
+                    setLocation(`/projects/${test.projectId}`);
+                  }
+                }}
+              >
                   <div className="flex items-start justify-between mb-4">
                     <div>
                       <h3 className="font-semibold text-gray-900 mb-1">
@@ -135,9 +166,27 @@ export default function PendingReviewView() {
                         {test.projectName} • {test.statements.length} ad statement{test.statements.length > 1 ? 's' : ''}
                       </p>
                     </div>
-                    <Badge className="bg-error text-white">
-                      {test.pendingCount} pending
-                    </Badge>
+                    <div className="flex items-center space-x-2">
+                      <Badge className="bg-error text-white">
+                        {test.pendingCount} pending
+                      </Badge>
+                      {/* Settings button for test batches */}
+                      {test.testBatchId && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => handleSettingsClick(test, e)}
+                          className="text-blue-600 hover:text-blue-800 hover:bg-blue-50 p-2"
+                          data-testid={`button-settings-test-${test.id}`}
+                          title="Test Settings"
+                        >
+                          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          </svg>
+                        </Button>
+                      )}
+                    </div>
                   </div>
 
                   <div className="space-y-2">
@@ -145,16 +194,38 @@ export default function PendingReviewView() {
                       <div key={statement.id} className="text-sm">
                         <div className="flex items-center justify-between">
                           <span className="text-gray-700 truncate">{statement.heading}</span>
-                          <Badge className="bg-warning text-white text-xs">
-                            Under Review
-                          </Badge>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setLocation(`/projects/${test.projectId}?statement=${statement.id}&tab=review`);
+                            }}
+                            className="px-2 py-1 text-xs bg-warning text-white rounded hover:bg-yellow-600 transition-colors"
+                          >
+                            Review
+                          </button>
                         </div>
                       </div>
                     ))}
                     {test.pendingCount > 3 && (
-                      <p className="text-xs text-gray-500">
-                        +{test.pendingCount - 3} more pending review
-                      </p>
+                      <div className="space-y-1">
+                        <p className="text-xs text-gray-500">
+                          +{test.pendingCount - 3} more pending review
+                        </p>
+                        <div className="flex flex-wrap gap-1">
+                          {test.statements.filter((s: any) => s.status === 'under_review').slice(3).map((statement: any) => (
+                            <button
+                              key={statement.id}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setLocation(`/projects/${test.projectId}?statement=${statement.id}&tab=review`);
+                              }}
+                              className="px-2 py-1 text-xs bg-warning text-white rounded hover:bg-yellow-600 transition-colors"
+                            >
+                              {statement.heading ? statement.heading.substring(0, 20) + '...' : 'Ad'}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
                     )}
                   </div>
 
@@ -172,8 +243,7 @@ export default function PendingReviewView() {
                     </div>
                   </div>
                 </div>
-              </Link>
-            ))}
+              ))}
           </div>
 
           {testsWithPendingReview.length === 0 && (
@@ -185,6 +255,18 @@ export default function PendingReviewView() {
           )}
         </div>
       </div>
+
+      {showSettingsModal && selectedTest && projectId && (
+        <TestSettingsModal
+          test={selectedTest}
+          projectId={projectId}
+          onClose={() => {
+            setShowSettingsModal(false);
+            setSelectedTest(null);
+          }}
+          onTestUpdated={handleTestUpdated}
+        />
+      )}
     </div>
   );
 }

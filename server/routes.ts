@@ -16,7 +16,7 @@ const { createCanvas, loadImage, registerFont } = canvas;
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
   await setupAuth(app);
-  
+
   // Inject current user middleware for permission checking
   app.use('/api', isAuthenticated, async (req: any, res: any, next: any) => {
     try {
@@ -101,7 +101,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!userId) {
         return res.status(401).json({ message: "User not found" });
       }
-      
+
       const projectData = insertProjectSchema.parse({
         ...req.body,
         createdBy: userId,
@@ -148,14 +148,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!userId) {
         return res.status(401).json({ message: "User not found" });
       }
-      
+
       console.log('🔥 SERVER - Received statement creation request:', {
         testBatchId: req.body.testBatchId,
         heading: req.body.heading,
         projectId: req.body.projectId,
         userId: userId
       });
-      
+
       // Convert dueDate string to Date object if provided and add default placeholder text
       const requestData = {
         ...req.body,
@@ -163,12 +163,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         dueDate: req.body.dueDate ? new Date(req.body.dueDate) : undefined,
         content: req.body.content || "Enter statement here...",
       };
-      
+
       console.log('🔥 SERVER - Prepared request data testBatchId:', requestData.testBatchId);
-      
+
       const statementData = insertStatementSchema.parse(requestData);
       console.log('🔥 SERVER - After schema parse testBatchId:', statementData.testBatchId);
-      
+
       const statement = await storage.createStatement(statementData);
       console.log('🔥 SERVER - Created statement with testBatchId:', statement.testBatchId, 'ID:', statement.id);
 
@@ -188,28 +188,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!userId) {
         return res.status(401).json({ message: "User not found" });
       }
-      
+
       const { statements, testBatchId } = req.body;
-      
+
       console.log('🚀 BATCH ENDPOINT - Received batch creation request:', {
         testBatchId: testBatchId,
         statementCount: statements?.length,
         userId: userId
       });
-      
+
       if (!statements || !Array.isArray(statements) || statements.length === 0) {
         return res.status(400).json({ message: "Statements array is required" });
       }
-      
+
       if (!testBatchId) {
         return res.status(400).json({ message: "testBatchId is required" });
       }
-      
+
       // Ensure all statements use the same testBatchId and add server-side data
       const results = [];
       for (let i = 0; i < statements.length; i++) {
         const stmt = statements[i];
-        
+
         const statementData = {
           ...stmt,
           testBatchId, // Force same batch ID from request body
@@ -217,32 +217,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
           dueDate: stmt.dueDate ? new Date(stmt.dueDate) : undefined,
           content: stmt.content || "Enter statement here...",
         };
-        
+
         console.log(`🚀 BATCH ENDPOINT - Processing statement ${i + 1}/${statements.length}:`, {
           heading: statementData.heading,
           testBatchId: statementData.testBatchId,
           batchIdMatch: statementData.testBatchId === testBatchId ? '✅' : '❌'
         });
-        
+
         const validatedData = insertStatementSchema.parse(statementData);
         const result = await storage.createStatement(validatedData);
-        
+
         console.log(`🚀 BATCH ENDPOINT - Created statement ${i + 1}:`, {
           id: result.id,
           testBatchId: result.testBatchId,
           batchIdMatch: result.testBatchId === testBatchId ? '✅' : '❌'
         });
-        
+
         results.push(result);
       }
-      
+
       console.log('🚀 BATCH ENDPOINT - Batch creation complete:', {
         originalBatchId: testBatchId,
         createdCount: results.length,
         allMatch: results.every(r => r.testBatchId === testBatchId) ? '✅ SUCCESS' : '❌ FAILURE',
         resultBatchIds: results.map(r => r.testBatchId)
       });
-      
+
       res.json(results);
     } catch (error) {
       console.error('🚀 BATCH ENDPOINT - Error creating batch statements:', error);
@@ -256,8 +256,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!userId) {
         return res.status(401).json({ message: "User not found" });
       }
-      const updates = updateStatementSchema.parse(req.body);
-      
+
+      // Convert dueDate string to Date object if provided (same as create route)
+      const requestData = {
+        ...req.body,
+        dueDate: req.body.dueDate ? new Date(req.body.dueDate) : undefined,
+      };
+
+      const updates = updateStatementSchema.parse(requestData);
+
       // If status is being changed to under_review, generate colorblock image
       if (updates.status === 'under_review') {
         const statement = await storage.getStatement(req.params.id);
@@ -299,19 +306,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!userId) {
         return res.status(401).json({ message: "User not found" });
       }
-      
+
       const testBatchId = req.params.testBatchId;
       console.log(`🗑️ DELETE BATCH - Starting deletion for testBatchId: ${testBatchId}`);
-      
+
       // Get all statements in the batch first for logging
       const statementsInBatch = await storage.getStatementsByBatchId(testBatchId);
       console.log(`🗑️ DELETE BATCH - Found ${statementsInBatch.length} statements to delete`);
-      
+
       // Delete all statements with this testBatchId
       const deletedCount = await storage.deleteStatementsByBatchId(testBatchId);
-      
+
       console.log(`🗑️ DELETE BATCH - Successfully deleted ${deletedCount} statements`);
-      
+
       res.json({ 
         success: true, 
         deletedCount,
@@ -403,7 +410,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Add the background image to the project
       await storage.addProjectBackgroundImage(projectId, objectPath);
-      
+
       res.status(200).json({
         objectPath: objectPath,
       });
@@ -483,7 +490,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const selectedIds = req.query.ids ? 
         (Array.isArray(req.query.ids) ? req.query.ids : [req.query.ids]) as string[] 
         : null;
-      
+
       // Get statements - either all approved or filtered by IDs
       let statements;
       if (selectedIds && selectedIds.length > 0) {
@@ -495,7 +502,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         statements = await storage.getStatements(req.params.projectId, 'approved');
         statements = statements.filter(s => s.colorblockImageUrl);
       }
-      
+
       if (statements.length === 0) {
         return res.status(404).json({ message: "No colorblocks found for export" });
       }
@@ -552,7 +559,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   reject(new Error(`Failed to download image: ${imageRes.statusCode}`));
                   return;
                 }
-                
+
                 const chunks: Buffer[] = [];
                 imageRes.on('data', (chunk) => chunks.push(chunk));
                 imageRes.on('end', () => resolve(Buffer.concat(chunks)));
@@ -571,7 +578,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Finalize the archive
       await archive.finalize();
-      
+
     } catch (error) {
       console.error("Error exporting colorblocks:", error);
       if (!res.headersSent) {
@@ -599,7 +606,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { role } = req.body;
       const validRoles = ['super_admin', 'growth_strategist', 'creative_strategist'];
-      
+
       if (!validRoles.includes(role)) {
         return res.status(400).json({ message: 'Invalid role' });
       }
@@ -636,7 +643,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { testId } = req.params;
       const { status } = req.body;
-      
+
       const validStatuses = ['ready', 'deploying', 'deployed', 'failed'];
       if (!validStatuses.includes(status)) {
         return res.status(400).json({ message: 'Invalid deployment status' });
@@ -658,7 +665,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/deployment/complete', isAuthenticated, async (req: any, res) => {
     try {
       const { testBatchIds } = req.body;
-      
+
       if (!Array.isArray(testBatchIds) || testBatchIds.length === 0) {
         return res.status(400).json({ message: 'Invalid testBatchIds' });
       }
@@ -678,7 +685,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const selectedIds = req.query.ids ? 
         (Array.isArray(req.query.ids) ? req.query.ids : [req.query.ids]) as string[] 
         : null;
-      
+
       // Get ready-to-deploy statements
       let statements;
       if (selectedIds && selectedIds.length > 0) {
@@ -688,7 +695,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         statements = await storage.getReadyToDeployStatements();
         statements = statements.filter(s => s.colorblockImageUrl);
       }
-      
+
       if (statements.length === 0) {
         return res.status(404).json({ message: "No ready-to-deploy colorblocks found" });
       }
@@ -745,7 +752,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Finalize the archive
       await archive.finalize();
-      
+
       logger.info(`Deployment export completed: ${statements.length} colorblocks`, 'export');
     } catch (error) {
       logger.error('Failed to export deployment colorblocks', 'export', error as Error);
@@ -760,7 +767,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { testBatchId } = req.params;
       const result = await storage.markTestBatchReadyToDeploy(testBatchId);
-      
+
       if (!result) {
         return res.status(404).json({ message: 'Test batch not found' });
       }
@@ -778,7 +785,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const logType = req.query.type || 'combined';
       const lines = parseInt(req.query.lines as string) || 100;
-      
+
       // Only allow specific log types for security
       const allowedLogTypes = ['combined', 'error', 'warn', 'info', 'debug', 'access', 'auth', 'database'];
       if (!allowedLogTypes.includes(logType)) {
@@ -787,7 +794,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const recentLogs = logger.getRecentLogs(logType, lines);
       const logFiles = logger.getLogFiles();
-      
+
       res.json({
         logType,
         lines: recentLogs.length,
@@ -806,7 +813,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { backupService } = await import('./backup');
       const { type = 'full' } = req.body;
-      
+
       let backupFile: string;
       if (type === 'schema') {
         backupFile = await backupService.createSchemaBackup();
@@ -815,7 +822,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else {
         backupFile = await backupService.createFullBackup();
       }
-      
+
       logger.info(`Backup created: ${backupFile} by ${req.currentUser?.email}`, 'backup');
       res.json({ success: true, backupFile, type });
     } catch (error) {
@@ -852,14 +859,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/spellcheck', isAuthenticated, async (req: any, res) => {
     try {
       const { text, language = 'en-US' } = req.body;
-      
+
       if (!text || typeof text !== 'string') {
         return res.status(400).json({ message: 'Text is required' });
       }
-      
+
       const { spellChecker } = await import('./spellcheck');
       const result = await spellChecker.checkText(text, language);
-      
+
       res.json(result);
     } catch (error) {
       logger.error('Spell check failed', 'spellcheck', error as Error);
@@ -870,14 +877,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/spellcheck/dictionary/add', isAuthenticated, async (req: any, res) => {
     try {
       const { word } = req.body;
-      
+
       if (!word || typeof word !== 'string') {
         return res.status(400).json({ message: 'Word is required' });
       }
-      
+
       const { spellChecker } = await import('./spellcheck');
       spellChecker.addCustomWord(word);
-      
+
       logger.info(`User ${req.currentUser?.email} added custom word: ${word}`, 'spellcheck');
       res.json({ success: true, message: 'Word added to dictionary' });
     } catch (error) {
@@ -890,7 +897,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { spellChecker } = await import('./spellcheck');
       const customWords = spellChecker.getCustomWords();
-      
+
       res.json({ customWords });
     } catch (error) {
       logger.error('Failed to get custom dictionary', 'spellcheck', error as Error);
@@ -946,13 +953,13 @@ async function generateColorblockImage(statement: any): Promise<string> {
   if (statement.heading) {
     ctx.font = `bold ${statement.headingFontSize || 48}px Inter, sans-serif`;
     const headingLines = wrapText(ctx, statement.heading, 1080 - (padding * 2));
-    
+
     headingLines.forEach((line, index) => {
       const x = statement.textAlignment === 'left' ? padding :
                 statement.textAlignment === 'right' ? 1080 - padding : centerX;
       ctx.fillText(line, x, currentY + (index * (statement.headingFontSize || 48) * 1.2));
     });
-    
+
     currentY += headingLines.length * (statement.headingFontSize || 48) * 1.2 + 40;
   }
 
@@ -960,13 +967,13 @@ async function generateColorblockImage(statement: any): Promise<string> {
   if (statement.content) {
     ctx.font = `${statement.statementFontSize || 43}px Inter, sans-serif`;
     const contentLines = wrapText(ctx, statement.content, 1080 - (padding * 2));
-    
+
     // If no heading, center the content vertically
     if (!statement.heading) {
       const totalHeight = contentLines.length * (statement.statementFontSize || 43) * 1.2;
       currentY = (1080 - totalHeight) / 2 + (statement.statementFontSize || 43);
     }
-    
+
     contentLines.forEach((line, index) => {
       const x = statement.textAlignment === 'left' ? padding :
                 statement.textAlignment === 'right' ? 1080 - padding : centerX;
@@ -976,7 +983,7 @@ async function generateColorblockImage(statement: any): Promise<string> {
 
   // Convert to data URL (base64)
   const dataUrl = canvas.toDataURL('image/png');
-  
+
   // In a real implementation, you would upload this to object storage
   // For now, return the data URL
   return dataUrl;
@@ -991,7 +998,7 @@ function wrapText(ctx: any, text: string, maxWidth: number): string[] {
   for (const word of words) {
     const testLine = currentLine + (currentLine ? ' ' : '') + word;
     const metrics = ctx.measureText(testLine);
-    
+
     if (metrics.width > maxWidth && currentLine) {
       lines.push(currentLine);
       currentLine = word;
@@ -999,10 +1006,10 @@ function wrapText(ctx: any, text: string, maxWidth: number): string[] {
       currentLine = testLine;
     }
   }
-  
+
   if (currentLine) {
     lines.push(currentLine);
   }
-  
+
   return lines;
 }
