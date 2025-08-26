@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Link, useLocation } from "wouter";
+import { useLocation } from "wouter";
 import type { StatementWithRelations, ProjectWithStats } from "@shared/schema";
 
 export default function PendingReviewView() {
@@ -124,8 +124,23 @@ export default function PendingReviewView() {
         <div className="flex-1 overflow-y-auto p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {testsWithPendingReview.map(test => (
-              <Link key={test.id} href={`/projects/${test.projectId}`}>
-                <div className="bg-white border border-red-200 rounded-lg p-6 hover:shadow-md transition-shadow cursor-pointer">
+              <div 
+                key={test.id} 
+                className="bg-white border border-red-200 rounded-lg p-6 hover:shadow-md transition-shadow cursor-pointer"
+                onClick={() => {
+                  // If there's only one pending statement, navigate directly
+                  const pendingStatements = test.statements.filter((s: any) => s.status === 'under_review');
+                  if (pendingStatements.length === 1) {
+                    setLocation(`/projects/${test.projectId}?statement=${pendingStatements[0].id}&tab=review`);
+                  } else if (pendingStatements.length > 1) {
+                    // If multiple pending statements, navigate to the first one
+                    setLocation(`/projects/${test.projectId}?statement=${pendingStatements[0].id}&tab=review`);
+                  } else {
+                    // Fallback to project view if no pending statement found
+                    setLocation(`/projects/${test.projectId}`);
+                  }
+                }}
+              >
                   <div className="flex items-start justify-between mb-4">
                     <div>
                       <h3 className="font-semibold text-gray-900 mb-1">
@@ -145,16 +160,38 @@ export default function PendingReviewView() {
                       <div key={statement.id} className="text-sm">
                         <div className="flex items-center justify-between">
                           <span className="text-gray-700 truncate">{statement.heading}</span>
-                          <Badge className="bg-warning text-white text-xs">
-                            Under Review
-                          </Badge>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setLocation(`/projects/${test.projectId}?statement=${statement.id}&tab=review`);
+                            }}
+                            className="px-2 py-1 text-xs bg-warning text-white rounded hover:bg-yellow-600 transition-colors"
+                          >
+                            Review
+                          </button>
                         </div>
                       </div>
                     ))}
                     {test.pendingCount > 3 && (
-                      <p className="text-xs text-gray-500">
-                        +{test.pendingCount - 3} more pending review
-                      </p>
+                      <div className="space-y-1">
+                        <p className="text-xs text-gray-500">
+                          +{test.pendingCount - 3} more pending review
+                        </p>
+                        <div className="flex flex-wrap gap-1">
+                          {test.statements.filter((s: any) => s.status === 'under_review').slice(3).map((statement: any) => (
+                            <button
+                              key={statement.id}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setLocation(`/projects/${test.projectId}?statement=${statement.id}&tab=review`);
+                              }}
+                              className="px-2 py-1 text-xs bg-warning text-white rounded hover:bg-yellow-600 transition-colors"
+                            >
+                              {statement.heading ? statement.heading.substring(0, 20) + '...' : 'Ad'}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
                     )}
                   </div>
 
@@ -172,8 +209,7 @@ export default function PendingReviewView() {
                     </div>
                   </div>
                 </div>
-              </Link>
-            ))}
+              ))}
           </div>
 
           {testsWithPendingReview.length === 0 && (

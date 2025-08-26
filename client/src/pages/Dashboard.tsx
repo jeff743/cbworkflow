@@ -11,7 +11,7 @@ import type { ProjectWithStats, StatementWithRelations } from "@shared/schema";
 
 export default function Dashboard() {
   const { user } = useAuth();
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   const [showNewTest, setShowNewTest] = useState(false);
 
   // Get current project ID from URL for New Test functionality
@@ -66,7 +66,7 @@ export default function Dashboard() {
     <div className="flex min-h-screen bg-background">
       {/* Sidebar */}
       <Sidebar />
-      
+
       {/* Main Content */}
       <div className="flex-1">
         {/* Header */}
@@ -187,7 +187,11 @@ export default function Dashboard() {
                 <h3 className="text-lg font-semibold mb-4">Review Queue</h3>
                 <div className="space-y-3">
                   {reviewStatements?.slice(0, 5).map(statement => (
-                    <div key={statement.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div 
+                      key={statement.id} 
+                      className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors"
+                      onClick={() => setLocation(`/projects/${statement.projectId}?statement=${statement.id}&tab=review`)}
+                    >
                       <div className="flex-1">
                         <h4 className="font-medium text-sm" data-testid={`text-review-heading-${statement.id}`}>
                           {statement.heading || 'No heading'}
@@ -196,7 +200,15 @@ export default function Dashboard() {
                           {statement.project.name}
                         </p>
                       </div>
-                      <Badge className="bg-warning text-white">Review</Badge>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setLocation(`/projects/${statement.projectId}?statement=${statement.id}&tab=review`);
+                        }}
+                        className="px-2 py-1 text-xs bg-warning text-white rounded hover:bg-yellow-600 transition-colors"
+                      >
+                        Review
+                      </button>
                     </div>
                   ))}
                   {!reviewStatements?.length && (
@@ -208,7 +220,7 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
-      
+
       {/* New Test Modal */}
       {showNewTest && defaultProjectId && (
         <NewStatementModal

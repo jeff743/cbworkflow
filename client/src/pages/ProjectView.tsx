@@ -22,6 +22,7 @@ export default function ProjectView() {
 
   const [selectedTestId, setSelectedTestId] = useState<string | null>(null);
   const [selectedStatementId, setSelectedStatementId] = useState<string | null>(null);
+  const [initialTab, setInitialTab] = useState<"edit" | "review" | "design" | undefined>(undefined);
   const [navigationRequest, setNavigationRequest] = useState<{ targetStatementId: string; timestamp: number } | null>(null);
   const [showNewStatementModal, setShowNewStatementModal] = useState(false);
   const [showProjectSettings, setShowProjectSettings] = useState(false);
@@ -32,15 +33,18 @@ export default function ProjectView() {
     const urlSearchParams = new URLSearchParams(window.location.search);
     const statementIdFromUrl = urlSearchParams.get('statement');
     const testIdFromUrl = urlSearchParams.get('test');
+    const tabFromUrl = urlSearchParams.get('tab') as "edit" | "review" | "design" | null;
 
     if (testIdFromUrl && testIdFromUrl !== selectedTestId) {
       setSelectedTestId(testIdFromUrl);
       setSelectedStatementId(null);
+      setInitialTab(tabFromUrl || undefined);
       return;
     }
 
     if (statementIdFromUrl && statementIdFromUrl !== selectedStatementId) {
       setSelectedStatementId(statementIdFromUrl);
+      setInitialTab(tabFromUrl || undefined);
     }
   }, [window.location.search, selectedStatementId, selectedTestId]);
 
@@ -196,14 +200,28 @@ export default function ProjectView() {
   if (selectedStatementId) {
     const statement = statements.find((s: any) => s.id === selectedStatementId);
     if (statement) {
+      // Build sibling statements within the same test (batch)
+      const siblingStatements = statements
+        .filter((s: any) => !!statement.testBatchId && s.testBatchId === statement.testBatchId)
+        .sort((a: any, b: any) => {
+          const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+          const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+          return aTime - bTime;
+        });
+      const currentIndex = siblingStatements.findIndex((s: any) => s.id === selectedStatementId);
+
       return (
         <StatementEditor
           key={selectedStatementId}
           statement={statement}
+          initialTab={initialTab}
+          siblings={siblingStatements}
+          currentSiblingIndex={currentIndex >= 0 ? currentIndex : undefined}
           onStatementUpdated={() => {
             queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/statements`] });
             setSelectedStatementId(null);
             setSelectedTestId(null);
+            setInitialTab(undefined);
             // Clear the statement parameter from URL
             window.history.pushState({}, '', `/projects/${projectId}`);
           }}
@@ -216,6 +234,7 @@ export default function ProjectView() {
           }}
           onBack={() => {
             setSelectedStatementId(null);
+            setInitialTab(undefined);
             // Clear the statement parameter from URL
             window.history.pushState({}, '', `/projects/${projectId}`);
           }}
