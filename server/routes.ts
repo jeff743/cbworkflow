@@ -280,6 +280,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const statement = await storage.updateStatement(req.params.id, updates);
 
+      // Check and update workflow state if this statement is part of a test batch
+      if (statement.testBatchId) {
+        try {
+          // Get all statements for this test batch
+          const batchStatements = await storage.getStatementsByBatchId(statement.testBatchId);
+
+          // Check if all statements are approved
+          const allApproved = batchStatements.every(s => s.status === 'approved');
+
+          if (allApproved) {
+            // Mark as ready to deploy
+            await storage.markTestBatchReadyToDeploy(statement.testBatchId);
+            logger.info(`Auto-marked test batch ready to deploy: ${statement.testBatchId}`, 'workflow');
+          }
+        } catch (workflowError) {
+          // Don't fail the statement update if workflow check fails
+          logger.error('Failed to check workflow state', 'workflow', workflowError as Error);
+        }
+      }
+
       // TODO: Add Slack notification for status changes
 
       res.json(statement);

@@ -100,7 +100,11 @@ export default function NewTestsView() {
     return acc;
   }, {} as Record<string, any>) || {};
 
-  const tests = Object.values(groupedTests);
+  // Filter tests to only show those where ALL statements are in draft status
+  const tests = Object.values(groupedTests).filter((test: any) => {
+    // Only include tests where all statements are in draft status
+    return test.statements.every((statement: any) => statement.status === 'draft');
+  });
 
   // Delete test batch mutation
   const deleteTestBatchMutation = useMutation({

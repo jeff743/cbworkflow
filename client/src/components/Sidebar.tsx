@@ -186,12 +186,15 @@ export function Sidebar() {
       return { newTests: 0, pendingReview: 0, readyToDeploy: 0, completed: 0 };
     }
 
+    // Group statements by test batch
+    const testBatches = new Map<string, any[]>();
     const projectStatements = myStatements.filter(s => s.projectId === currentProjectId);
     const projectReviewStatements = reviewStatements.filter(s => s.projectId === currentProjectId);
 
-    // Group statements by test batch
-    const testBatches = new Map<string, any[]>();
-    projectStatements.forEach(statement => {
+    // Combine all statements for the current project
+    const allProjectStatements = [...projectStatements, ...projectReviewStatements];
+
+    allProjectStatements.forEach(statement => {
       const key = statement.testBatchId || statement.id; // Use statement.id for legacy statements
       if (!testBatches.has(key)) {
         testBatches.set(key, []);
@@ -199,7 +202,6 @@ export function Sidebar() {
       testBatches.get(key)!.push(statement);
     });
 
-    // Count test batches by their status
     let newTests = 0;
     let pendingReview = 0;
     let readyToDeploy = 0;
@@ -213,6 +215,7 @@ export function Sidebar() {
         const hasAnyCompleted = statements.some(s => s.deploymentStatus === 'completed');
         const hasAnyReady = statements.some(s => s.deploymentStatus === 'ready');
         const hasReview = statements.some(s => ['under_review', 'needs_revision'].includes(s.status));
+        const allDraft = statements.every(s => s.status === 'draft');
 
         if (hasAnyCompleted) {
           completed++;
@@ -220,7 +223,10 @@ export function Sidebar() {
           readyToDeploy++;
         } else if (hasReview) {
           pendingReview++;
+        } else if (allDraft) {
+          newTests++;
         } else {
+          // Fallback: if not all draft but no review status, still consider as new tests
           newTests++;
         }
       } else {

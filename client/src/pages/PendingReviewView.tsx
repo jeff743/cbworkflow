@@ -77,17 +77,22 @@ export default function PendingReviewView() {
         statements: [],
         createdAt: statement.createdAt,
         dueDate: statement.dueDate, // Include due date from the first statement
-        pendingCount: 0
+        pendingCount: 0,
+        reviewCount: 0
       };
     }
     acc[testKey].statements.push(statement);
     if (statement.status === 'under_review') {
       acc[testKey].pendingCount++;
     }
+    if (['under_review', 'needs_revision'].includes(statement.status)) {
+      acc[testKey].reviewCount++;
+    }
     return acc;
   }, {} as Record<string, any>) || {};
 
-  const testsWithPendingReview = Object.values(groupedTests).filter((test: any) => test.pendingCount > 0);
+  // Filter tests to only show those with at least one statement in review status
+  const testsWithPendingReview = Object.values(groupedTests).filter((test: any) => test.reviewCount > 0);
 
   if (isLoading) {
     return (
