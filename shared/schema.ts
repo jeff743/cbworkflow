@@ -74,6 +74,10 @@ export const statements = pgTable("statements", {
   backgroundColor: varchar("background_color").default("#4CAF50"),
   backgroundImageUrl: varchar("background_image_url"),
   footer: text("footer"), // Optional footer text
+  // Font color settings
+  headingFontColor: varchar("heading_font_color").default("#FFFFFF"), // White by default
+  statementFontColor: varchar("statement_font_color").default("#FFFFFF"), // White by default
+  footerFontColor: varchar("footer_font_color").default("#FFFFFF"), // White by default
   // Generated colorblock image
   colorblockImageUrl: varchar("colorblock_image_url"),
   createdAt: timestamp("created_at").defaultNow(),

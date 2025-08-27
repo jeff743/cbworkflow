@@ -13,6 +13,9 @@ interface ColorblockPreviewProps {
   backgroundColor: string;
   backgroundImageUrl?: string;
   footer?: string;
+  headingFontColor?: string;
+  statementFontColor?: string;
+  footerFontColor?: string;
 }
 
 export function ColorblockPreview({
@@ -25,6 +28,9 @@ export function ColorblockPreview({
   backgroundColor,
   backgroundImageUrl,
   footer,
+  headingFontColor = "#FFFFFF",
+  statementFontColor = "#FFFFFF",
+  footerFontColor = "#FFFFFF",
 }: ColorblockPreviewProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isMobilePreview, setIsMobilePreview] = useState(false);
@@ -83,7 +89,6 @@ export function ColorblockPreview({
 
     const drawText = () => {
       // Set text properties
-      ctx.fillStyle = 'white';
       ctx.textAlign = textAlignment === 'left' ? 'left' : 
                     textAlignment === 'right' ? 'right' : 'center';
 
@@ -104,6 +109,7 @@ export function ColorblockPreview({
       // Draw heading if present
       if (heading) {
         ctx.font = `bold ${headingFontSize}px Inter, Arial, sans-serif`;
+        ctx.fillStyle = headingFontColor;
         const headingLines = wrapText(ctx, heading, 1080 - (padding * 2));
 
         headingLines.forEach((line, index) => {
@@ -118,6 +124,7 @@ export function ColorblockPreview({
       // Draw content
       if (content) {
         ctx.font = `${statementFontSize}px Inter, Arial, sans-serif`;
+        ctx.fillStyle = statementFontColor;
         const contentLines = wrapText(ctx, content, 1080 - (padding * 2));
 
         // If only content (no heading or footer), center it vertically
@@ -138,6 +145,7 @@ export function ColorblockPreview({
       // Draw footer if present
       if (footer) {
         ctx.font = `${footerFontSize}px Inter, Arial, sans-serif`;
+        ctx.fillStyle = footerFontColor;
         const footerLines = wrapText(ctx, footer, 1080 - (padding * 2));
 
         // Position footer at bottom with some padding
@@ -152,7 +160,7 @@ export function ColorblockPreview({
     };
 
     drawColorblock();
-  }, [heading, content, headingFontSize, statementFontSize, footerFontSize, textAlignment, backgroundColor, backgroundImageUrl, footer]);
+  }, [heading, content, headingFontSize, statementFontSize, footerFontSize, textAlignment, backgroundColor, backgroundImageUrl, footer, headingFontColor, statementFontColor, footerFontColor]);
 
   const handleDownload = () => {
     const canvas = canvasRef.current;

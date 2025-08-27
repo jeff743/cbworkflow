@@ -48,6 +48,9 @@ export function StatementEditor({ statement, onStatementUpdated, navigationReque
     textAlignment: (statement.textAlignment || "center") as "left" | "center" | "right",
     backgroundColor: statement.backgroundColor || "#4CAF50",
     backgroundImageUrl: statement.backgroundImageUrl || "",
+    headingFontColor: statement.headingFontColor || "#FFFFFF",
+    statementFontColor: statement.statementFontColor || "#FFFFFF",
+    footerFontColor: statement.footerFontColor || "#FFFFFF",
   });
   const [useTrueFalse, setUseTrueFalse] = useState(
     statement.heading?.includes("True or False?") || false
@@ -72,6 +75,9 @@ export function StatementEditor({ statement, onStatementUpdated, navigationReque
       textAlignment: (statement.textAlignment || "center") as "left" | "center" | "right",
       backgroundColor: statement.backgroundColor || "#4CAF50",
       backgroundImageUrl: statement.backgroundImageUrl || "",
+      headingFontColor: statement.headingFontColor || "#FFFFFF",
+      statementFontColor: statement.statementFontColor || "#FFFFFF",
+      footerFontColor: statement.footerFontColor || "#FFFFFF",
     });
     setUseTrueFalse(statement.heading?.includes("True or False?") || false);
     setReviewNotes(statement.reviewNotes || "");
@@ -89,7 +95,10 @@ export function StatementEditor({ statement, onStatementUpdated, navigationReque
       formData.footerFontSize !== (statement.footerFontSize || 35) ||
       formData.textAlignment !== (statement.textAlignment || "center") ||
       formData.backgroundColor !== (statement.backgroundColor || "#4CAF50") ||
-      formData.backgroundImageUrl !== (statement.backgroundImageUrl || "");
+      formData.backgroundImageUrl !== (statement.backgroundImageUrl || "") ||
+      formData.headingFontColor !== (statement.headingFontColor || "#FFFFFF") ||
+      formData.statementFontColor !== (statement.statementFontColor || "#FFFFFF") ||
+      formData.footerFontColor !== (statement.footerFontColor || "#FFFFFF");
 
     setHasUnsavedChanges(hasChanges);
     hasUnsavedChangesRef.current = hasChanges; // Step 3: Immediate access
@@ -277,6 +286,11 @@ export function StatementEditor({ statement, onStatementUpdated, navigationReque
   const colorOptions = [
     "#EF4444", "#3B82F6", "#10B981", "#F59E0B", 
     "#8B5CF6", "#EC4899", "#1F2937", "#4CAF50"
+  ];
+
+  const fontColorOptions = [
+    { label: "White", value: "#FFFFFF" },
+    { label: "Black", value: "#000000" }
   ];
 
   return (
@@ -571,6 +585,102 @@ export function StatementEditor({ statement, onStatementUpdated, navigationReque
                       ))}
                     </div>
                   </div>
+
+                  {/* Font Colors */}
+                  <div className="space-y-3">
+                    {/* Heading Font Color */}
+                    <div>
+                      <Label className="block text-xs text-gray-600 mb-2">Heading Font Color</Label>
+                      <div className="flex items-center space-x-2">
+                        {fontColorOptions.map((option) => (
+                          <button
+                            key={option.value}
+                            type="button"
+                            className={`px-3 py-2 text-xs border border-gray-300 rounded transition-colors ${
+                              formData.headingFontColor === option.value
+                                ? "bg-primary text-white border-primary"
+                                : "hover:bg-gray-50"
+                            }`}
+                            onClick={() => setFormData(prev => ({ ...prev, headingFontColor: option.value }))}
+                            disabled={!canEdit}
+                            data-testid={`button-heading-color-${option.label.toLowerCase()}`}
+                          >
+                            {option.label}
+                          </button>
+                        ))}
+                        <input
+                          type="color"
+                          value={formData.headingFontColor}
+                          onChange={(e) => setFormData(prev => ({ ...prev, headingFontColor: e.target.value }))}
+                          className="w-8 h-8 rounded border border-gray-300 cursor-pointer"
+                          disabled={!canEdit}
+                          data-testid="input-heading-color-picker"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Statement Font Color */}
+                    <div>
+                      <Label className="block text-xs text-gray-600 mb-2">Statement Font Color</Label>
+                      <div className="flex items-center space-x-2">
+                        {fontColorOptions.map((option) => (
+                          <button
+                            key={option.value}
+                            type="button"
+                            className={`px-3 py-2 text-xs border border-gray-300 rounded transition-colors ${
+                              formData.statementFontColor === option.value
+                                ? "bg-primary text-white border-primary"
+                                : "hover:bg-gray-50"
+                            }`}
+                            onClick={() => setFormData(prev => ({ ...prev, statementFontColor: option.value }))}
+                            disabled={!canEdit}
+                            data-testid={`button-statement-color-${option.label.toLowerCase()}`}
+                          >
+                            {option.label}
+                          </button>
+                        ))}
+                        <input
+                          type="color"
+                          value={formData.statementFontColor}
+                          onChange={(e) => setFormData(prev => ({ ...prev, statementFontColor: e.target.value }))}
+                          className="w-8 h-8 rounded border border-gray-300 cursor-pointer"
+                          disabled={!canEdit}
+                          data-testid="input-statement-color-picker"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Footer Font Color */}
+                    <div>
+                      <Label className="block text-xs text-gray-600 mb-2">Footer Font Color</Label>
+                      <div className="flex items-center space-x-2">
+                        {fontColorOptions.map((option) => (
+                          <button
+                            key={option.value}
+                            type="button"
+                            className={`px-3 py-2 text-xs border border-gray-300 rounded transition-colors ${
+                              formData.footerFontColor === option.value
+                                ? "bg-primary text-white border-primary"
+                                : "hover:bg-gray-50"
+                            }`}
+                            onClick={() => setFormData(prev => ({ ...prev, footerFontColor: option.value }))}
+                            disabled={!canEdit}
+                            data-testid={`button-footer-color-${option.label.toLowerCase()}`}
+                          >
+                            {option.label}
+                          </button>
+                        ))}
+                        <input
+                          type="color"
+                          value={formData.footerFontColor}
+                          onChange={(e) => setFormData(prev => ({ ...prev, footerFontColor: e.target.value }))}
+                          className="w-8 h-8 rounded border border-gray-300 cursor-pointer"
+                          disabled={!canEdit}
+                          data-testid="input-footer-color-picker"
+                        />
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Background Settings */}
@@ -725,6 +835,9 @@ export function StatementEditor({ statement, onStatementUpdated, navigationReque
                 textAlignment={formData.textAlignment}
                 backgroundColor={formData.backgroundColor}
                 backgroundImageUrl={formData.backgroundImageUrl}
+                headingFontColor={formData.headingFontColor}
+                statementFontColor={formData.statementFontColor}
+                footerFontColor={formData.footerFontColor}
               />
             </div>
           </>
