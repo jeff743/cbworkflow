@@ -63,6 +63,7 @@ export const statements = pgTable("statements", {
   priority: varchar("priority").notNull().default("normal"), // normal, high, urgent
   dueDate: timestamp("due_date"),
   assignedTo: varchar("assigned_to").references(() => users.id),
+  growthStrategistId: varchar("growth_strategist_id").references(() => users.id), // Growth Strategist assigned to review this test
   createdBy: varchar("created_by").notNull().references(() => users.id),
   reviewedBy: varchar("reviewed_by").references(() => users.id),
   reviewNotes: text("review_notes"),

@@ -499,6 +499,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // New endpoint for Growth Strategists to see tests assigned to them
+  app.get('/api/dashboard/growth-strategist-assignments', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.currentUser?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "User not found" });
+      }
+
+      // Check if user is a Growth Strategist
+      const user = await storage.getUser(userId);
+      if (!user || (user.role !== 'growth_strategist' && user.role !== 'super_admin')) {
+        return res.status(403).json({ message: "Access denied. Only Growth Strategists can access this endpoint." });
+      }
+
+      const statements = await storage.getGrowthStrategistAssignments(userId);
+      res.json(statements);
+    } catch (error) {
+      console.error("Error fetching growth strategist assignments:", error);
+      res.status(500).json({ message: "Failed to fetch assignments" });
+    }
+  });
+
   // Object storage routes for background images
   app.post("/api/objects/upload", isAuthenticated, async (req, res) => {
     try {
