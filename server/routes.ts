@@ -499,28 +499,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // New endpoint for Growth Strategists to see tests assigned to them
-  app.get('/api/dashboard/growth-strategist-assignments', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.currentUser?.id;
-      if (!userId) {
-        return res.status(401).json({ message: "User not found" });
-      }
-
-      // Check if user is a Growth Strategist
-      const user = await storage.getUser(userId);
-      if (!user || (user.role !== 'growth_strategist' && user.role !== 'super_admin')) {
-        return res.status(403).json({ message: "Access denied. Only Growth Strategists can access this endpoint." });
-      }
-
-      const statements = await storage.getGrowthStrategistAssignments(userId);
-      res.json(statements);
-    } catch (error) {
-      console.error("Error fetching growth strategist assignments:", error);
-      res.status(500).json({ message: "Failed to fetch assignments" });
-    }
-  });
-
   // Object storage routes for background images
   app.post("/api/objects/upload", isAuthenticated, async (req, res) => {
     try {
@@ -1098,33 +1076,33 @@ async function generateColorblockImage(statement: any): Promise<string> {
 
   // Draw heading if present
   if (statement.heading) {
-    ctx.font = `bold ${statement.headingFontSize || 48}px Inter, sans-serif`;
+    ctx.font = `bold ${statement.headingFontSize || 100}px Inter, sans-serif`;
     const headingLines = wrapText(ctx, statement.heading, 1080 - (padding * 2));
 
     headingLines.forEach((line, index) => {
       const x = statement.textAlignment === 'left' ? padding :
                 statement.textAlignment === 'right' ? 1080 - padding : centerX;
-      ctx.fillText(line, x, currentY + (index * (statement.headingFontSize || 48) * 1.2));
+      ctx.fillText(line, x, currentY + (index * (statement.headingFontSize || 100) * 1.2));
     });
 
-    currentY += headingLines.length * (statement.headingFontSize || 48) * 1.2 + 40;
+    currentY += headingLines.length * (statement.headingFontSize || 100) * 1.2 + 40;
   }
 
   // Draw content
   if (statement.content) {
-    ctx.font = `${statement.statementFontSize || 43}px Inter, sans-serif`;
+    ctx.font = `${statement.statementFontSize || 70}px Inter, sans-serif`;
     const contentLines = wrapText(ctx, statement.content, 1080 - (padding * 2));
 
     // If no heading, center the content vertically
     if (!statement.heading) {
-      const totalHeight = contentLines.length * (statement.statementFontSize || 43) * 1.2;
-      currentY = (1080 - totalHeight) / 2 + (statement.statementFontSize || 43);
+      const totalHeight = contentLines.length * (statement.statementFontSize || 70) * 1.2;
+      currentY = (1080 - totalHeight) / 2 + (statement.statementFontSize || 70);
     }
 
     contentLines.forEach((line, index) => {
       const x = statement.textAlignment === 'left' ? padding :
                 statement.textAlignment === 'right' ? 1080 - padding : centerX;
-      ctx.fillText(line, x, currentY + (index * (statement.statementFontSize || 43) * 1.2));
+      ctx.fillText(line, x, currentY + (index * (statement.statementFontSize || 70) * 1.2));
     });
   }
 

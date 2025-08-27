@@ -63,7 +63,6 @@ export const statements = pgTable("statements", {
   priority: varchar("priority").notNull().default("normal"), // normal, high, urgent
   dueDate: timestamp("due_date"),
   assignedTo: varchar("assigned_to").references(() => users.id),
-  growthStrategistId: varchar("growth_strategist_id").references(() => users.id), // Growth Strategist assigned to review this test
   createdBy: varchar("created_by").notNull().references(() => users.id),
   reviewedBy: varchar("reviewed_by").references(() => users.id),
   reviewNotes: text("review_notes"),
@@ -74,6 +73,9 @@ export const statements = pgTable("statements", {
   textAlignment: varchar("text_alignment").default("center"), // left, center, right
   backgroundColor: varchar("background_color").default("#4CAF50"),
   backgroundImageUrl: varchar("background_image_url"),
+  headingFontColor: varchar("heading_font_color").default("#FFFFFF"), // Font color for heading
+  statementFontColor: varchar("statement_font_color").default("#FFFFFF"), // Font color for statement content
+  footerFontColor: varchar("footer_font_color").default("#FFFFFF"), // Font color for footer
   footer: text("footer"), // Optional footer text
   // Generated colorblock image
   colorblockImageUrl: varchar("colorblock_image_url"),

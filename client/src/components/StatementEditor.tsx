@@ -42,8 +42,8 @@ export function StatementEditor({ statement, onStatementUpdated, navigationReque
     heading: statement.heading || "",
     content: isTemplateContent(statement.content) ? "" : (statement.content || ""),
     footer: statement.footer || "",
-    headingFontSize: statement.headingFontSize || 80,
-    statementFontSize: statement.statementFontSize || 60,
+    headingFontSize: statement.headingFontSize || 100,
+    statementFontSize: statement.statementFontSize || 70,
     footerFontSize: statement.footerFontSize || 35,
     textAlignment: (statement.textAlignment || "center") as "left" | "center" | "right",
     backgroundColor: statement.backgroundColor || "#4CAF50",
@@ -66,8 +66,8 @@ export function StatementEditor({ statement, onStatementUpdated, navigationReque
       heading: statement.heading || "",
       content: isTemplateContent(statement.content) ? "" : (statement.content || ""),
       footer: statement.footer || "",
-      headingFontSize: statement.headingFontSize || 80,
-      statementFontSize: statement.statementFontSize || 60,
+      headingFontSize: statement.headingFontSize || 100,
+      statementFontSize: statement.statementFontSize || 70,
       footerFontSize: statement.footerFontSize || 35,
       textAlignment: (statement.textAlignment || "center") as "left" | "center" | "right",
       backgroundColor: statement.backgroundColor || "#4CAF50",
@@ -84,8 +84,8 @@ export function StatementEditor({ statement, onStatementUpdated, navigationReque
       formData.heading !== (statement.heading || "") ||
       formData.content !== originalContent ||
       formData.footer !== (statement.footer || "") ||
-      formData.headingFontSize !== (statement.headingFontSize || 80) ||
-      formData.statementFontSize !== (statement.statementFontSize || 60) ||
+      formData.headingFontSize !== (statement.headingFontSize || 100) ||
+      formData.statementFontSize !== (statement.statementFontSize || 70) ||
       formData.footerFontSize !== (statement.footerFontSize || 35) ||
       formData.textAlignment !== (statement.textAlignment || "center") ||
       formData.backgroundColor !== (statement.backgroundColor || "#4CAF50") ||
