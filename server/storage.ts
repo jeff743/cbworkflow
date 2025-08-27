@@ -660,66 +660,6 @@ export class DatabaseStorage implements IStorage {
     return results.map(result => ({ ...result, assignee: undefined, reviewer: undefined }));
   }
 
-  async getGrowthStrategistAssignments(userId: string): Promise<any[]> {
-    const results = await db
-      .select({
-        id: statements.id,
-        projectId: statements.projectId,
-        testBatchId: statements.testBatchId,
-        description: statements.description,
-        heading: statements.heading,
-        content: statements.content,
-        status: statements.status,
-        priority: statements.priority,
-        dueDate: statements.dueDate,
-        assignedTo: statements.assignedTo,
-        growthStrategistId: statements.growthStrategistId,
-        createdBy: statements.createdBy,
-        reviewedBy: statements.reviewedBy,
-        reviewNotes: statements.reviewNotes,
-        deploymentStatus: statements.deploymentStatus,
-        deploymentReadyDate: statements.deploymentReadyDate,
-        headingFontSize: statements.headingFontSize,
-        statementFontSize: statements.statementFontSize,
-        footerFontSize: statements.footerFontSize,
-        textAlignment: statements.textAlignment,
-        backgroundColor: statements.backgroundColor,
-        backgroundImageUrl: statements.backgroundImageUrl,
-        footer: statements.footer,
-        colorblockImageUrl: statements.colorblockImageUrl,
-        createdAt: statements.createdAt,
-        updatedAt: statements.updatedAt,
-        project: {
-          id: projects.id,
-          name: projects.name,
-          description: projects.description,
-          clientName: projects.clientName,
-          status: projects.status,
-          backgroundImages: projects.backgroundImages,
-          createdBy: projects.createdBy,
-          createdAt: projects.createdAt,
-          updatedAt: projects.updatedAt,
-        },
-        creator: {
-          id: users.id,
-          email: users.email,
-          firstName: users.firstName,
-          lastName: users.lastName,
-          profileImageUrl: users.profileImageUrl,
-          role: users.role,
-          createdAt: users.createdAt,
-          updatedAt: users.updatedAt,
-        },
-      })
-      .from(statements)
-      .innerJoin(projects, eq(statements.projectId, projects.id))
-      .innerJoin(users, eq(statements.createdBy, users.id))
-      .where(eq(statements.growthStrategistId, userId))
-      .orderBy(desc(statements.updatedAt));
-
-    return results.map(result => ({ ...result, assignee: undefined, reviewer: undefined }));
-  }
-
   // User management methods
   async getAllUsers(): Promise<User[]> {
     try {
