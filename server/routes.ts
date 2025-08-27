@@ -250,6 +250,111 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Batch statement update endpoint for moving test data between projects
+  app.put('/api/statements/batch/:testBatchId', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.currentUser?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "User not found" });
+      }
+
+      const { testBatchId } = req.params;
+      const { projectId, updates } = req.body;
+
+      console.log('🔄 BATCH UPDATE - Received batch update request:', {
+        testBatchId: testBatchId,
+        projectId: projectId,
+        updates: updates,
+        userId: userId
+      });
+
+      if (!testBatchId) {
+        return res.status(400).json({ message: "testBatchId is required" });
+      }
+
+      // Validate projectId if provided
+      if (projectId) {
+        const project = await storage.getProject(projectId);
+        if (!project) {
+          return res.status(400).json({ message: "Invalid project ID provided" });
+        }
+      }
+
+      // Get all statements in the test batch
+      const batchStatements = await storage.getStatementsByBatchId(testBatchId);
+
+      if (batchStatements.length === 0) {
+        return res.status(404).json({ message: "No statements found for this test batch" });
+      }
+
+      console.log(`🔄 BATCH UPDATE - Found ${batchStatements.length} statements to update`);
+
+      // Update each statement in the batch
+      const results = [];
+      const errors = [];
+
+      for (const statement of batchStatements) {
+        try {
+          const updateData = {
+            ...updates,
+            // Allow projectId to be updated when moving between projects
+            ...(projectId && { projectId }),
+            updatedAt: new Date()
+          };
+
+          // Remove fields that shouldn't be updated
+          const { id, createdAt, createdBy, ...allowedUpdates } = updateData;
+
+          console.log(`🔄 BATCH UPDATE - Updating statement ${statement.id}:`, {
+            currentProjectId: statement.projectId,
+            newProjectId: projectId,
+            otherUpdates: allowedUpdates
+          });
+
+          const result = await storage.updateStatement(statement.id, allowedUpdates);
+          results.push(result);
+        } catch (statementError) {
+          console.error(`🔄 BATCH UPDATE - Error updating statement ${statement.id}:`, statementError);
+          errors.push({ statementId: statement.id, error: statementError });
+        }
+      }
+
+      // If there were any errors, return partial success with error details
+      if (errors.length > 0) {
+        console.log('🔄 BATCH UPDATE - Partial success with errors:', {
+          testBatchId: testBatchId,
+          successfulUpdates: results.length,
+          failedUpdates: errors.length,
+          errors: errors
+        });
+
+        return res.status(207).json({
+          success: false,
+          message: "Some statements failed to update",
+          updatedCount: results.length,
+          failedCount: errors.length,
+          statements: results,
+          errors: errors
+        });
+      }
+
+      console.log('🔄 BATCH UPDATE - Batch update complete:', {
+        testBatchId: testBatchId,
+        updatedCount: results.length,
+        newProjectId: projectId
+      });
+
+      res.json({
+        success: true,
+        updatedCount: results.length,
+        statements: results
+      });
+    } catch (error) {
+      console.error('🔄 BATCH UPDATE - Error updating batch statements:', error);
+      res.status(500).json({ message: "Failed to update batch statements" });
+    }
+  });
+
   app.put('/api/statements/:id', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.currentUser?.id;
