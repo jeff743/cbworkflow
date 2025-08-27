@@ -1076,33 +1076,33 @@ async function generateColorblockImage(statement: any): Promise<string> {
 
   // Draw heading if present
   if (statement.heading) {
-    ctx.font = `bold ${statement.headingFontSize || 100}px Inter, sans-serif`;
+    ctx.font = `bold ${statement.headingFontSize || 48}px Inter, sans-serif`;
     const headingLines = wrapText(ctx, statement.heading, 1080 - (padding * 2));
 
     headingLines.forEach((line, index) => {
       const x = statement.textAlignment === 'left' ? padding :
                 statement.textAlignment === 'right' ? 1080 - padding : centerX;
-      ctx.fillText(line, x, currentY + (index * (statement.headingFontSize || 100) * 1.2));
+      ctx.fillText(line, x, currentY + (index * (statement.headingFontSize || 48) * 1.2));
     });
 
-    currentY += headingLines.length * (statement.headingFontSize || 100) * 1.2 + 40;
+    currentY += headingLines.length * (statement.headingFontSize || 48) * 1.2 + 40;
   }
 
   // Draw content
   if (statement.content) {
-    ctx.font = `${statement.statementFontSize || 70}px Inter, sans-serif`;
+    ctx.font = `${statement.statementFontSize || 43}px Inter, sans-serif`;
     const contentLines = wrapText(ctx, statement.content, 1080 - (padding * 2));
 
     // If no heading, center the content vertically
     if (!statement.heading) {
-      const totalHeight = contentLines.length * (statement.statementFontSize || 70) * 1.2;
-      currentY = (1080 - totalHeight) / 2 + (statement.statementFontSize || 70);
+      const totalHeight = contentLines.length * (statement.statementFontSize || 43) * 1.2;
+      currentY = (1080 - totalHeight) / 2 + (statement.statementFontSize || 43);
     }
 
     contentLines.forEach((line, index) => {
       const x = statement.textAlignment === 'left' ? padding :
                 statement.textAlignment === 'right' ? 1080 - padding : centerX;
-      ctx.fillText(line, x, currentY + (index * (statement.statementFontSize || 70) * 1.2));
+      ctx.fillText(line, x, currentY + (index * (statement.statementFontSize || 43) * 1.2));
     });
   }
 

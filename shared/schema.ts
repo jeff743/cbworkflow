@@ -67,15 +67,12 @@ export const statements = pgTable("statements", {
   reviewedBy: varchar("reviewed_by").references(() => users.id),
   reviewNotes: text("review_notes"),
   // Colorblock settings
-  headingFontSize: integer("heading_font_size").default(48),
-  statementFontSize: integer("statement_font_size").default(43),
+  headingFontSize: integer("heading_font_size").default(100),
+  statementFontSize: integer("statement_font_size").default(70),
   footerFontSize: integer("footer_font_size").default(35),
   textAlignment: varchar("text_alignment").default("center"), // left, center, right
   backgroundColor: varchar("background_color").default("#4CAF50"),
   backgroundImageUrl: varchar("background_image_url"),
-  headingFontColor: varchar("heading_font_color").default("#FFFFFF"), // Font color for heading
-  statementFontColor: varchar("statement_font_color").default("#FFFFFF"), // Font color for statement content
-  footerFontColor: varchar("footer_font_color").default("#FFFFFF"), // Font color for footer
   footer: text("footer"), // Optional footer text
   // Generated colorblock image
   colorblockImageUrl: varchar("colorblock_image_url"),
