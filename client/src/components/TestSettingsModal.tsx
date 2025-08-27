@@ -170,6 +170,7 @@ export function TestSettingsModal({ test, projectId, onClose, onTestUpdated }: T
               priority: formData.priority,
               dueDate: formData.dueDate ? new Date(formData.dueDate) : undefined,
               assignedTo: formData.assignedTo === "unassigned" || !formData.assignedTo ? undefined : formData.assignedTo,
+              growthStrategistId: formData.growthStrategistId === "unassigned" || !formData.growthStrategistId ? undefined : formData.growthStrategistId,
             };
 
             return apiRequest('PUT', `/api/statements/${statement.id}`, updates);
@@ -192,6 +193,7 @@ export function TestSettingsModal({ test, projectId, onClose, onTestUpdated }: T
             priority: formData.priority,
             dueDate: formData.dueDate ? new Date(formData.dueDate) : undefined,
             assignedTo: formData.assignedTo === "unassigned" || !formData.assignedTo ? undefined : formData.assignedTo,
+            growthStrategistId: formData.growthStrategistId === "unassigned" || !formData.growthStrategistId ? undefined : formData.growthStrategistId,
           }));
 
           await apiRequest('POST', '/api/statements/batch', {

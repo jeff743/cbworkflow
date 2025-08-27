@@ -29,11 +29,17 @@ export default function Dashboard() {
     queryKey: ['/api/dashboard/review-statements'],
   });
 
+  // Get Growth Strategist assignments if user is a Growth Strategist
+  const { data: growthStrategistAssignments, isLoading: growthStrategistAssignmentsLoading } = useQuery<StatementWithRelations[]>({
+    queryKey: ['/api/dashboard/growth-strategist-assignments'],
+    enabled: (user as any)?.role === 'growth_strategist' || (user as any)?.role === 'super_admin',
+  });
+
   // Use the first project for New Test if not on a specific project page
   const defaultProjectId = projects?.[0]?.id;
 
 
-  if (projectsLoading || myStatementsLoading || reviewStatementsLoading) {
+  if (projectsLoading || myStatementsLoading || reviewStatementsLoading || growthStrategistAssignmentsLoading) {
     return (
       <div className="flex min-h-screen bg-background">
         <Sidebar />
@@ -153,7 +159,7 @@ export default function Dashboard() {
           </div>
 
           {/* Recent Activity */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
             {/* My Statements */}
             <Card>
               <CardContent className="p-6">
@@ -217,6 +223,39 @@ export default function Dashboard() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Growth Strategist Assignments */}
+            {((user as any)?.role === 'growth_strategist' || (user as any)?.role === 'super_admin') && (
+              <Card>
+                <CardContent className="p-6">
+                  <h3 className="text-lg font-semibold mb-4">My Growth Strategist Assignments</h3>
+                  <div className="space-y-3">
+                    {growthStrategistAssignments?.slice(0, 5).map(statement => (
+                      <div 
+                        key={statement.id} 
+                        className="flex items-center justify-between p-3 bg-blue-50 rounded-lg hover:bg-blue-100 cursor-pointer transition-colors"
+                        onClick={() => setLocation(`/projects/${statement.projectId}?statement=${statement.id}`)}
+                      >
+                        <div className="flex-1">
+                          <h4 className="font-medium text-sm" data-testid={`text-gs-assignment-heading-${statement.id}`}>
+                            {statement.heading || 'No heading'}
+                          </h4>
+                          <p className="text-xs text-gray-600" data-testid={`text-gs-assignment-project-${statement.id}`}>
+                            {statement.project.name}
+                          </p>
+                        </div>
+                        <Badge className={getStatusColor(statement.status)} data-testid={`status-gs-assignment-${statement.id}`}>
+                          {statement.status.replace('_', ' ')}
+                        </Badge>
+                      </div>
+                    ))}
+                    {!growthStrategistAssignments?.length && (
+                      <p className="text-sm text-gray-500 text-center py-4">No tests assigned to you as Growth Strategist</p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
       </div>

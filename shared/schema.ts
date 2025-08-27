@@ -73,6 +73,9 @@ export const statements = pgTable("statements", {
   textAlignment: varchar("text_alignment").default("center"), // left, center, right
   backgroundColor: varchar("background_color").default("#4CAF50"),
   backgroundImageUrl: varchar("background_image_url"),
+  headingFontColor: varchar("heading_font_color").default("#FFFFFF"), // Font color for heading
+  statementFontColor: varchar("statement_font_color").default("#FFFFFF"), // Font color for statement content
+  footerFontColor: varchar("footer_font_color").default("#FFFFFF"), // Font color for footer
   footer: text("footer"), // Optional footer text
   // Generated colorblock image
   colorblockImageUrl: varchar("colorblock_image_url"),
