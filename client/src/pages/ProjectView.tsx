@@ -7,6 +7,7 @@ import { Badge } from '../components/ui/badge';
 import { Separator } from '../components/ui/separator';
 import { cn } from '../lib/utils';
 import { useAuth } from '../hooks/useAuth';
+import { useToast } from '../hooks/use-toast';
 import { StatementEditor } from '../components/StatementEditor';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../components/ui/alert-dialog';
@@ -17,6 +18,7 @@ import { ProjectSettings } from '../components/ProjectSettings';
 export default function ProjectView() {
   const { id: projectId } = useParams<{ id: string }>();
   const { user } = useAuth();
+  const { toast } = useToast();
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
 
@@ -131,6 +133,7 @@ export default function ProjectView() {
         const hasAnyCompleted = test.statements.some((s: any) => s.deploymentStatus === 'completed');
         const hasAnyReady = test.statements.some((s: any) => s.deploymentStatus === 'ready');
         const hasReview = test.statements.some((s: any) => ['under_review', 'needs_revision'].includes(s.status));
+        const allDraft = test.statements.every((s: any) => s.status === 'draft');
 
         if (hasAnyCompleted) {
           completed++;
@@ -138,7 +141,10 @@ export default function ProjectView() {
           readyToDeploy++;
         } else if (hasReview) {
           pendingReview++;
+        } else if (allDraft) {
+          newTests++;
         } else {
+          // Fallback: if not all draft but no review status, still consider as new tests
           newTests++;
         }
       } else {
@@ -219,11 +225,66 @@ export default function ProjectView() {
           currentSiblingIndex={currentIndex >= 0 ? currentIndex : undefined}
           onStatementUpdated={() => {
             queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/statements`] });
-            setSelectedStatementId(null);
-            setSelectedTestId(null);
-            setInitialTab(undefined);
-            // Clear the statement parameter from URL
-            window.history.pushState({}, '', `/projects/${projectId}`);
+
+            // Find the next statement that needs review
+            const findNextStatementToReview = () => {
+              // Ensure statements data is available
+              if (!statements || statements.length === 0) {
+                // Fallback to dashboard if no data
+                setSelectedStatementId(null);
+                setSelectedTestId(null);
+                setInitialTab(undefined);
+                window.history.pushState({}, '', `/projects/${projectId}`);
+                return;
+              }
+
+              // Get all statements that need review, sorted by creation date
+              const statementsToReview = statements
+                .filter((s: any) => ['under_review', 'needs_revision'].includes(s.status))
+                .sort((a: any, b: any) => {
+                  const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+                  const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+                  return aTime - bTime;
+                });
+
+              if (statementsToReview.length === 0) {
+                // No more statements to review, return to dashboard
+                setSelectedStatementId(null);
+                setSelectedTestId(null);
+                setInitialTab(undefined);
+                window.history.pushState({}, '', `/projects/${projectId}`);
+                toast({
+                  title: "Review Complete! 🎉",
+                  description: "All statements have been reviewed. Great work!",
+                });
+                return;
+              }
+
+              // Find the current statement in the review queue
+              const currentIndex = statementsToReview.findIndex((s: any) => s.id === selectedStatementId);
+
+              // If current statement is not in the queue (e.g., it was approved), start from the beginning
+              // If current statement is the last one, also start from the beginning
+              const nextIndex = currentIndex >= 0 && currentIndex < statementsToReview.length - 1 
+                ? currentIndex + 1 
+                : 0;
+
+              const nextStatement = statementsToReview[nextIndex];
+
+              // Navigate to the next statement
+              setSelectedStatementId(nextStatement.id);
+              setInitialTab('review');
+              window.history.pushState({}, '', `/projects/${projectId}?statement=${nextStatement.id}&tab=review`);
+
+              // Show toast notification
+              toast({
+                title: "Moving to Next Statement",
+                description: `Continuing review workflow... (${nextIndex + 1} of ${statementsToReview.length} remaining)`,
+              });
+            };
+
+            // Use setTimeout to ensure the query invalidation completes before finding the next statement
+            setTimeout(findNextStatementToReview, 100);
           }}
           navigationRequest={navigationRequest}
           onNavigationComplete={(statementId) => {

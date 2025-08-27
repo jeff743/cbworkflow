@@ -21,14 +21,14 @@ export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
-  
+
   // Project operations
   getProjects(userId: string): Promise<ProjectWithStats[]>;
   getProject(id: string): Promise<Project | undefined>;
   createProject(project: InsertProject): Promise<Project>;
   addProjectBackgroundImage(projectId: string, imageUrl: string): Promise<Project | null>;
   removeProjectBackgroundImage(projectId: string, imageUrl: string): Promise<Project | null>;
-  
+
   // Statement operations
   getAllStatements(): Promise<StatementWithRelations[]>;
   getStatements(projectId: string, status?: string): Promise<StatementWithRelations[]>;
@@ -38,15 +38,15 @@ export interface IStorage {
   deleteStatement(id: string): Promise<void>;
   getStatementsByBatchId(testBatchId: string): Promise<StatementWithRelations[]>;
   deleteStatementsByBatchId(testBatchId: string): Promise<number>;
-  
+
   // Dashboard stats
   getUserStatements(userId: string): Promise<StatementWithRelations[]>;
   getReviewStatements(userId: string): Promise<StatementWithRelations[]>;
-  
+
   // User management (for role management)
   getAllUsers(): Promise<User[]>;
   updateUserRole(userId: string, role: string): Promise<User | undefined>;
-  
+
   // Deployment operations
   getDeploymentTests(status?: string): Promise<any[]>;
   updateDeploymentStatus(testId: string, status: string): Promise<boolean>;
@@ -684,7 +684,7 @@ export class DatabaseStorage implements IStorage {
         })
         .where(eq(users.id, userId))
         .returning();
-      
+
       if (updatedUser) {
         logDatabase(`User role updated successfully: ${updatedUser.email} -> ${role}`, 'updateUserRole');
       }
@@ -699,7 +699,7 @@ export class DatabaseStorage implements IStorage {
   async getDeploymentTests(status?: string): Promise<any[]> {
     try {
       logDatabase(`Fetching deployment tests${status ? ` with status: ${status}` : ''}`, 'getDeploymentTests');
-      
+
       // Get test batches with their statements grouped by testBatchId
       const testBatches = await db
         .select({
@@ -724,7 +724,7 @@ export class DatabaseStorage implements IStorage {
 
         const batchStatements = await this.getStatementsByBatchId(batch.testBatchId);
         const project = await this.getProject(batch.projectId);
-        
+
         if (batchStatements.length > 0 && batchStatements.every(s => s.status === 'approved')) {
           result.push({
             id: batch.testBatchId,
@@ -753,7 +753,7 @@ export class DatabaseStorage implements IStorage {
         .update(statements)
         .set({ deploymentStatus: status, updatedAt: new Date() })
         .where(eq(statements.testBatchId, testId));
-      
+
       logDatabase(`Deployment status updated for test batch: ${testId}`, 'updateDeploymentStatus');
       return true;
     } catch (error) {
@@ -765,7 +765,7 @@ export class DatabaseStorage implements IStorage {
   async getStatementsByIds(ids: string[]): Promise<StatementWithRelations[]> {
     try {
       logDatabase(`Fetching statements by IDs: ${ids.length} statements`, 'getStatementsByIds');
-      
+
       const results = await db
         .select({
           id: statements.id,
@@ -829,7 +829,7 @@ export class DatabaseStorage implements IStorage {
   async getReadyToDeployStatements(): Promise<StatementWithRelations[]> {
     try {
       logDatabase('Fetching ready-to-deploy statements', 'getReadyToDeployStatements');
-      
+
       const results = await db
         .select({
           id: statements.id,
@@ -899,7 +899,7 @@ export class DatabaseStorage implements IStorage {
   async markTestBatchReadyToDeploy(testBatchId: string): Promise<boolean> {
     try {
       logDatabase(`Marking test batch ready to deploy: ${testBatchId}`, 'markTestBatchReadyToDeploy');
-      
+
       const result = await db
         .update(statements)
         .set({ 
@@ -908,7 +908,7 @@ export class DatabaseStorage implements IStorage {
           updatedAt: new Date()
         })
         .where(eq(statements.testBatchId, testBatchId));
-      
+
       logDatabase(`Test batch marked ready to deploy: ${testBatchId}`, 'markTestBatchReadyToDeploy');
       return true;
     } catch (error) {
@@ -920,7 +920,7 @@ export class DatabaseStorage implements IStorage {
   async markTestsAsCompleted(testBatchIds: string[]): Promise<number> {
     try {
       logDatabase(`Marking test batches as completed: ${testBatchIds.join(', ')}`, 'markTestsAsCompleted');
-      
+
       const result = await db
         .update(statements)
         .set({ 
@@ -928,11 +928,106 @@ export class DatabaseStorage implements IStorage {
           updatedAt: new Date()
         })
         .where(inArray(statements.testBatchId, testBatchIds));
-      
+
       logDatabase(`Marked ${testBatchIds.length} test batches as completed`, 'markTestsAsCompleted');
       return testBatchIds.length;
     } catch (error) {
       logError(`Failed to mark test batches as completed: ${testBatchIds.join(', ')}`, 'database', error as Error);
+      throw error;
+    }
+  }
+
+  async updateWorkflowStates(): Promise<void> {
+    try {
+      logDatabase('Updating workflow states for test batches', 'updateWorkflowStates');
+
+      // Get all test batches that are ready to deploy
+      const readyBatches = await db
+        .select()
+        .from(statements)
+        .where(
+          and(
+            eq(statements.status, 'approved'),
+            eq(statements.deploymentStatus, 'ready')
+          )
+        )
+        .groupBy(statements.testBatchId);
+
+      for (const batch of readyBatches) {
+        if (!batch.testBatchId) continue;
+
+        const batchStatements = await this.getStatementsByBatchId(batch.testBatchId);
+        const project = await this.getProject(batchStatements[0]?.projectId || ''); // Assuming all statements in a batch are for the same project
+
+        if (batchStatements.length > 0 && batchStatements.every(s => s.status === 'approved')) {
+          await this.markTestBatchReadyToDeploy(batch.testBatchId);
+          logDatabase(`Workflow state updated for test batch: ${batch.testBatchId} (ready to deploy)`, 'updateWorkflowStates');
+        } else {
+          // If any statement in the batch is not approved, mark it as 'needs_revision'
+          await this.updateDeploymentStatus(batch.testBatchId, 'needs_revision');
+          logDatabase(`Workflow state updated for test batch: ${batch.testBatchId} (needs revision)`, 'updateWorkflowStates');
+        }
+      }
+
+      // Get all test batches that are under review and need revision
+      const underReviewBatches = await db
+        .select()
+        .from(statements)
+        .where(
+          and(
+            eq(statements.status, 'under_review'),
+            eq(statements.deploymentStatus, 'needs_revision')
+          )
+        )
+        .groupBy(statements.testBatchId);
+
+      for (const batch of underReviewBatches) {
+        if (!batch.testBatchId) continue;
+
+        const batchStatements = await this.getStatementsByBatchId(batch.testBatchId);
+        const project = await this.getProject(batchStatements[0]?.projectId || ''); // Assuming all statements in a batch are for the same project
+
+        if (batchStatements.length > 0 && batchStatements.every(s => s.status === 'under_review')) {
+          await this.updateDeploymentStatus(batch.testBatchId, 'needs_revision');
+          logDatabase(`Workflow state updated for test batch: ${batch.testBatchId} (needs revision)`, 'updateWorkflowStates');
+        } else {
+          // If any statement in the batch is not under_review, mark it as 'approved'
+          await this.updateDeploymentStatus(batch.testBatchId, 'approved');
+          logDatabase(`Workflow state updated for test batch: ${batch.testBatchId} (approved)`, 'updateWorkflowStates');
+        }
+      }
+
+      // Get all test batches that are approved and ready to deploy
+      const approvedReadyBatches = await db
+        .select()
+        .from(statements)
+        .where(
+          and(
+            eq(statements.status, 'approved'),
+            eq(statements.deploymentStatus, 'ready')
+          )
+        )
+        .groupBy(statements.testBatchId);
+
+      for (const batch of approvedReadyBatches) {
+        if (!batch.testBatchId) continue;
+
+        const batchStatements = await this.getStatementsByBatchId(batch.testBatchId);
+        const project = await this.getProject(batchStatements[0]?.projectId || ''); // Assuming all statements in a batch are for the same project
+
+        if (batchStatements.length > 0 && batchStatements.every(s => s.status === 'approved')) {
+          await this.markTestBatchReadyToDeploy(batch.testBatchId);
+          logDatabase(`Workflow state updated for test batch: ${batch.testBatchId} (ready to deploy)`, 'updateWorkflowStates');
+        } else {
+          // If any statement in the batch is not approved, mark it as 'needs_revision'
+          await this.updateDeploymentStatus(batch.testBatchId, 'needs_revision');
+          logDatabase(`Workflow state updated for test batch: ${batch.testBatchId} (needs revision)`, 'updateWorkflowStates');
+        }
+      }
+
+      logDatabase('Workflow states updated successfully', 'updateWorkflowStates');
+    } catch (error) {
+      logError('Failed to update workflow states', 'database', error as Error);
       throw error;
     }
   }
